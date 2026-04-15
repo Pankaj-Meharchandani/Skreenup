@@ -2,6 +2,7 @@ package com.example.skreenup.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -45,16 +46,21 @@ import com.example.skreenup.R
 fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val versionName = try {
-        val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-        packageInfo.versionName
+        val packageInfo = if (Build.VERSION.SDK_INT >= 33) {
+            context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.getPackageInfo(context.packageName, 0)
+        }
+        packageInfo.versionName ?: "1.0"
     } catch (e: Exception) {
-        "2.1.0"
+        "1.0"
     }
     
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("About") },
+                title = { Text("About Skreenup") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -161,15 +167,15 @@ fun AboutScreen(onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "What's New in v2.1",
+                    text = "Key Features",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
-                Text("• Independent X/Y Positioning for Frame & Screenshot", style = MaterialTheme.typography.bodySmall)
+                Text("• Independent Positioning for Frame & Screenshot", style = MaterialTheme.typography.bodySmall)
                 Text("• Manual Hex Color Input for Backgrounds", style = MaterialTheme.typography.bodySmall)
-                Text("• New iPhone X Notch & Full Laptop Chassis Models", style = MaterialTheme.typography.bodySmall)
-                Text("• Refined 56pt iPhone Radii & High-Accuracy Cutouts", style = MaterialTheme.typography.bodySmall)
-                Text("• Scrollable Adjust Tab for Better Precision", style = MaterialTheme.typography.bodySmall)
+                Text("• High-Fidelity iPhone & Laptop Chassis Models", style = MaterialTheme.typography.bodySmall)
+                Text("• Pixel-Perfect High-Resolution Export", style = MaterialTheme.typography.bodySmall)
+                Text("• Material 3 Design with Dynamic Theming", style = MaterialTheme.typography.bodySmall)
             }
 
             Spacer(Modifier.weight(1f))

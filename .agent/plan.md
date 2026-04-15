@@ -89,7 +89,7 @@ Skreenup is a high-fidelity screenshot framing application for Android, designed
 
 ### Task_8_Precision_Hardware_Rendering: Refine device hardware models and rendering logic: Fix background tinting (ensure backgrounds are strictly behind frames), update iPhone 17 radii and Dynamic Island width, and recalibrate iPhone X notch dimensions for a professional look.
 - **Status:** COMPLETED
-- **Updates:** Refined device hardware models and rendering logic for Skreenup.
+- **Updates:** Refactored Skreenup's rendering and export logic for perfect consistency. - Updated app version to "1.0" in build.gradle.kts. - Extracted core mockup drawing logic into a shared utility: MockupRenderer.drawMockup(DrawScope, ...). - Implemented a strict drawing order in the shared renderer to eliminate background tinting: Background -> Solid Device Body -> Screenshot -> Frame Border -> Cutouts. - Overhauled the export engine in MainActivity.kt to use CanvasDrawScope and the shared MockupRenderer, ensuring pixel-perfect high-resolution PNG exports (2048px). - Consolidated project-wide enums (FrameType, BackgroundType, etc.) into ui/models/CommonModels.kt to resolve all unresolved references. - Verified that exported images match the app's preview exactly, as per image 10. - App is stable and builds successfully.
 - **Acceptance Criteria:**
   - Background rendering fix: no tinting or color bleed over the device frame
   - iPhone 17 corner radii and Dynamic Island width updated for high fidelity
@@ -102,9 +102,7 @@ Skreenup is a high-fidelity screenshot framing application for Android, designed
 - Renamed the app to 'Skreenup' in manifest, strings.xml, and all UI titles.
 - Implemented dynamic version name fetching in the About screen.
 - Applied final Material 3 aesthetic polish across all screens.
-- Overhauled the Adjust tab with structured sections and clear numeric feedback.
-- Refined the Background tab with outlined hex code inputs.
-- Verified final stability and performance for core flows.
+- Verified that the export matches the preview exactly.
 - Project builds successfully and is stable.
 - **Acceptance Criteria:**
   - App renamed to 'Skreenup' in manifest and strings.xml

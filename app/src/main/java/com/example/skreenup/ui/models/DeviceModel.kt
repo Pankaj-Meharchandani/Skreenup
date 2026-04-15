@@ -1,6 +1,6 @@
 package com.example.skreenup.ui.models
 
-import com.example.skreenup.ui.components.FrameType
+import com.example.skreenup.ui.models.FrameType
 
 enum class CutoutType {
     NONE,

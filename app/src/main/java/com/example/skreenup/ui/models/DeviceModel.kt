@@ -2,6 +2,14 @@ package com.example.skreenup.ui.models
 
 import com.example.skreenup.ui.components.FrameType
 
+enum class CutoutType {
+    NONE,
+    DYNAMIC_ISLAND,
+    DOT,
+    NOTCH,
+    LAPTOP_NOTCH
+}
+
 data class DeviceModel(
     val id: String,
     val name: String,
@@ -10,7 +18,9 @@ data class DeviceModel(
     val resWidth: Int,
     val resHeight: Int,
     val type: FrameType,
-    val cornerRadiusDp: Int = 32
+    val cornerRadiusDp: Int = 32,
+    val cutoutType: CutoutType = CutoutType.NONE,
+    val hasChassis: Boolean = false
 ) {
     val aspectRatio: Float get() = resWidth.toFloat() / resHeight.toFloat()
 }
@@ -24,7 +34,8 @@ val DeviceModels = listOf(
         resWidth = 1320,
         resHeight = 2868,
         type = FrameType.IPHONE,
-        cornerRadiusDp = 44
+        cornerRadiusDp = 56, // Updated to 56pt
+        cutoutType = CutoutType.DYNAMIC_ISLAND
     ),
     DeviceModel(
         id = "iphone_17",
@@ -34,7 +45,19 @@ val DeviceModels = listOf(
         resWidth = 1290,
         resHeight = 2796,
         type = FrameType.IPHONE,
-        cornerRadiusDp = 40
+        cornerRadiusDp = 56, // Updated to 56pt
+        cutoutType = CutoutType.DYNAMIC_ISLAND
+    ),
+    DeviceModel(
+        id = "iphone_x",
+        name = "iPhone X",
+        widthMm = 70.9f,
+        heightMm = 143.6f,
+        resWidth = 1125,
+        resHeight = 2436,
+        type = FrameType.IPHONE,
+        cornerRadiusDp = 40,
+        cutoutType = CutoutType.NOTCH
     ),
     DeviceModel(
         id = "galaxy_s26",
@@ -44,17 +67,8 @@ val DeviceModels = listOf(
         resWidth = 1080,
         resHeight = 2340,
         type = FrameType.ANDROID_PHONE,
-        cornerRadiusDp = 28
-    ),
-    DeviceModel(
-        id = "galaxy_s26_plus",
-        name = "Galaxy S26+",
-        widthMm = 75.8f,
-        heightMm = 158.4f,
-        resWidth = 1440,
-        resHeight = 3120,
-        type = FrameType.ANDROID_PHONE,
-        cornerRadiusDp = 28
+        cornerRadiusDp = 28,
+        cutoutType = CutoutType.DOT
     ),
     DeviceModel(
         id = "galaxy_s26_ultra",
@@ -64,16 +78,19 @@ val DeviceModels = listOf(
         resWidth = 1440,
         resHeight = 3120,
         type = FrameType.ANDROID_PHONE,
-        cornerRadiusDp = 8
+        cornerRadiusDp = 8,
+        cutoutType = CutoutType.DOT
     ),
     DeviceModel(
-        id = "laptop_generic",
-        name = "Modern Laptop",
+        id = "laptop_full",
+        name = "Full Laptop",
         widthMm = 304.1f,
         heightMm = 212.4f,
         resWidth = 2560,
         resHeight = 1600,
         type = FrameType.DESKTOP,
-        cornerRadiusDp = 12
+        cornerRadiusDp = 16,
+        cutoutType = CutoutType.LAPTOP_NOTCH,
+        hasChassis = true
     )
 )

@@ -24,8 +24,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import com.example.skreenup.ui.models.CutoutType
 import com.example.skreenup.ui.models.DeviceModel
-import com.example.skreenup.ui.theme.SkreenupTheme
 import androidx.compose.ui.unit.dp
 
 enum class FrameType {
@@ -57,8 +57,11 @@ fun DeviceFrame(
     backgroundColor: Color = Color.White,
     gradientColors: List<Color> = listOf(Color(0xFF3F51B5), Color(0xFF006A6A)),
     scale: Float = 0.8f,
-    offsetX: Float = 0f,
-    offsetY: Float = 0f,
+    imageScale: Float = 1.0f,
+    frameOffsetX: Float = 0f,
+    frameOffsetY: Float = 0f,
+    screenshotOffsetX: Float = 0f,
+    screenshotOffsetY: Float = 0f,
     aspectRatio: CompositionAspectRatio = CompositionAspectRatio.SQUARE,
     backgroundImage: ImageBitmap? = null,
     showWatermark: Boolean = false,
@@ -114,7 +117,6 @@ fun DeviceFrame(
                                 alpha = 0.5f,
                                 blendMode = BlendMode.SrcOver
                             )
-                            // Add a semi-transparent overlay to enhance the "blur" feel
                             drawRect(
                                 color = Color.White.copy(alpha = 0.3f),
                                 topLeft = Offset(compLeft, compTop),
@@ -141,7 +143,6 @@ fun DeviceFrame(
 
             // 2. Calculate frame dimensions
             val frameAspectRatio = deviceModel.aspectRatio
-
             var frameWidth: Float
             var frameHeight: Float
 
@@ -153,17 +154,48 @@ fun DeviceFrame(
                 frameHeight = frameWidth / frameAspectRatio
             }
 
-            val frameLeft = compLeft + (compWidth - frameWidth) / 2 + offsetX
-            val frameTop = compTop + (compHeight - frameHeight) / 2 + offsetY
+            // Apply Frame Offsets
+            val frameLeft = compLeft + (compWidth - frameWidth) / 2 + frameOffsetX
+            val frameTop = compTop + (compHeight - frameHeight) / 2 + frameOffsetY
             val frameRect = Rect(Offset(frameLeft, frameTop), Size(frameWidth, frameHeight))
 
-            val cornerRadiusValue = with(density) { deviceModel.cornerRadiusDp.dp.toPx() }
+            val pixelScale = frameWidth / deviceModel.widthMm
+            val baseWidthMm = 78f
+            val cornerRadiusPx = (deviceModel.cornerRadiusDp * (frameWidth / baseWidthMm)) * 0.5f
+
+            // 2.1 Draw Laptop Chassis
+            if (deviceModel.hasChassis && deviceModel.type == FrameType.DESKTOP) {
+                val chassisHeightPx = 8 * pixelScale
+                val chassisWidthPx = frameWidth * 1.15f
+                val chassisRect = Rect(
+                    offset = Offset(frameLeft - (chassisWidthPx - frameWidth) / 2, frameTop + frameHeight),
+                    size = Size(chassisWidthPx, chassisHeightPx)
+                )
+                
+                // Draw main chassis bar
+                drawRoundRect(
+                    color = Color(0xFF2C2C2C),
+                    topLeft = chassisRect.topLeft,
+                    size = chassisRect.size,
+                    cornerRadius = CornerRadius(4 * pixelScale)
+                )
+                
+                // Draw opening notch
+                val notchWidthPx = chassisWidthPx * 0.15f
+                val notchHeightPx = chassisHeightPx * 0.4f
+                drawRoundRect(
+                    color = Color(0xFF1A1A1A),
+                    topLeft = Offset(chassisRect.left + (chassisWidthPx - notchWidthPx) / 2, chassisRect.top),
+                    size = Size(notchWidthPx, notchHeightPx),
+                    cornerRadius = CornerRadius(0f, 0f) // Simplified
+                )
+            }
 
             val framePath = Path().apply {
                 addRoundRect(
                     RoundRect(
                         rect = frameRect,
-                        cornerRadius = CornerRadius(cornerRadiusValue)
+                        cornerRadius = CornerRadius(cornerRadiusPx)
                     )
                 )
             }
@@ -172,20 +204,36 @@ fun DeviceFrame(
             drawPath(
                 path = framePath,
                 color = Color.Black.copy(alpha = 0.3f),
-                style = Stroke(width = with(density) { 12.dp.toPx() })
+                style = Stroke(width = 12 * (frameWidth / 300f))
             )
 
             // 4. Clip and Draw Screenshot
             clipPath(framePath) {
                 if (screenshot != null) {
+                    val imgAspectRatio = screenshot.width.toFloat() / screenshot.height.toFloat()
+                    var imgWidth: Float
+                    var imgHeight: Float
+                    
+                    if (frameWidth / frameHeight > imgAspectRatio) {
+                        imgHeight = frameHeight * imageScale
+                        imgWidth = imgHeight * imgAspectRatio
+                    } else {
+                        imgWidth = frameWidth * imageScale
+                        imgHeight = imgWidth / imgAspectRatio
+                    }
+                    
+                    // Apply Screenshot Offsets
+                    val imgLeft = frameLeft + (frameWidth - imgWidth) / 2 + screenshotOffsetX
+                    val imgTop = frameTop + (frameHeight - imgHeight) / 2 + screenshotOffsetY
+                    
                     drawImage(
                         image = screenshot,
-                        dstOffset = IntOffset(frameLeft.toInt(), frameTop.toInt()),
-                        dstSize = IntSize(frameWidth.toInt(), frameHeight.toInt()),
+                        dstOffset = IntOffset(imgLeft.toInt(), imgTop.toInt()),
+                        dstSize = IntSize(imgWidth.toInt(), imgHeight.toInt()),
                         blendMode = BlendMode.SrcOver
                     )
                     
-                    // Reflection Effect (Subtle Gradient Overlay)
+                    // Reflection Effect
                     drawRect(
                         brush = Brush.verticalGradient(
                             colors = listOf(Color.White.copy(alpha = 0.15f), Color.Transparent, Color.White.copy(alpha = 0.05f)),
@@ -209,33 +257,72 @@ fun DeviceFrame(
             drawPath(
                 path = framePath,
                 color = Color.Black,
-                style = Stroke(width = with(density) { 4.dp.toPx() })
+                style = Stroke(width = 4 * (frameWidth / 300f))
             )
 
-            // 6. Draw "Speaker" or "Notch" for phones
-            if (deviceModel.type == FrameType.ANDROID_PHONE || deviceModel.type == FrameType.IPHONE) {
-                val speakerWidth = frameWidth * 0.15f
-                val speakerHeight = with(density) { 4.dp.toPx() }
-                drawRoundRect(
-                    color = Color.Black,
-                    topLeft = Offset(frameLeft + (frameWidth - speakerWidth) / 2, frameTop + with(density) { 10.dp.toPx() }),
-                    size = Size(speakerWidth, speakerHeight),
-                    cornerRadius = CornerRadius(with(density) { 2.dp.toPx() })
-                )
+            // 6. Draw Camera Cutouts
+            when (deviceModel.cutoutType) {
+                CutoutType.DYNAMIC_ISLAND -> {
+                    val islandWidthPx = 15 * pixelScale
+                    val islandHeightPx = 5 * pixelScale
+                    val islandRect = Rect(
+                        offset = Offset(frameLeft + (frameWidth - islandWidthPx) / 2, frameTop + 6 * pixelScale), // Positioned higher
+                        size = Size(islandWidthPx, islandHeightPx)
+                    )
+                    drawRoundRect(
+                        color = Color.Black,
+                        topLeft = islandRect.topLeft,
+                        size = islandRect.size,
+                        cornerRadius = CornerRadius(islandHeightPx / 2)
+                    )
+                }
+                CutoutType.NOTCH -> {
+                    val notchWidthPx = frameWidth * 0.45f
+                    val notchHeightPx = 8 * pixelScale
+                    val notchRect = Rect(
+                        offset = Offset(frameLeft + (frameWidth - notchWidthPx) / 2, frameTop),
+                        size = Size(notchWidthPx, notchHeightPx)
+                    )
+                    drawRoundRect(
+                        color = Color.Black,
+                        topLeft = notchRect.topLeft,
+                        size = notchRect.size,
+                        cornerRadius = CornerRadius(0f, 0f) // Rectangular notch
+                    )
+                }
+                CutoutType.DOT -> {
+                    val dotDiameterPx = 4 * pixelScale // Increased size
+                    drawCircle(
+                        color = Color.Black,
+                        radius = dotDiameterPx / 2,
+                        center = Offset(frameLeft + frameWidth / 2, frameTop + 6 * pixelScale) // Positioned higher
+                    )
+                }
+                CutoutType.LAPTOP_NOTCH -> {
+                    val notchWidthPx = frameWidth * 0.12f
+                    val notchHeightPx = 4 * pixelScale
+                    drawRoundRect(
+                        color = Color.Black,
+                        topLeft = Offset(frameLeft + (frameWidth - notchWidthPx) / 2, frameTop),
+                        size = Size(notchWidthPx, notchHeightPx),
+                        cornerRadius = CornerRadius(0f, 0f)
+                    )
+                }
+                CutoutType.NONE -> {}
             }
 
             // 7. Draw Watermark
             if (showWatermark && watermarkText.isNotEmpty()) {
                 val paint = android.graphics.Paint().apply {
                     color = Color.White.copy(alpha = 0.7f).toArgb()
-                    textSize = with(density) { 16.dp.toPx() }
+                    textSize = 16 * density.density * scale
                     textAlign = android.graphics.Paint.Align.RIGHT
                     isAntiAlias = true
                 }
                 drawContext.canvas.nativeCanvas.drawText(
                     watermarkText,
-                    compLeft + compWidth - with(density) { 16.dp.toPx() },
-                    compTop + compHeight - with(density) { 16.dp.toPx() },
+                    compLeft + compWidth - 16 * density.density,
+                    compTop + compHeight - 16 * density.density,
                     paint
                 )
             }

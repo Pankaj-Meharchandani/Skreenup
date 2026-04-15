@@ -14,14 +14,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -29,6 +29,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -48,6 +49,10 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
     val backgroundType by viewModel.backgroundType.collectAsState()
     val backgroundColor by viewModel.backgroundColor.collectAsState()
     val gradientColors by viewModel.gradientColors.collectAsState()
+    
+    val hexColorSolid by viewModel.hexColorSolid.collectAsState()
+    val hexColorStart by viewModel.hexColorGradientStart.collectAsState()
+    val hexColorEnd by viewModel.hexColorGradientEnd.collectAsState()
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -61,6 +66,7 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -85,31 +91,43 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
 
         when (backgroundType) {
             BackgroundType.SOLID -> {
-                ColorSelector(
-                    selectedColor = backgroundColor,
-                    onColorSelected = { viewModel.setBackgroundColor(it) }
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ColorSelector(
+                        selectedColor = backgroundColor,
+                        onColorSelected = { viewModel.setBackgroundColor(it) }
+                    )
+                    OutlinedTextField(
+                        value = hexColorSolid,
+                        onValueChange = { viewModel.setHexColorSolid(it) },
+                        label = { Text("Hex Color Code") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
             }
             BackgroundType.GRADIENT -> {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Gradient Colors", style = MaterialTheme.typography.labelLarge)
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text("Gradient Customizer", style = MaterialTheme.typography.labelLarge)
+                    
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        ColorCircle(
-                            color = gradientColors[0],
-                            isSelected = true,
-                            onClick = { /* Simple cycle for demo */
-                                val newColors = listOf(getNextColor(gradientColors[0]), gradientColors[1])
-                                viewModel.setGradientColors(newColors)
-                            }
-                        )
-                        ColorCircle(
-                            color = gradientColors[1],
-                            isSelected = true,
-                            onClick = { 
-                                val newColors = listOf(gradientColors[0], getNextColor(gradientColors[1]))
-                                viewModel.setGradientColors(newColors)
-                            }
-                        )
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ColorCircle(color = gradientColors[0], isSelected = true, onClick = {})
+                            OutlinedTextField(
+                                value = hexColorStart,
+                                onValueChange = { viewModel.setHexColorGradientStart(it) },
+                                label = { Text("Start") },
+                                singleLine = true
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ColorCircle(color = gradientColors[1], isSelected = true, onClick = {})
+                            OutlinedTextField(
+                                value = hexColorEnd,
+                                onValueChange = { viewModel.setHexColorGradientEnd(it) },
+                                label = { Text("End") },
+                                singleLine = true
+                            )
+                        }
                     }
                 }
             }
@@ -148,7 +166,7 @@ fun ColorSelector(selectedColor: Color, onColorSelected: (Color) -> Unit) {
     )
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Select Color", style = MaterialTheme.typography.labelLarge)
+        Text("Material Presets", style = MaterialTheme.typography.labelLarge)
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(vertical = 4.dp)
@@ -178,13 +196,4 @@ fun ColorCircle(color: Color, isSelected: Boolean, onClick: () -> Unit) {
             )
             .clickable(onClick = onClick)
     )
-}
-
-fun getNextColor(current: Color): Color {
-    val colors = listOf(
-        Color(0xFF3F51B5), Color(0xFF006A6A), Color(0xFFBA1A1A), 
-        Color(0xFF6750A4), Color(0xFF0061A4), Color(0xFF006E1C)
-    )
-    val index = colors.indexOf(current)
-    return if (index == -1 || index == colors.size - 1) colors[0] else colors[index + 1]
 }

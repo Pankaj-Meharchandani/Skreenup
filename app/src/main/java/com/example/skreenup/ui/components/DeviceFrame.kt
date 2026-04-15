@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import com.example.skreenup.ui.models.DeviceModel
+import com.example.skreenup.ui.theme.SkreenupTheme
 import androidx.compose.ui.unit.dp
 
 enum class FrameType {
@@ -36,7 +38,8 @@ enum class FrameType {
 enum class BackgroundType {
     SOLID,
     GRADIENT,
-    BLUR
+    BLUR,
+    IMAGE
 }
 
 enum class CompositionAspectRatio(val ratio: Float, val label: String) {
@@ -49,7 +52,7 @@ enum class CompositionAspectRatio(val ratio: Float, val label: String) {
 @Composable
 fun DeviceFrame(
     screenshot: ImageBitmap?,
-    frameType: FrameType,
+    deviceModel: DeviceModel,
     backgroundType: BackgroundType = BackgroundType.SOLID,
     backgroundColor: Color = Color.White,
     gradientColors: List<Color> = listOf(Color(0xFF3F51B5), Color(0xFF006A6A)),
@@ -57,6 +60,7 @@ fun DeviceFrame(
     offsetX: Float = 0f,
     offsetY: Float = 0f,
     aspectRatio: CompositionAspectRatio = CompositionAspectRatio.SQUARE,
+    backgroundImage: ImageBitmap? = null,
     showWatermark: Boolean = false,
     watermarkText: String = "",
     modifier: Modifier = Modifier
@@ -120,15 +124,23 @@ fun DeviceFrame(
                             drawRect(color = Color.LightGray, topLeft = Offset(compLeft, compTop), size = Size(compWidth, compHeight))
                         }
                     }
+                    BackgroundType.IMAGE -> {
+                        if (backgroundImage != null) {
+                            drawImage(
+                                image = backgroundImage,
+                                dstOffset = IntOffset(compLeft.toInt(), compTop.toInt()),
+                                dstSize = IntSize(compWidth.toInt(), compHeight.toInt()),
+                                blendMode = BlendMode.SrcOver
+                            )
+                        } else {
+                            drawRect(color = Color.LightGray, topLeft = Offset(compLeft, compTop), size = Size(compWidth, compHeight))
+                        }
+                    }
                 }
             }
 
             // 2. Calculate frame dimensions
-            val frameAspectRatio = when (frameType) {
-                FrameType.ANDROID_PHONE, FrameType.IPHONE -> 9f / 19.5f
-                FrameType.TABLET -> 4f / 3f
-                FrameType.DESKTOP -> 16f / 10f
-            }
+            val frameAspectRatio = deviceModel.aspectRatio
 
             var frameWidth: Float
             var frameHeight: Float
@@ -145,7 +157,7 @@ fun DeviceFrame(
             val frameTop = compTop + (compHeight - frameHeight) / 2 + offsetY
             val frameRect = Rect(Offset(frameLeft, frameTop), Size(frameWidth, frameHeight))
 
-            val cornerRadiusValue = with(density) { 32.dp.toPx() } // Using fixed for phone, simplify for now
+            val cornerRadiusValue = with(density) { deviceModel.cornerRadiusDp.dp.toPx() }
 
             val framePath = Path().apply {
                 addRoundRect(
@@ -201,12 +213,12 @@ fun DeviceFrame(
             )
 
             // 6. Draw "Speaker" or "Notch" for phones
-            if (frameType == FrameType.ANDROID_PHONE || frameType == FrameType.IPHONE) {
-                val speakerWidth = frameWidth * 0.2f
+            if (deviceModel.type == FrameType.ANDROID_PHONE || deviceModel.type == FrameType.IPHONE) {
+                val speakerWidth = frameWidth * 0.15f
                 val speakerHeight = with(density) { 4.dp.toPx() }
                 drawRoundRect(
                     color = Color.Black,
-                    topLeft = Offset(frameLeft + (frameWidth - speakerWidth) / 2, frameTop + with(density) { 12.dp.toPx() }),
+                    topLeft = Offset(frameLeft + (frameWidth - speakerWidth) / 2, frameTop + with(density) { 10.dp.toPx() }),
                     size = Size(speakerWidth, speakerHeight),
                     cornerRadius = CornerRadius(with(density) { 2.dp.toPx() })
                 )

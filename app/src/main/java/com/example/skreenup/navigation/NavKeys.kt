@@ -4,10 +4,16 @@ import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed interface SkreenupNavKey : NavKey
+sealed interface SkreenupTabKey : NavKey
 
 @Serializable
-object Home : SkreenupNavKey
+object FrameTab : SkreenupTabKey
 
 @Serializable
-data class Editor(val projectId: Long? = null, val presetId: Long? = null) : SkreenupNavKey
+object BackgroundTab : SkreenupTabKey
+
+@Serializable
+object AdjustTab : SkreenupTabKey
+
+@Serializable
+object AboutTab : SkreenupTabKey

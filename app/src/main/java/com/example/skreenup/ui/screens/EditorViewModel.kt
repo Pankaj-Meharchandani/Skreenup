@@ -7,8 +7,8 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import com.example.skreenup.ui.components.BackgroundType
-import com.example.skreenup.ui.components.CompositionAspectRatio
+import com.example.skreenup.ui.models.BackgroundType
+import com.example.skreenup.ui.models.CompositionAspectRatio
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import coil.ImageLoader

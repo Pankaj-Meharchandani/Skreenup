@@ -44,7 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.skreenup.ui.components.BackgroundType
+import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.screens.EditorViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Smartphone frame with screen cutout -->
+    <path
+        android:fillColor="#80CBC4"
+        android:pathData="M40,24h28c2.2,0 4,1.8 4,4v52c0,2.2 -1.8,4 -4,4h-28c-2.2,0 -4,-1.8 -4,-4v-52c0,-2.2 1.8,-4 4,-4z M43,30v44h22v-44h-22z" />
+    <!-- "Frame" indicator inside screen -->
+    <path
+        android:fillColor="#80CBC4"
+        android:pathData="M48,42h4v2h-4v4h-2v-6z M56,42h4v6h-2v-4h-4v-2z M56,58h4v6h-6v-2h4v-4z M48,58h4v4h4v2h-6v-6z" />
+</vector>

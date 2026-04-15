@@ -1,18 +1,29 @@
 package com.example.skreenup.ui.screens.tabs
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AspectRatio
+import androidx.compose.material.icons.rounded.Fullscreen
+import androidx.compose.material.icons.rounded.OpenWith
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -21,8 +32,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.skreenup.ui.components.CompositionAspectRatio
 import com.example.skreenup.ui.screens.EditorViewModel
 
@@ -42,59 +55,81 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(28.dp)
     ) {
         // Main Scaling
         AdjustmentItem(
-            label = "Frame Scaling",
+            label = "Mockup Scale",
             value = scale,
             onValueChange = { viewModel.setScale(it) },
-            valueRange = 0.2f..1.0f
+            valueRange = 0.2f..1.0f,
+            icon = Icons.Rounded.Fullscreen
         )
 
         // Image Scaling
         AdjustmentItem(
-            label = "Image Scaling",
+            label = "Screenshot Fit",
             value = imageScale,
             onValueChange = { viewModel.setImageScale(it) },
-            valueRange = 0.5f..1.5f
+            valueRange = 0.5f..1.5f,
+            icon = Icons.Rounded.AspectRatio
         )
 
         // Export Ratio
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = "Export Ratio",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.AspectRatio, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.size(12.dp))
+                Text(
+                    text = "Export Canvas Ratio",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
             LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(CompositionAspectRatio.entries) { ratio ->
                     FilterChip(
                         selected = aspectRatio == ratio,
                         onClick = { viewModel.setAspectRatio(ratio) },
-                        label = { Text(ratio.label) }
+                        label = { Text(ratio.label) },
+                        shape = MaterialTheme.shapes.large
                     )
                 }
             }
         }
 
-        HorizontalDivider()
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
         // Frame Offsets
-        Text("Frame Position", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        OffsetSlider(label = "Offset X", value = frameOffsetX, onValueChange = { viewModel.setFrameOffsetX(it) })
-        OffsetSlider(label = "Offset Y", value = frameOffsetY, onValueChange = { viewModel.setFrameOffsetY(it) })
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            SectionHeader(label = "Frame Positioning", icon = Icons.Rounded.OpenWith)
+            OffsetSlider(label = "Horizontal (X)", value = frameOffsetX, onValueChange = { viewModel.setFrameOffsetX(it) })
+            OffsetSlider(label = "Vertical (Y)", value = frameOffsetY, onValueChange = { viewModel.setFrameOffsetY(it) })
+        }
 
-        HorizontalDivider()
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
         // Screenshot Offsets
-        Text("Screenshot Position", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        OffsetSlider(label = "Offset X", value = screenshotOffsetX, onValueChange = { viewModel.setScreenshotOffsetX(it) })
-        OffsetSlider(label = "Offset Y", value = screenshotOffsetY, onValueChange = { viewModel.setScreenshotOffsetY(it) })
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            SectionHeader(label = "Screenshot Tuning", icon = Icons.Rounded.OpenWith)
+            OffsetSlider(label = "Internal X", value = screenshotOffsetX, onValueChange = { viewModel.setScreenshotOffsetX(it) })
+            OffsetSlider(label = "Internal Y", value = screenshotOffsetY, onValueChange = { viewModel.setScreenshotOffsetY(it) })
+        }
+        
+        Spacer(Modifier.height(40.dp))
+    }
+}
+
+@Composable
+fun SectionHeader(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.size(12.dp))
+        Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
     }
 }
 
@@ -103,23 +138,29 @@ fun AdjustmentItem(
     label: String,
     value: Float,
     onValueChange: (Float) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float>
+    valueRange: ClosedFloatingPointRange<Float>,
+    icon: androidx.compose.ui.graphics.vector.ImageVector
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.size(12.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
             Text(
                 text = "${(value * 100).toInt()}%",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
             )
         }
         Slider(
@@ -142,8 +183,8 @@ fun OffsetSlider(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(label, style = MaterialTheme.typography.labelMedium)
-            Text("${value.toInt()}px", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("${value.toInt()}px", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
         }
         Slider(
             value = value,

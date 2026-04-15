@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -41,18 +40,18 @@ fun FrameTabScreen(viewModel: EditorViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(vertical = 16.dp)
+            .padding(vertical = 12.dp)
     ) {
         Text(
             text = "Device Frame",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            fontWeight = FontWeight.ExtraBold,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
         )
 
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             items(DeviceModels) { device ->
@@ -73,35 +72,49 @@ fun DeviceFrameItem(
     onClick: () -> Unit
 ) {
     val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
-    val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val backgroundColor = if (isSelected) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    }
 
     Column(
         modifier = Modifier
-            .width(120.dp)
-            .clip(RoundedCornerShape(24.dp))
+            .width(130.dp)
+            .clip(RoundedCornerShape(28.dp))
             .background(backgroundColor)
-            .border(2.dp, borderColor, RoundedCornerShape(24.dp))
+            .border(2.dp, borderColor, RoundedCornerShape(28.dp))
             .clickable(onClick = onClick)
-            .padding(12.dp),
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Minimalistic device representation
         Box(
             modifier = Modifier
-                .height(100.dp)
+                .height(110.dp)
                 .aspectRatio(device.widthMm / device.heightMm)
-                .background(Color.Black, RoundedCornerShape((device.cornerRadiusDp / 4).dp))
-                .border(1.dp, Color.Gray.copy(alpha = 0.5f), RoundedCornerShape((device.cornerRadiusDp / 4).dp))
-        )
+                .background(Color.Black, RoundedCornerShape(8.dp))
+                .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            // Tiny indicator for screen/notch
+            Box(
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .width(12.dp)
+                    .height(2.dp)
+                    .background(Color.DarkGray, RoundedCornerShape(1.dp))
+            )
+        }
 
         Text(
             text = device.name,
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
             color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             maxLines = 1
         )
     }

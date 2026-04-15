@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
@@ -26,7 +27,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.example.skreenup.ui.models.CutoutType
 import com.example.skreenup.ui.models.DeviceModel
-import androidx.compose.ui.unit.dp
 
 enum class FrameType {
     ANDROID_PHONE,
@@ -160,8 +160,10 @@ fun DeviceFrame(
             val frameRect = Rect(Offset(frameLeft, frameTop), Size(frameWidth, frameHeight))
 
             val pixelScale = frameWidth / deviceModel.widthMm
-            val baseWidthMm = 78f
-            val cornerRadiusPx = (deviceModel.cornerRadiusDp * (frameWidth / baseWidthMm)) * 0.5f
+            
+            // Refined Corner Radius Calculation (pt to mm to px)
+            // 1pt = 0.3527mm
+            val cornerRadiusPx = (deviceModel.cornerRadiusDp * 0.3527f) * pixelScale
 
             // 2.1 Draw Laptop Chassis
             if (deviceModel.hasChassis && deviceModel.type == FrameType.DESKTOP) {
@@ -187,7 +189,7 @@ fun DeviceFrame(
                     color = Color(0xFF1A1A1A),
                     topLeft = Offset(chassisRect.left + (chassisWidthPx - notchWidthPx) / 2, chassisRect.top),
                     size = Size(notchWidthPx, notchHeightPx),
-                    cornerRadius = CornerRadius(0f, 0f) // Simplified
+                    cornerRadius = CornerRadius(0f, 0f)
                 )
             }
 
@@ -199,6 +201,13 @@ fun DeviceFrame(
                     )
                 )
             }
+
+            // Fix Background Tinting: Draw solid device body first
+            drawPath(
+                path = framePath,
+                color = Color(0xFF1A1A1A), // Deep professional dark gray
+                style = Fill
+            )
 
             // 3. Draw Shadow
             drawPath(
@@ -245,8 +254,9 @@ fun DeviceFrame(
                         blendMode = BlendMode.Screen
                     )
                 } else {
+                    // Draw a neutral display area if no screenshot
                     drawRect(
-                        color = Color.DarkGray,
+                        color = Color(0xFF2C2C2C),
                         topLeft = Offset(frameLeft, frameTop),
                         size = Size(frameWidth, frameHeight)
                     )
@@ -260,13 +270,14 @@ fun DeviceFrame(
                 style = Stroke(width = 4 * (frameWidth / 300f))
             )
 
-            // 6. Draw Camera Cutouts
+            // 6. Draw Camera Cutouts (Recalibrated for v2.1.1)
             when (deviceModel.cutoutType) {
                 CutoutType.DYNAMIC_ISLAND -> {
-                    val islandWidthPx = 15 * pixelScale
+                    // Slightly narrower: 12.5mm x 5mm
+                    val islandWidthPx = 12.5f * pixelScale
                     val islandHeightPx = 5 * pixelScale
                     val islandRect = Rect(
-                        offset = Offset(frameLeft + (frameWidth - islandWidthPx) / 2, frameTop + 6 * pixelScale), // Positioned higher
+                        offset = Offset(frameLeft + (frameWidth - islandWidthPx) / 2, frameTop + 4 * pixelScale), // Higher up (4mm)
                         size = Size(islandWidthPx, islandHeightPx)
                     )
                     drawRoundRect(
@@ -277,25 +288,31 @@ fun DeviceFrame(
                     )
                 }
                 CutoutType.NOTCH -> {
-                    val notchWidthPx = frameWidth * 0.45f
-                    val notchHeightPx = 8 * pixelScale
+                    // Recalibrated iPhone X Notch: 34mm x 5.5mm
+                    val notchWidthPx = 34 * pixelScale
+                    val notchHeightPx = 5.5f * pixelScale
                     val notchRect = Rect(
                         offset = Offset(frameLeft + (frameWidth - notchWidthPx) / 2, frameTop),
                         size = Size(notchWidthPx, notchHeightPx)
                     )
-                    drawRoundRect(
-                        color = Color.Black,
-                        topLeft = notchRect.topLeft,
-                        size = notchRect.size,
-                        cornerRadius = CornerRadius(0f, 0f) // Rectangular notch
-                    )
+                    // Use a path for a smoother notch shape
+                    val notchPath = Path().apply {
+                        moveTo(notchRect.left, notchRect.top)
+                        lineTo(notchRect.right, notchRect.top)
+                        lineTo(notchRect.right, notchRect.bottom - 2 * pixelScale)
+                        quadraticTo(notchRect.right, notchRect.bottom, notchRect.right - 2 * pixelScale, notchRect.bottom)
+                        lineTo(notchRect.left + 2 * pixelScale, notchRect.bottom)
+                        quadraticTo(notchRect.left, notchRect.bottom, notchRect.left, notchRect.bottom - 2 * pixelScale)
+                        close()
+                    }
+                    drawPath(path = notchPath, color = Color.Black)
                 }
                 CutoutType.DOT -> {
-                    val dotDiameterPx = 4 * pixelScale // Increased size
+                    val dotDiameterPx = 4 * pixelScale
                     drawCircle(
                         color = Color.Black,
                         radius = dotDiameterPx / 2,
-                        center = Offset(frameLeft + frameWidth / 2, frameTop + 6 * pixelScale) // Positioned higher
+                        center = Offset(frameLeft + frameWidth / 2, frameTop + 4 * pixelScale) // Higher up (4mm)
                     )
                 }
                 CutoutType.LAPTOP_NOTCH -> {

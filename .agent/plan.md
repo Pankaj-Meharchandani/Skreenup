@@ -1,35 +1,30 @@
 # Project Plan
 
-Update Skreenup to v2.1 with:
-- Separate About screen and dynamic version fetching.
-- Positioning sliders (Up/Down, Left/Right) for both frame and screenshot independently.
-- Replace Share icon with Save icon.
-- Hex color code input for backgrounds (solid/gradient).
-- New device models: Full laptop chassis, iPhone X with notch.
-- Refined cutout placements (higher up), larger Samsung dot, and 56pt iPhone radius.
-- Scrollable Adjust screen for better accessibility.
-- Professional Material 3 aesthetic.
+Refine Skreenup: 
+- Fix background tinting over the frame (background must be strictly behind).
+- Update iPhone radii, Dynamic Island width, and iPhone X notch for professional look.
+- About Screen: Dynamic version name, rename app to 'Skreenup'.
+- Final Material 3 polish.
 
 ## Project Brief
 
-# Project Brief: Skreenup v2.1
+# Project Brief: Skreenup
 
-Skreenup v2.1 is an advanced screenshot framing tool for Android, offering professional-grade controls for creating high-fidelity device mockups. This version introduces granular positioning, expanded hardware models, and precise color customization.
+Skreenup is a high-fidelity screenshot framing application for Android, designed to create professional-grade mockups. This version focuses on precision hardware modeling, refined rendering logic, and streamlined system integration.
 
 ### Features
-
-- **Independent Positioning & Scaling**: Dedicated sliders in the Adjust tab allow for independent X/Y movement and scaling of both the device frame and the screenshot inside, ensuring pixel-perfect alignment.
-- **Expanded Hardware Library**: Features a diverse range of frames, including full laptop chassis, the classic iPhone X notch style, and refined modern models with accurate 56pt corner radii and camera cutout placements.
-- **Precision Color Customization**: Professional background tools including a custom gradient builder and Hex color code text input for both solid and gradient backgrounds.
-- **High-Fidelity Export**: A streamlined workflow with a dedicated 'Save' action that exports high-resolution mockups, accurately preserving frame details, transparency, and camera cutouts.
+- **Professional Device Modeling**: Accurate, high-fidelity frames for iPhone 17, iPhone X (refined notch), and modern Android devices, featuring professional-grade corner radii and precisely placed camera cutouts.
+- **Layered Rendering Engine**: A robust rendering system that ensures background customizations—whether solid colors, gradients, or images—are rendered strictly behind the device frame, eliminating any tinting or color blending.
+- **Precision Adjustments**: Granular controls for background styling (including Hex color input) and independent screenshot scaling and fitting within the frame.
+- **Dynamic System Integration**: An updated "About" section that dynamically fetches the application version from the system and follows a clean, Material 3 aesthetic.
 
 ### High-Level Tech Stack
-- **Kotlin**: The core language for expressive and safe application logic.
-- **Jetpack Compose**: For a modern, declarative UI following Material 3 aesthetics.
-- **Jetpack Navigation 3**: A state-driven navigation architecture to manage primary tabs and the separate About screen.
-- **Compose Adaptive Material (CAMAL)**: Strictly utilized for all layouts to ensure a responsive and optimized experience across mobile, tablet, and foldable devices.
+- **Kotlin**: The primary language for robust and maintainable app logic.
+- **Jetpack Compose**: For a modern, declarative user interface following Material 3 guidelines.
+- **Jetpack Navigation 3**: A state-driven navigation architecture for seamless transitions between Frame, Background, and Adjust workflows.
+- **Compose Adaptive Material (CAMAL)**: Strictly utilized for all layouts to ensure a responsive experience across all Android form factors.
 - **Coroutines & Flow**: For efficient handling of high-resolution image rendering and real-time UI state updates.
-- **Coil**: For high-performance loading and processing of user-imported images and backgrounds.
+- **Coil**: For high-performance image loading and processing of user-provided screenshots and backgrounds.
 
 ## Implementation Steps
 
@@ -86,16 +81,36 @@ Skreenup v2.1 is an advanced screenshot framing tool for Android, offering profe
 ### Task_7_v2_1_UI_Final_Verify: Final v2.1 polish: Separate the About screen from the bottom navigation (separate page), implement dynamic version fetching, replace the Share icon with a Save icon, and perform final stability and UI verification.
 - **Status:** COMPLETED
 - **Updates:** Final v2.1 polish completed.
-- Overhauled navigation to separate the About screen (not a tab, but a separate page).
-- Implemented dynamic version fetching from PackageInfo in the About screen.
-- Replaced the Share icon with a Save icon in the TopAppBar.
-- Verified all v2.1 features (positioning sliders, hex input, new models).
-- Confirmed the Adjust screen is fully scrollable and stable.
-- Performed final UI and stability checks.
 - **Acceptance Criteria:**
   - About screen is a separate page (not a tab)
   - App version is fetched dynamically in the About screen
   - Share icon replaced with Save icon in TopAppBar
   - Final UI verification and stability checks
+
+### Task_8_Precision_Hardware_Rendering: Refine device hardware models and rendering logic: Fix background tinting (ensure backgrounds are strictly behind frames), update iPhone 17 radii and Dynamic Island width, and recalibrate iPhone X notch dimensions for a professional look.
+- **Status:** COMPLETED
+- **Updates:** Refined device hardware models and rendering logic for Skreenup.
+- **Acceptance Criteria:**
+  - Background rendering fix: no tinting or color bleed over the device frame
+  - iPhone 17 corner radii and Dynamic Island width updated for high fidelity
+  - iPhone X notch dimensions recalibrated
+  - The implemented UI must match the design provided in C:/Users/DELL/AndroidStudioProjects/Skreenup/input_images/image_0.png
+
+### Task_9_Branding_Final_Verification: Finalize app branding and polish: Rename app to 'Skreenup' in all resources, implement dynamic version name in the About screen, apply final Material 3 UI polish, and perform comprehensive verification.
+- **Status:** COMPLETED
+- **Updates:** Finalized app branding and polish for Skreenup.
+- Renamed the app to 'Skreenup' in manifest, strings.xml, and all UI titles.
+- Implemented dynamic version name fetching in the About screen.
+- Applied final Material 3 aesthetic polish across all screens.
+- Overhauled the Adjust tab with structured sections and clear numeric feedback.
+- Refined the Background tab with outlined hex code inputs.
+- Verified final stability and performance for core flows.
+- Project builds successfully and is stable.
+- **Acceptance Criteria:**
+  - App renamed to 'Skreenup' in manifest and strings.xml
+  - Dynamic version name displayed correctly in the About screen
+  - Final Material 3 aesthetic polish applied across all screens
+  - Project builds successfully, app is stable, and no crashes occur
+  - The implemented UI must match the design provided in C:/Users/DELL/AndroidStudioProjects/Skreenup/input_images/image_0.png
 - **Duration:** N/A
 

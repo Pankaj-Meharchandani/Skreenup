@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -22,15 +23,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Collections
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -67,65 +71,73 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Text(
             text = "Background Style",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.ExtraBold
         )
 
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             items(BackgroundType.entries) { type ->
                 FilterChip(
                     selected = backgroundType == type,
                     onClick = { viewModel.setBackgroundType(type) },
-                    label = { Text(type.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                    label = { Text(type.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                    shape = MaterialTheme.shapes.large
                 )
             }
         }
 
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
+
         when (backgroundType) {
             BackgroundType.SOLID -> {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     ColorSelector(
                         selectedColor = backgroundColor,
                         onColorSelected = { viewModel.setBackgroundColor(it) }
                     )
+                    
                     OutlinedTextField(
                         value = hexColorSolid,
                         onValueChange = { viewModel.setHexColorSolid(it) },
-                        label = { Text("Hex Color Code") },
+                        label = { Text("Manual Hex Code") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        leadingIcon = { Icon(Icons.Rounded.Palette, contentDescription = null) },
+                        shape = MaterialTheme.shapes.medium
                     )
                 }
             }
             BackgroundType.GRADIENT -> {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text("Gradient Customizer", style = MaterialTheme.typography.labelLarge)
+                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    Text("Gradient Builder", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ColorCircle(color = gradientColors[0], isSelected = true, onClick = {})
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(gradientColors[0]))
                             OutlinedTextField(
                                 value = hexColorStart,
                                 onValueChange = { viewModel.setHexColorGradientStart(it) },
                                 label = { Text("Start") },
-                                singleLine = true
+                                singleLine = true,
+                                shape = MaterialTheme.shapes.medium
                             )
                         }
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ColorCircle(color = gradientColors[1], isSelected = true, onClick = {})
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(gradientColors[1]))
                             OutlinedTextField(
                                 value = hexColorEnd,
                                 onValueChange = { viewModel.setHexColorGradientEnd(it) },
                                 label = { Text("End") },
-                                singleLine = true
+                                singleLine = true,
+                                shape = MaterialTheme.shapes.medium
                             )
                         }
                     }
@@ -138,20 +150,32 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    ),
+                    shape = MaterialTheme.shapes.large
                 ) {
-                    Icon(Icons.Rounded.Image, contentDescription = null)
-                    Spacer(Modifier.size(8.dp))
-                    Text("Choose Background Image")
+                    Icon(Icons.Rounded.Collections, contentDescription = null)
+                    Spacer(Modifier.size(12.dp))
+                    Text("Import Gallery Image")
                 }
             }
             BackgroundType.BLUR -> {
-                Text(
-                    "Using your screenshot as a blurred background.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.medium)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        "Your screenshot is being used as a beautiful blurred background.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -162,13 +186,13 @@ fun ColorSelector(selectedColor: Color, onColorSelected: (Color) -> Unit) {
     val colors = listOf(
         Color(0xFF3F51B5), Color(0xFF006A6A), Color(0xFFBA1A1A), 
         Color(0xFF6750A4), Color(0xFF0061A4), Color(0xFF006E1C),
-        Color(0xFF7D5260), Color(0xFF1B1B1F), Color(0xFFFEFBFF)
+        Color(0xFF7D5260), Color(0xFF1B1B1F), Color(0xFFFFFFFF)
     )
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Material Presets", style = MaterialTheme.typography.labelLarge)
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Material Palette", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 4.dp)
         ) {
             items(colors) { color ->
@@ -186,12 +210,12 @@ fun ColorSelector(selectedColor: Color, onColorSelected: (Color) -> Unit) {
 fun ColorCircle(color: Color, isSelected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(52.dp)
             .clip(CircleShape)
             .background(color)
             .border(
                 width = if (isSelected) 3.dp else 1.dp,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray.copy(alpha = 0.5f),
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                 shape = CircleShape
             )
             .clickable(onClick = onClick)

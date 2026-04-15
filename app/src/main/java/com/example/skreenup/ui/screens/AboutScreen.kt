@@ -89,7 +89,7 @@ fun AboutScreen(onBack: () -> Unit) {
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "Skreenup v2.1",
+                    text = "Skreenup",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

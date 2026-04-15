@@ -1,18 +1,10 @@
 package com.example.skreenup.ui.screens.tabs
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +21,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.skreenup.ui.models.BackgroundType
+import com.example.skreenup.ui.models.CompositionAspectRatio
+import com.example.skreenup.ui.components.MockupRenderer.drawMockup
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.DeviceModels
 import com.example.skreenup.ui.screens.EditorViewModel
@@ -89,23 +84,34 @@ fun DeviceFrameItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Minimalistic device representation
+        // High-fidelity mini preview using the shared MockupRenderer
         Box(
             modifier = Modifier
                 .height(110.dp)
-                .aspectRatio(device.widthMm / device.heightMm)
-                .background(Color.Black, RoundedCornerShape(8.dp))
-                .border(1.dp, Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
-            contentAlignment = Alignment.TopCenter
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
         ) {
-            // Tiny indicator for screen/notch
-            Box(
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .width(12.dp)
-                    .height(2.dp)
-                    .background(Color.DarkGray, RoundedCornerShape(1.dp))
-            )
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawMockup(
+                    screenshot = null,
+                    deviceModel = device,
+                    backgroundType = BackgroundType.SOLID,
+                    backgroundColor = Color.Transparent,
+                    gradientColors = emptyList(),
+                    backgroundImage = null,
+                    scale = 0.85f,
+                    imageScale = 1.0f,
+                    frameOffsetX = 0f,
+                    frameOffsetY = 0f,
+                    screenshotOffsetX = 0f,
+                    screenshotOffsetY = 0f,
+                    aspectRatio = CompositionAspectRatio.SQUARE,
+                    showWatermark = false,
+                    watermarkText = "",
+                    isExport = false
+                )
+            }
         }
 
         Text(

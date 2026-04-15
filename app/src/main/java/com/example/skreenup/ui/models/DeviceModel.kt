@@ -34,7 +34,7 @@ val DeviceModels = listOf(
         resWidth = 1320,
         resHeight = 2868,
         type = FrameType.IPHONE,
-        cornerRadiusDp = 56, // Updated to 56pt
+        cornerRadiusDp = 44, // Refined to 44pt
         cutoutType = CutoutType.DYNAMIC_ISLAND
     ),
     DeviceModel(
@@ -45,7 +45,7 @@ val DeviceModels = listOf(
         resWidth = 1290,
         resHeight = 2796,
         type = FrameType.IPHONE,
-        cornerRadiusDp = 56, // Updated to 56pt
+        cornerRadiusDp = 44, // Refined to 44pt
         cutoutType = CutoutType.DYNAMIC_ISLAND
     ),
     DeviceModel(

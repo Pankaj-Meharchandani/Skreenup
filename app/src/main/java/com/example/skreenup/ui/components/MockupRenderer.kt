@@ -209,6 +209,9 @@ object MockupRenderer {
             val headingPaint = createPaint(headingFont, headingSize, headingBold)
             val subheadingPaint = createPaint(subheadingFont, subheadingSize, subheadingBold)
 
+            val hMetrics = headingPaint.fontMetrics
+            val sMetrics = subheadingPaint.fontMetrics
+
             val headingLines = if (hText.isNotEmpty()) hText.split("\n") else emptyList()
             val subheadingLines = if (sText.isNotEmpty()) sText.split("\n") else emptyList()
 
@@ -216,9 +219,16 @@ object MockupRenderer {
             val subheadingLineHeight = subheadingPaint.fontSpacing
             val gap = textGap * exportTextFactor
 
-            val totalHeadingHeight = if (hText.isNotEmpty()) headingLines.size * headingLineHeight else 0f
-            val totalSubheadingHeight = if (sText.isNotEmpty()) subheadingLines.size * subheadingLineHeight else 0f
-            val totalTextHeight = totalHeadingHeight + (if (hText.isNotEmpty() && sText.isNotEmpty()) gap else 0f) + totalSubheadingHeight
+            // Precise block heights (Top of first line to bottom of last line)
+            val headingBlockHeight = if (hText.isNotEmpty()) {
+                (headingLines.size - 1) * headingLineHeight + (hMetrics.bottom - hMetrics.top)
+            } else 0f
+            
+            val subheadingBlockHeight = if (sText.isNotEmpty()) {
+                (subheadingLines.size - 1) * subheadingLineHeight + (sMetrics.bottom - sMetrics.top)
+            } else 0f
+
+            val totalTextHeight = headingBlockHeight + (if (hText.isNotEmpty() && sText.isNotEmpty()) gap else 0f) + subheadingBlockHeight
 
             val centerX = when (textAlignment) {
                 TextAlignLabel.LEFT -> compLeft + 60f * exportTextFactor + (textOffsetX * exportTextFactor)
@@ -226,32 +236,35 @@ object MockupRenderer {
                 TextAlignLabel.RIGHT -> compLeft + compWidth - 60f * exportTextFactor + (textOffsetX * exportTextFactor)
             }
 
-            // startY is the top of the entire text block, centered vertically
+            // Top of the entire text block, centered vertically
             val blockTop = compTop + compHeight / 2 + (textOffsetY * exportTextFactor) - (totalTextHeight / 2)
 
-            var currentY = blockTop
-
             if (hText.isNotEmpty()) {
-                currentY += headingPaint.textSize
+                // First baseline is at blockTop + the distance from font top to baseline (which is -hMetrics.top)
+                val firstBaseline = blockTop - hMetrics.top
                 headingLines.forEachIndexed { index, line ->
                     drawContext.canvas.nativeCanvas.drawText(
                         line,
                         centerX,
-                        currentY + (index * headingLineHeight),
+                        firstBaseline + (index * headingLineHeight),
                         headingPaint
                     )
                 }
-                currentY += totalHeadingHeight - (if (headingLines.size > 0) headingLineHeight - (headingPaint.fontMetrics.bottom - headingPaint.fontMetrics.top) else 0f)
             }
 
             if (sText.isNotEmpty()) {
-                if (hText.isNotEmpty()) currentY += gap
-                currentY += subheadingPaint.textSize
+                val subBlockTop = if (hText.isNotEmpty()) {
+                    blockTop + headingBlockHeight + gap
+                } else {
+                    blockTop
+                }
+                // First baseline of subheading
+                val firstSubBaseline = subBlockTop - sMetrics.top
                 subheadingLines.forEachIndexed { index, line ->
                     drawContext.canvas.nativeCanvas.drawText(
                         line,
                         centerX,
-                        currentY + (index * subheadingLineHeight),
+                        firstSubBaseline + (index * subheadingLineHeight),
                         subheadingPaint
                     )
                 }

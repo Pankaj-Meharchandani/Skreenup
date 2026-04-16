@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -18,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -33,20 +33,23 @@ fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val versionName = try {
         val packageInfo = if (Build.VERSION.SDK_INT >= 33) {
-            context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
+            context.packageManager.getPackageInfo(
+                context.packageName,
+                android.content.pm.PackageManager.PackageInfoFlags.of(0)
+            )
         } else {
             @Suppress("DEPRECATION")
             context.packageManager.getPackageInfo(context.packageName, 0)
         }
-        packageInfo.versionName ?: "1.0"
+        packageInfo.versionName ?: "Unknown"
     } catch (e: Exception) {
-        "1.0"
+        "Unknown"
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("About", fontWeight = FontWeight.Bold) },
+                title = {},
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -56,7 +59,8 @@ fun AboutScreen(onBack: () -> Unit) {
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -66,115 +70,126 @@ fun AboutScreen(onBack: () -> Unit) {
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(Modifier.height(40.dp))
 
-            // App Logo Card
-            Card(
-                modifier = Modifier.size(120.dp),
-                shape = CircleShape,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            // Logo — squircle, no gimmicks
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
             ) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                        contentDescription = "Skreenup Logo",
-                        modifier = Modifier.size(90.dp)
-                    )
-                }
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                    contentDescription = "Skreenup Logo",
+                    modifier = Modifier.size(68.dp)
+                )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(Modifier.height(18.dp))
 
             Text(
                 text = "Skreenup",
                 style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
-                letterSpacing = (-1).sp
+                letterSpacing = (-0.5).sp
             )
-            
+
+            Spacer(Modifier.height(6.dp))
+
             Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = CircleShape,
-                modifier = Modifier.padding(top = 8.dp)
+                color = MaterialTheme.colorScheme.secondaryContainer
             ) {
                 Text(
                     text = "v$versionName",
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(Modifier.height(20.dp))
 
             Text(
-                text = "High-fidelity screenshot framing for Android. Create professional-grade mockups with precision hardware modeling and expressive Material 3 design.",
+                text = "High-fidelity screenshot framing for Android. Professional mockups with precision hardware modeling.",
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
-                lineHeight = 24.sp,
+                lineHeight = 26.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(Modifier.height(48.dp))
 
-            // Developer Section
-            Card(
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+
+            Spacer(Modifier.height(28.dp))
+
+            // Developer card — clean, no fluff
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.extraLarge,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Row(
+                    modifier = Modifier.padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Crafted with ❤️ by",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Pankaj Meharchandani",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(20.dp))
-                    
-                    Button(
-                        onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/pankaj-meharchandani"))
-                            context.startActivity(intent)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.large,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.onSurface,
-                            contentColor = MaterialTheme.colorScheme.surface
-                        )
+                    // Avatar
+                    Surface(
+                        modifier = Modifier.size(48.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer
                     ) {
-                        Icon(Icons.Rounded.Code, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.size(12.dp))
-                        Text("View Project on GitHub", fontWeight = FontWeight.SemiBold)
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Icon(Icons.AutoMirrored.Rounded.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "P",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Pankaj Meharchandani",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Developer",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // GitHub icon button
+                    FilledTonalIconButton(
+                        onClick = {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/pankaj-meharchandani"))
+                            )
+                        },
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Rounded.Code,
+                            contentDescription = "GitHub",
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
-
-            Text(
-                text = "Built for the Community",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
-                fontWeight = FontWeight.Medium
-            )
-            
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(Modifier.height(32.dp))
         }
     }
 }

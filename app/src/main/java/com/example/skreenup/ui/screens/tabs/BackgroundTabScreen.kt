@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.screens.EditorViewModel
 import com.example.skreenup.ui.components.ColorSelector
+import com.example.skreenup.ui.components.drawScrollbar
 
 @Composable
 fun BackgroundTabScreen(viewModel: EditorViewModel) {
@@ -59,6 +60,9 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
     val hexColorSolid by viewModel.hexColorSolid.collectAsState()
     val hexColorStart by viewModel.hexColorGradientStart.collectAsState()
     val hexColorEnd by viewModel.hexColorGradientEnd.collectAsState()
+    val hexColorScreen by viewModel.hexColorScreen.collectAsState()
+
+    val scrollState = rememberScrollState()
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -72,7 +76,8 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
+            .drawScrollbar(scrollState)
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
@@ -101,6 +106,7 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
         when (backgroundType) {
             BackgroundType.SOLID -> {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text("Material Palette", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     ColorSelector(
                         selectedColor = backgroundColor,
                         onColorSelected = { viewModel.setBackgroundColor(it) }
@@ -210,6 +216,16 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
             ColorSelector(
                 selectedColor = screenBackgroundColor,
                 onColorSelected = { viewModel.setScreenBackgroundColor(it) }
+            )
+
+            OutlinedTextField(
+                value = hexColorScreen,
+                onValueChange = { viewModel.setHexColorScreen(it) },
+                label = { Text("Manual Hex Code") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                leadingIcon = { Icon(Icons.Rounded.Palette, contentDescription = null) },
+                shape = MaterialTheme.shapes.medium
             )
         }
         

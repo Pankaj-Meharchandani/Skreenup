@@ -16,6 +16,7 @@ import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.DeviceModels
+import com.example.skreenup.ui.models.TextFont
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,6 +46,25 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _screenBackgroundColor = MutableStateFlow(Color(0xFF2C2C2C))
     val screenBackgroundColor: StateFlow<Color> = _screenBackgroundColor.asStateFlow()
+
+    // Text State
+    private val _text = MutableStateFlow("")
+    val text: StateFlow<String> = _text.asStateFlow()
+
+    private val _textFont = MutableStateFlow(TextFont.ROBOTO)
+    val textFont: StateFlow<TextFont> = _textFont.asStateFlow()
+
+    private val _textSize = MutableStateFlow(48f)
+    val textSize: StateFlow<Float> = _textSize.asStateFlow()
+
+    private val _textOffsetX = MutableStateFlow(0f)
+    val textOffsetX: StateFlow<Float> = _textOffsetX.asStateFlow()
+
+    private val _textOffsetY = MutableStateFlow(0f)
+    val textOffsetY: StateFlow<Float> = _textOffsetY.asStateFlow()
+
+    private val _textColor = MutableStateFlow(Color.White)
+    val textColor: StateFlow<Color> = _textColor.asStateFlow()
 
     // Adjust State
     private val _scale = MutableStateFlow(0.8f)
@@ -85,6 +105,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _hexColorGradientEnd = MutableStateFlow("#006A6A")
     val hexColorGradientEnd: StateFlow<String> = _hexColorGradientEnd.asStateFlow()
+
+    private val _hexColorScreen = MutableStateFlow("#2C2C2C")
+    val hexColorScreen: StateFlow<String> = _hexColorScreen.asStateFlow()
 
     fun selectDevice(device: DeviceModel) {
         _selectedDevice.value = device
@@ -200,7 +223,27 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setScreenBackgroundColor(color: Color) {
         _screenBackgroundColor.value = color
+        _hexColorScreen.value = "#" + Integer.toHexString(color.toArgb()).uppercase().substring(2)
     }
+
+    fun setHexColorScreen(value: String) {
+        _hexColorScreen.value = value
+        parseHexColor(value)?.let { _screenBackgroundColor.value = it }
+    }
+
+    // Text Setters
+    fun setText(value: String) { _text.value = value }
+    fun setTextFont(value: TextFont) { _textFont.value = value }
+    fun setTextSize(value: Float) { _textSize.value = value }
+    fun setTextOffsetX(value: Float) {
+        val snapThreshold = 2f
+        _textOffsetX.value = if (kotlin.math.abs(value) <= snapThreshold) 0f else value
+    }
+    fun setTextOffsetY(value: Float) {
+        val snapThreshold = 2f
+        _textOffsetY.value = if (kotlin.math.abs(value) <= snapThreshold) 0f else value
+    }
+    fun setTextColor(color: Color) { _textColor.value = color }
 
     private fun parseHexColor(hex: String): Color? {
         return try {

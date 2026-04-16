@@ -29,6 +29,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Smartphone
+import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -67,12 +68,14 @@ import com.example.skreenup.navigation.AdjustTab
 import com.example.skreenup.navigation.BackgroundTab
 import com.example.skreenup.navigation.Editor
 import com.example.skreenup.navigation.FrameTab
+import com.example.skreenup.navigation.TextTab
 import com.example.skreenup.navigation.SkreenupNavKey
 import com.example.skreenup.navigation.SkreenupTabKey
 import com.example.skreenup.ui.screens.AboutScreen
 import com.example.skreenup.ui.screens.tabs.AdjustTabScreen
 import com.example.skreenup.ui.screens.tabs.BackgroundTabScreen
 import com.example.skreenup.ui.screens.tabs.FrameTabScreen
+import com.example.skreenup.ui.screens.tabs.TextTabScreen
 import com.example.skreenup.ui.theme.SkreenupTheme
 import com.example.skreenup.ui.components.DeviceFrame
 import com.example.skreenup.ui.components.MockupRenderer.drawMockup
@@ -161,6 +164,13 @@ fun EditorScreen(
     val screenshotRotation by editorViewModel.screenshotRotation.collectAsState()
     val rotation by editorViewModel.rotation.collectAsState()
 
+    val text by editorViewModel.text.collectAsState()
+    val textFont by editorViewModel.textFont.collectAsState()
+    val textSize by editorViewModel.textSize.collectAsState()
+    val textOffsetX by editorViewModel.textOffsetX.collectAsState()
+    val textOffsetY by editorViewModel.textOffsetY.collectAsState()
+    val textColor by editorViewModel.textColor.collectAsState()
+
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
@@ -194,7 +204,13 @@ fun EditorScreen(
                                 aspectRatio = aspectRatio,
                                 rotationDegrees = rotation,
                                 screenshotRotation = screenshotRotation,
-                                screenBackgroundColor = screenBackgroundColor
+                                screenBackgroundColor = screenBackgroundColor,
+                                text = text,
+                                textFont = textFont,
+                                textSize = textSize,
+                                textColor = textColor,
+                                textOffsetX = textOffsetX,
+                                textOffsetY = textOffsetY
                             )
                             val success = saveBitmapToGallery(context, bitmap)
                             if (success) {
@@ -246,6 +262,17 @@ fun EditorScreen(
                     icon = { Icon(Icons.Rounded.Tune, contentDescription = "Adjust") },
                     label = { Text("Adjust") }
                 )
+                NavigationBarItem(
+                    selected = currentTab == TextTab,
+                    onClick = { 
+                        if (currentTab != TextTab) {
+                            tabBackStack.clear()
+                            tabBackStack.add(TextTab)
+                        }
+                    },
+                    icon = { Icon(Icons.Rounded.TextFields, contentDescription = "Text") },
+                    label = { Text("Text") }
+                )
             }
         }
     ) { innerPadding ->
@@ -286,7 +313,13 @@ fun EditorScreen(
                     aspectRatio = aspectRatio,
                     rotationDegrees = rotation,
                     screenshotRotation = screenshotRotation,
-                    screenBackgroundColor = screenBackgroundColor
+                    screenBackgroundColor = screenBackgroundColor,
+                    text = text,
+                    textFont = textFont,
+                    textSize = textSize,
+                    textColor = textColor,
+                    textOffsetX = textOffsetX,
+                    textOffsetY = textOffsetY
                 )
 
                 if (screenshot == null) {
@@ -331,6 +364,9 @@ fun EditorScreen(
                     entry<AdjustTab> {
                         AdjustTabScreen(editorViewModel)
                     }
+                    entry<TextTab> {
+                        TextTabScreen(editorViewModel)
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -357,7 +393,13 @@ suspend fun captureToBitmap(
     aspectRatio: CompositionAspectRatio,
     rotationDegrees: Float = 0f,
     screenshotRotation: Float = 0f,
-    screenBackgroundColor: Color = Color(0xFF2C2C2C)
+    screenBackgroundColor: Color = Color(0xFF2C2C2C),
+    text: String = "",
+    textFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.ROBOTO,
+    textSize: Float = 48f,
+    textColor: Color = Color.White,
+    textOffsetX: Float = 0f,
+    textOffsetY: Float = 0f
 ): Bitmap {
     return withContext(Dispatchers.Default) {
         val exportWidth = 2048
@@ -391,7 +433,13 @@ suspend fun captureToBitmap(
                 isExport = true,
                 rotationDegrees = rotationDegrees,
                 screenshotRotation = screenshotRotation,
-                screenBackgroundColor = screenBackgroundColor
+                screenBackgroundColor = screenBackgroundColor,
+                text = text,
+                textFont = textFont,
+                textFontSize = textSize,
+                textColor = textColor,
+                textOffsetX = textOffsetX,
+                textOffsetY = textOffsetY
             )
         }
 

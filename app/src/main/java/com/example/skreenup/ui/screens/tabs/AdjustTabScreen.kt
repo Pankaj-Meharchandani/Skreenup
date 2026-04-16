@@ -1,45 +1,26 @@
 package com.example.skreenup.ui.screens.tabs
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.RotateRight
 import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.OpenWith
-import androidx.compose.material.icons.automirrored.rounded.RotateRight
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.skreenup.ui.models.CompositionAspectRatio
 import com.example.skreenup.ui.screens.EditorViewModel
+import com.example.skreenup.ui.components.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,10 +36,13 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
     val screenshotRotation by viewModel.screenshotRotation.collectAsState()
     val rotation by viewModel.rotation.collectAsState()
 
+    val scrollState = rememberScrollState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
+            .drawScrollbar(scrollState)
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(28.dp)
     ) {
@@ -127,7 +111,8 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
                 SnappingSlider(
                     value = rotation,
                     onValueChange = { viewModel.setRotation(it) },
-                    valueRange = 0f..360f
+                    valueRange = 0f..360f,
+                    hintPoints = listOf(0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f, 360f)
                 )
             }
 
@@ -144,7 +129,8 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
                 SnappingSlider(
                     value = screenshotRotation,
                     onValueChange = { viewModel.setScreenshotRotation(it) },
-                    valueRange = -180f..180f
+                    valueRange = -180f..180f,
+                    hintPoints = listOf(-180f, -90f, 0f, 90f, 180f)
                 )
             }
         }
@@ -169,119 +155,4 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
         
         Spacer(Modifier.height(40.dp))
     }
-}
-
-@Composable
-fun SectionHeader(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.size(12.dp))
-        Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-    }
-}
-
-@Composable
-fun AdjustmentItem(
-    label: String,
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float>,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    isDegrees: Boolean = false,
-    hintPoints: List<Float> = listOf(valueRange.start, (valueRange.start + valueRange.endInclusive) / 2, valueRange.endInclusive)
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.size(12.dp))
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold
-                )
-            }
-            Text(
-                text = if (isDegrees) "${value.toInt()}°" else "${(value * 100).toInt()}%",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            )
-        }
-        SnappingSlider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = valueRange,
-            hintPoints = hintPoints
-        )
-    }
-}
-
-@Composable
-fun OffsetSlider(
-    label: String,
-    value: Float,
-    onValueChange: (Float) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("${value.toInt()}px", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
-        }
-        SnappingSlider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = -500f..500f
-        )
-    }
-}
-
-@Composable
-fun SnappingSlider(
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float>,
-    hintPoints: List<Float> = listOf(valueRange.start, (valueRange.start + valueRange.endInclusive) / 2, valueRange.endInclusive)
-) {
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
-        // Overlay hint dots *inside* the slider track area
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp), // Adjust padding based on default slider thumb padding
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            hintPoints.forEach { _ ->
-                HintDot()
-            }
-        }
-
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = valueRange,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
-
-@Composable
-private fun HintDot() {
-    Box(
-        modifier = Modifier
-            .size(6.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
-    )
 }

@@ -35,3 +35,12 @@ enum class CompositionAspectRatio(val ratio: Float, val label: String) {
     LANDSCAPE(16f / 9f, "16:9"),
     TABLET(4f / 3f, "4:3")
 }
+
+@Immutable
+enum class TextFont(val label: String) {
+    ROBOTO("Roboto"),
+    INTER("Inter"),
+    MONTSERRAT("Montserrat"),
+    TIMES("Times New Roman"),
+    CALIBRI("Calibri")
+}

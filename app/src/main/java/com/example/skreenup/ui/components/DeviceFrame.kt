@@ -33,6 +33,12 @@ fun DeviceFrame(
     rotationDegrees: Float = 0f,
     screenshotRotation: Float = 0f,
     screenBackgroundColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color(0xFF2C2C2C),
+    text: String = "",
+    textFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.ROBOTO,
+    textSize: Float = 48f,
+    textColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.White,
+    textOffsetX: Float = 0f,
+    textOffsetY: Float = 0f,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -62,7 +68,13 @@ fun DeviceFrame(
                 screenBackgroundColor = screenBackgroundColor,
                 isExport = false,
                 rotationDegrees = rotationDegrees,
-                screenshotRotation = screenshotRotation
+                screenshotRotation = screenshotRotation,
+                text = text,
+                textFont = textFont,
+                textFontSize = textSize,
+                textColor = textColor,
+                textOffsetX = textOffsetX,
+                textOffsetY = textOffsetY
             )
         }
     }

@@ -25,6 +25,8 @@ import com.example.skreenup.ui.models.CompositionAspectRatio
 import com.example.skreenup.ui.models.CutoutType
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.FrameType
+import com.example.skreenup.ui.models.TextFont
+import android.graphics.Typeface
 
 object MockupRenderer {
     fun DrawScope.drawMockup(
@@ -46,7 +48,13 @@ object MockupRenderer {
         screenBackgroundColor: Color = Color(0xFF2C2C2C),
         isExport: Boolean = false,
         rotationDegrees: Float = 0f,
-        screenshotRotation: Float = 0f
+        screenshotRotation: Float = 0f,
+        text: String = "",
+        textFont: TextFont = TextFont.ROBOTO,
+        textFontSize: Float = 48f,
+        textColor: Color = Color.White,
+        textOffsetX: Float = 0f,
+        textOffsetY: Float = 0f
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height
@@ -162,6 +170,41 @@ object MockupRenderer {
                     currentScreenshotOffsetY = currentScreenshotOffsetY,
                     screenshotRotation = screenshotRotation,
                     screenBackgroundColor = screenBackgroundColor
+                )
+            }
+        }
+
+        // 6.5 Draw Multiline Text
+        if (text.isNotEmpty()) {
+            val exportTextFactor = if (isExport) compWidth / 1000f else 1f
+            val finalTextColor = textColor.toArgb()
+            val finalTypeface = when (textFont) {
+                TextFont.ROBOTO -> Typeface.create("sans-serif", Typeface.NORMAL)
+                TextFont.INTER -> Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                TextFont.MONTSERRAT -> Typeface.create("sans-serif-light", Typeface.NORMAL)
+                TextFont.TIMES -> Typeface.create("serif", Typeface.NORMAL)
+                TextFont.CALIBRI -> Typeface.create("sans-serif-condensed", Typeface.NORMAL)
+            }
+
+            val paint = android.graphics.Paint().apply {
+                color = finalTextColor
+                typeface = finalTypeface
+                textSize = textFontSize * exportTextFactor
+                textAlign = android.graphics.Paint.Align.CENTER
+                isAntiAlias = true
+            }
+
+            val lines = text.split("\n")
+            val lineHeight = paint.fontSpacing
+            val startY = compTop + compHeight / 2 + (textOffsetY * exportTextFactor) - ((lines.size - 1) * lineHeight / 2)
+            val centerX = compLeft + compWidth / 2 + (textOffsetX * exportTextFactor)
+
+            lines.forEachIndexed { index, line ->
+                drawContext.canvas.nativeCanvas.drawText(
+                    line,
+                    centerX,
+                    startY + (index * lineHeight),
+                    paint
                 )
             }
         }

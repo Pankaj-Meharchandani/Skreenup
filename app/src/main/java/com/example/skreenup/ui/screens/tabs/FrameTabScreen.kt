@@ -34,18 +34,21 @@ import com.example.skreenup.ui.components.MockupRenderer.drawMockup
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.DeviceModels
 import com.example.skreenup.ui.screens.EditorViewModel
+import com.example.skreenup.ui.components.drawScrollbar
 
 @Composable
 fun FrameTabScreen(viewModel: EditorViewModel) {
     val selectedDevice by viewModel.selectedDevice.collectAsState()
     var selectedCategory by remember { mutableStateOf(selectedDevice.category) }
+    val scrollState = rememberScrollState()
 
     val filteredDevices = DeviceModels.filter { it.category == selectedCategory }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
+            .drawScrollbar(scrollState)
             .padding(vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {

@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddPhotoAlternate
 import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Monitor
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Smartphone
@@ -68,14 +67,12 @@ import com.example.skreenup.navigation.AdjustTab
 import com.example.skreenup.navigation.BackgroundTab
 import com.example.skreenup.navigation.Editor
 import com.example.skreenup.navigation.FrameTab
-import com.example.skreenup.navigation.ScreenTab
 import com.example.skreenup.navigation.SkreenupNavKey
 import com.example.skreenup.navigation.SkreenupTabKey
 import com.example.skreenup.ui.screens.AboutScreen
 import com.example.skreenup.ui.screens.tabs.AdjustTabScreen
 import com.example.skreenup.ui.screens.tabs.BackgroundTabScreen
 import com.example.skreenup.ui.screens.tabs.FrameTabScreen
-import com.example.skreenup.ui.screens.tabs.ScreenTabScreen
 import com.example.skreenup.ui.theme.SkreenupTheme
 import com.example.skreenup.ui.components.DeviceFrame
 import com.example.skreenup.ui.components.MockupRenderer.drawMockup
@@ -249,17 +246,6 @@ fun EditorScreen(
                     icon = { Icon(Icons.Rounded.Tune, contentDescription = "Adjust") },
                     label = { Text("Adjust") }
                 )
-                NavigationBarItem(
-                    selected = currentTab == ScreenTab,
-                    onClick = { 
-                        if (currentTab != ScreenTab) {
-                            tabBackStack.clear()
-                            tabBackStack.add(ScreenTab)
-                        }
-                    },
-                    icon = { Icon(Icons.Rounded.Monitor, contentDescription = "Screen") },
-                    label = { Text("Screen") }
-                )
             }
         }
     ) { innerPadding ->
@@ -344,9 +330,6 @@ fun EditorScreen(
                     }
                     entry<AdjustTab> {
                         AdjustTabScreen(editorViewModel)
-                    }
-                    entry<ScreenTab> {
-                        ScreenTabScreen(editorViewModel)
                     }
                 },
                 modifier = Modifier

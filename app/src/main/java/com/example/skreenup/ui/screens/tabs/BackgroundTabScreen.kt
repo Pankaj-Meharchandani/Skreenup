@@ -53,6 +53,7 @@ import com.example.skreenup.ui.components.ColorSelector
 fun BackgroundTabScreen(viewModel: EditorViewModel) {
     val backgroundType by viewModel.backgroundType.collectAsState()
     val backgroundColor by viewModel.backgroundColor.collectAsState()
+    val screenBackgroundColor by viewModel.screenBackgroundColor.collectAsState()
     val gradientColors by viewModel.gradientColors.collectAsState()
     
     val hexColorSolid by viewModel.hexColorSolid.collectAsState()
@@ -195,5 +196,23 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
                 }
             }
         }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+
+        // Screen Color Section
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(
+                text = "Screen Color",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.ExtraBold
+            )
+            
+            ColorSelector(
+                selectedColor = screenBackgroundColor,
+                onColorSelected = { viewModel.setScreenBackgroundColor(it) }
+            )
+        }
+        
+        Spacer(Modifier.height(24.dp))
     }
 }

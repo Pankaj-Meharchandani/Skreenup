@@ -23,6 +23,3 @@ object BackgroundTab : SkreenupTabKey
 
 @Serializable
 object AdjustTab : SkreenupTabKey
-
-@Serializable
-object ScreenTab : SkreenupTabKey

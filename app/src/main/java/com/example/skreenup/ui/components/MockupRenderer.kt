@@ -83,6 +83,10 @@ object MockupRenderer {
         val compTop = (canvasHeight - compHeight) / 2
         val compRect = Rect(Offset(compLeft, compTop), Size(compWidth, compHeight))
 
+        // Normalized Scaling Factor: Base everything on a 1000px width "design space"
+        // This ensures the preview and export are visually identical regardless of resolution.
+        val exportTextFactor = compWidth / 1000f
+
         // 1. Draw Background (STRICTLY FIRST)
         clipPath(Path().apply { addRect(compRect) }) {
             when (backgroundType) {
@@ -174,7 +178,6 @@ object MockupRenderer {
         val sText = subheading.trim()
         
         if (hText.isNotEmpty() || sText.isNotEmpty()) {
-            val exportTextFactor = if (isExport) compWidth / 1000f else 1f
             val finalTextColor = textColor.toArgb()
 
             fun createPaint(font: TextFont, size: Float, isBold: Boolean): android.graphics.Paint {
@@ -221,11 +224,11 @@ object MockupRenderer {
 
             // Precise block heights (Top of first line to bottom of last line)
             val headingBlockHeight = if (hText.isNotEmpty()) {
-                (headingLines.size - 1) * headingLineHeight + (hMetrics.bottom - hMetrics.top)
+                (headingLines.size - 1) * headingLineHeight + (hMetrics.descent - hMetrics.ascent)
             } else 0f
             
             val subheadingBlockHeight = if (sText.isNotEmpty()) {
-                (subheadingLines.size - 1) * subheadingLineHeight + (sMetrics.bottom - sMetrics.top)
+                (subheadingLines.size - 1) * subheadingLineHeight + (sMetrics.descent - sMetrics.ascent)
             } else 0f
 
             val totalTextHeight = headingBlockHeight + (if (hText.isNotEmpty() && sText.isNotEmpty()) gap else 0f) + subheadingBlockHeight
@@ -240,8 +243,8 @@ object MockupRenderer {
             val blockTop = compTop + compHeight / 2 + (textOffsetY * exportTextFactor) - (totalTextHeight / 2)
 
             if (hText.isNotEmpty()) {
-                // First baseline is at blockTop + the distance from font top to baseline (which is -hMetrics.top)
-                val firstBaseline = blockTop - hMetrics.top
+                // First baseline is at blockTop + the distance from font top to baseline (which is -hMetrics.ascent)
+                val firstBaseline = blockTop - hMetrics.ascent
                 headingLines.forEachIndexed { index, line ->
                     drawContext.canvas.nativeCanvas.drawText(
                         line,
@@ -259,7 +262,7 @@ object MockupRenderer {
                     blockTop
                 }
                 // First baseline of subheading
-                val firstSubBaseline = subBlockTop - sMetrics.top
+                val firstSubBaseline = subBlockTop - sMetrics.ascent
                 subheadingLines.forEachIndexed { index, line ->
                     drawContext.canvas.nativeCanvas.drawText(
                         line,

@@ -51,7 +51,7 @@ object MockupRenderer {
         rotationDegrees: Float = 0f,
         screenshotRotation: Float = 0f,
         text: String = "",
-        textFont: TextFont = TextFont.ROBOTO,
+        textFont: TextFont = TextFont.POPPINS,
         textFontSize: Float = 48f,
         textColor: Color = Color.White,
         textOffsetX: Float = 0f,
@@ -91,24 +91,6 @@ object MockupRenderer {
                         topLeft = Offset(compLeft, compTop),
                         size = Size(compWidth, compHeight)
                     )
-                }
-                BackgroundType.BLUR -> {
-                    if (screenshot != null) {
-                        drawImage(
-                            image = screenshot,
-                            dstOffset = IntOffset(compLeft.toInt(), compTop.toInt()),
-                            dstSize = IntSize(compWidth.toInt(), compHeight.toInt()),
-                            alpha = 0.5f,
-                            blendMode = BlendMode.SrcOver
-                        )
-                        drawRect(
-                            color = Color.White.copy(alpha = 0.3f),
-                            topLeft = Offset(compLeft, compTop),
-                            size = Size(compWidth, compHeight)
-                        )
-                    } else {
-                        drawRect(color = Color.LightGray, topLeft = Offset(compLeft, compTop), size = Size(compWidth, compHeight))
-                    }
                 }
                 BackgroundType.IMAGE -> {
                     if (backgroundImage != null) {
@@ -195,14 +177,18 @@ object MockupRenderer {
             }
             
             val baseTypeface = when (textFont) {
-                TextFont.ROBOTO -> Typeface.create("sans-serif", style)
+                TextFont.POPPINS -> Typeface.create("sans-serif", style)
                 TextFont.INTER -> Typeface.create("sans-serif-medium", style)
                 TextFont.MONTSERRAT -> Typeface.create("sans-serif-light", style)
-                TextFont.TIMES -> Typeface.create("serif", style)
-                TextFont.CALIBRI -> Typeface.create("sans-serif-condensed", style)
-                TextFont.PACIFICO -> Typeface.create("cursive", style)
                 TextFont.BEBAS -> Typeface.create("sans-serif-black", style)
+                TextFont.PACIFICO -> Typeface.create("cursive", style)
                 TextFont.PLAYFAIR -> Typeface.create("serif-monospace", style)
+                TextFont.TIMES -> Typeface.create("serif", style)
+                TextFont.OSWALD -> Typeface.create("sans-serif-condensed", style)
+                TextFont.RALEWAY -> Typeface.create("sans-serif-thin", style)
+                TextFont.ANTON -> Typeface.create("sans-serif-black", style)
+                TextFont.QUICKSAND -> Typeface.create("sans-serif-light", style)
+                TextFont.LIBRE_BASKERVILLE -> Typeface.create("serif", style)
             }
 
             val paint = android.graphics.Paint().apply {

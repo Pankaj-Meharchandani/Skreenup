@@ -24,7 +24,6 @@ enum class DeviceCategory(val label: String) {
 enum class BackgroundType {
     SOLID,
     GRADIENT,
-    BLUR,
     IMAGE,
     TRANSPARENT
 }
@@ -39,14 +38,18 @@ enum class CompositionAspectRatio(val ratio: Float, val label: String) {
 
 @Immutable
 enum class TextFont(val label: String, val family: String) {
-    ROBOTO("Roboto", "sans-serif"),
+    POPPINS("Poppins", "sans-serif"),
     INTER("Inter", "sans-serif-medium"),
     MONTSERRAT("Montserrat", "sans-serif-light"),
+    BEBAS("Bebas Neue", "sans-serif-black"),
+    PACIFICO("Pacifico", "cursive"),
+    PLAYFAIR("Playfair Display", "serif-monospace"),
     TIMES("Times New Roman", "serif"),
-    CALIBRI("Calibri", "sans-serif-condensed"),
-    PACIFICO("Script", "cursive"),
-    BEBAS("Condensed Bold", "sans-serif-black"),
-    PLAYFAIR("Playfair", "serif-monospace")
+    OSWALD("Oswald", "sans-serif-condensed"),
+    RALEWAY("Raleway", "sans-serif-thin"),
+    ANTON("Anton", "sans-serif-black"),
+    QUICKSAND("Quicksand", "sans-serif-light"),
+    LIBRE_BASKERVILLE("Libre Baskerville", "serif")
 }
 
 @Immutable

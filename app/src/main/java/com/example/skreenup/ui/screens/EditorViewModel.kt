@@ -52,7 +52,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _text = MutableStateFlow("")
     val text: StateFlow<String> = _text.asStateFlow()
 
-    private val _textFont = MutableStateFlow(TextFont.ROBOTO)
+    private val _textFont = MutableStateFlow(TextFont.POPPINS)
     val textFont: StateFlow<TextFont> = _textFont.asStateFlow()
 
     private val _textSize = MutableStateFlow(48f)

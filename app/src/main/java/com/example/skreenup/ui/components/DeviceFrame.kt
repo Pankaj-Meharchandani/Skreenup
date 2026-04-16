@@ -34,7 +34,7 @@ fun DeviceFrame(
     screenshotRotation: Float = 0f,
     screenBackgroundColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color(0xFF2C2C2C),
     text: String = "",
-    textFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.ROBOTO,
+    textFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
     textSize: Float = 48f,
     textColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.White,
     textOffsetX: Float = 0f,

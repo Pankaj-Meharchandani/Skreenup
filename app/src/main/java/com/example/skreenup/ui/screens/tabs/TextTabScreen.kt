@@ -21,9 +21,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.skreenup.ui.models.TextFont
@@ -125,7 +123,11 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                                     "serif-monospace" -> FontFamily.Monospace
                                     else -> FontFamily.SansSerif
                                 },
-                                fontWeight = if (font.family == "sans-serif-black") FontWeight.Black else FontWeight.Normal,
+                                fontWeight = when {
+                                    font.family.contains("black") -> FontWeight.Black
+                                    font.family.contains("light") || font.family.contains("thin") -> FontWeight.Light
+                                    else -> FontWeight.Normal
+                                },
                                 fontSize = 14.sp
                             ) 
                         },

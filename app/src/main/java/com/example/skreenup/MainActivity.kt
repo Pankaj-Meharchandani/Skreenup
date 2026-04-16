@@ -3,7 +3,6 @@ package com.example.skreenup
 import android.content.ContentValues
 import android.graphics.Bitmap
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
@@ -43,16 +42,13 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -69,8 +65,6 @@ import com.example.skreenup.navigation.BackgroundTab
 import com.example.skreenup.navigation.Editor
 import com.example.skreenup.navigation.FrameTab
 import com.example.skreenup.navigation.TextTab
-import com.example.skreenup.navigation.SkreenupNavKey
-import com.example.skreenup.navigation.SkreenupTabKey
 import com.example.skreenup.ui.screens.AboutScreen
 import com.example.skreenup.ui.screens.tabs.AdjustTabScreen
 import com.example.skreenup.ui.screens.tabs.BackgroundTabScreen
@@ -81,9 +75,7 @@ import com.example.skreenup.ui.components.DeviceFrame
 import com.example.skreenup.ui.components.MockupRenderer.drawMockup
 import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.models.CompositionAspectRatio
-import com.example.skreenup.ui.models.CutoutType
 import com.example.skreenup.ui.models.DeviceModel
-import com.example.skreenup.ui.models.FrameType
 import com.example.skreenup.ui.screens.EditorViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -407,7 +399,7 @@ suspend fun captureToBitmap(
     screenshotRotation: Float = 0f,
     screenBackgroundColor: Color = Color(0xFF2C2C2C),
     text: String = "",
-    textFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.ROBOTO,
+    textFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
     textSize: Float = 48f,
     textColor: Color = Color.White,
     textOffsetX: Float = 0f,

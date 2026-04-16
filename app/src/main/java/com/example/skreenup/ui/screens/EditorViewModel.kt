@@ -17,6 +17,7 @@ import coil.request.SuccessResult
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.DeviceModels
 import com.example.skreenup.ui.models.TextFont
+import com.example.skreenup.ui.models.TextAlignLabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -65,6 +66,18 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _textColor = MutableStateFlow(Color.White)
     val textColor: StateFlow<Color> = _textColor.asStateFlow()
+
+    private val _textAlign = MutableStateFlow(TextAlignLabel.CENTER)
+    val textAlign: StateFlow<TextAlignLabel> = _textAlign.asStateFlow()
+
+    private val _isBold = MutableStateFlow(false)
+    val isBold: StateFlow<Boolean> = _isBold.asStateFlow()
+
+    private val _isItalic = MutableStateFlow(false)
+    val isItalic: StateFlow<Boolean> = _isItalic.asStateFlow()
+
+    private val _isUnderline = MutableStateFlow(false)
+    val isUnderline: StateFlow<Boolean> = _isUnderline.asStateFlow()
 
     // Adjust State
     private val _scale = MutableStateFlow(0.8f)
@@ -244,6 +257,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _textOffsetY.value = if (kotlin.math.abs(value) <= snapThreshold) 0f else value
     }
     fun setTextColor(color: Color) { _textColor.value = color }
+    fun setTextAlign(value: TextAlignLabel) { _textAlign.value = value }
+    fun setIsBold(value: Boolean) { _isBold.value = value }
+    fun setIsItalic(value: Boolean) { _isItalic.value = value }
+    fun setIsUnderline(value: Boolean) { _isUnderline.value = value }
 
     private fun parseHexColor(hex: String): Color? {
         return try {

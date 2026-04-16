@@ -170,6 +170,10 @@ fun EditorScreen(
     val textOffsetX by editorViewModel.textOffsetX.collectAsState()
     val textOffsetY by editorViewModel.textOffsetY.collectAsState()
     val textColor by editorViewModel.textColor.collectAsState()
+    val textAlign by editorViewModel.textAlign.collectAsState()
+    val isBold by editorViewModel.isBold.collectAsState()
+    val isItalic by editorViewModel.isItalic.collectAsState()
+    val isUnderline by editorViewModel.isUnderline.collectAsState()
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -210,7 +214,11 @@ fun EditorScreen(
                                 textSize = textSize,
                                 textColor = textColor,
                                 textOffsetX = textOffsetX,
-                                textOffsetY = textOffsetY
+                                textOffsetY = textOffsetY,
+                                textAlignment = textAlign,
+                                isBold = isBold,
+                                isItalic = isItalic,
+                                isUnderline = isUnderline
                             )
                             val success = saveBitmapToGallery(context, bitmap)
                             if (success) {
@@ -319,7 +327,11 @@ fun EditorScreen(
                     textSize = textSize,
                     textColor = textColor,
                     textOffsetX = textOffsetX,
-                    textOffsetY = textOffsetY
+                    textOffsetY = textOffsetY,
+                    textAlign = textAlign,
+                    isBold = isBold,
+                    isItalic = isItalic,
+                    isUnderline = isUnderline
                 )
 
                 if (screenshot == null) {
@@ -399,7 +411,11 @@ suspend fun captureToBitmap(
     textSize: Float = 48f,
     textColor: Color = Color.White,
     textOffsetX: Float = 0f,
-    textOffsetY: Float = 0f
+    textOffsetY: Float = 0f,
+    textAlignment: com.example.skreenup.ui.models.TextAlignLabel = com.example.skreenup.ui.models.TextAlignLabel.CENTER,
+    isBold: Boolean = false,
+    isItalic: Boolean = false,
+    isUnderline: Boolean = false
 ): Bitmap {
     return withContext(Dispatchers.Default) {
         val exportWidth = 2048
@@ -439,7 +455,11 @@ suspend fun captureToBitmap(
                 textFontSize = textSize,
                 textColor = textColor,
                 textOffsetX = textOffsetX,
-                textOffsetY = textOffsetY
+                textOffsetY = textOffsetY,
+                textAlignment = textAlignment,
+                isBold = isBold,
+                isItalic = isItalic,
+                isUnderline = isUnderline
             )
         }
 

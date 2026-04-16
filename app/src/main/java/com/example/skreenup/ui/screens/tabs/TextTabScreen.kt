@@ -6,7 +6,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.FormatAlignLeft
+import androidx.compose.material.icons.automirrored.rounded.FormatAlignRight
+import androidx.compose.material.icons.rounded.FormatAlignCenter
+import androidx.compose.material.icons.rounded.FormatBold
+import androidx.compose.material.icons.rounded.FormatItalic
 import androidx.compose.material.icons.rounded.FormatSize
+import androidx.compose.material.icons.rounded.FormatUnderlined
 import androidx.compose.material.icons.rounded.OpenWith
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material3.*
@@ -14,9 +20,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.skreenup.ui.models.TextFont
+import com.example.skreenup.ui.models.TextAlignLabel
 import com.example.skreenup.ui.screens.EditorViewModel
 import com.example.skreenup.ui.components.*
 
@@ -29,6 +40,10 @@ fun TextTabScreen(viewModel: EditorViewModel) {
     val textOffsetX by viewModel.textOffsetX.collectAsState()
     val textOffsetY by viewModel.textOffsetY.collectAsState()
     val textColor by viewModel.textColor.collectAsState()
+    val textAlign by viewModel.textAlign.collectAsState()
+    val isBold by viewModel.isBold.collectAsState()
+    val isItalic by viewModel.isItalic.collectAsState()
+    val isUnderline by viewModel.isUnderline.collectAsState()
 
     val scrollState = rememberScrollState()
 
@@ -50,6 +65,38 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                 modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
                 shape = MaterialTheme.shapes.medium
             )
+            
+            // Alignment & Style Toggles
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Alignment
+                Row {
+                    IconButton(onClick = { viewModel.setTextAlign(TextAlignLabel.LEFT) }) {
+                        Icon(Icons.AutoMirrored.Rounded.FormatAlignLeft, contentDescription = null, tint = if (textAlign == TextAlignLabel.LEFT) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                    }
+                    IconButton(onClick = { viewModel.setTextAlign(TextAlignLabel.CENTER) }) {
+                        Icon(Icons.Rounded.FormatAlignCenter, contentDescription = null, tint = if (textAlign == TextAlignLabel.CENTER) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                    }
+                    IconButton(onClick = { viewModel.setTextAlign(TextAlignLabel.RIGHT) }) {
+                        Icon(Icons.AutoMirrored.Rounded.FormatAlignRight, contentDescription = null, tint = if (textAlign == TextAlignLabel.RIGHT) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+                
+                // Styles
+                Row {
+                    IconToggleButton(checked = isBold, onCheckedChange = { viewModel.setIsBold(it) }) {
+                        Icon(Icons.Rounded.FormatBold, contentDescription = null, tint = if (isBold) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                    }
+                    IconToggleButton(checked = isItalic, onCheckedChange = { viewModel.setIsItalic(it) }) {
+                        Icon(Icons.Rounded.FormatItalic, contentDescription = null, tint = if (isItalic) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                    }
+                    IconToggleButton(checked = isUnderline, onCheckedChange = { viewModel.setIsUnderline(it) }) {
+                        Icon(Icons.Rounded.FormatUnderlined, contentDescription = null, tint = if (isUnderline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
         }
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -69,7 +116,19 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                     FilterChip(
                         selected = textFont == font,
                         onClick = { viewModel.setTextFont(font) },
-                        label = { Text(font.label) },
+                        label = { 
+                            Text(
+                                text = font.label,
+                                fontFamily = when(font.family) {
+                                    "cursive" -> FontFamily.Cursive
+                                    "serif" -> FontFamily.Serif
+                                    "serif-monospace" -> FontFamily.Monospace
+                                    else -> FontFamily.SansSerif
+                                },
+                                fontWeight = if (font.family == "sans-serif-black") FontWeight.Black else FontWeight.Normal,
+                                fontSize = 14.sp
+                            ) 
+                        },
                         shape = MaterialTheme.shapes.large
                     )
                 }

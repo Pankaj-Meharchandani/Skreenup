@@ -39,6 +39,10 @@ fun DeviceFrame(
     textColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.White,
     textOffsetX: Float = 0f,
     textOffsetY: Float = 0f,
+    textAlign: com.example.skreenup.ui.models.TextAlignLabel = com.example.skreenup.ui.models.TextAlignLabel.CENTER,
+    isBold: Boolean = false,
+    isItalic: Boolean = false,
+    isUnderline: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -74,7 +78,11 @@ fun DeviceFrame(
                 textFontSize = textSize,
                 textColor = textColor,
                 textOffsetX = textOffsetX,
-                textOffsetY = textOffsetY
+                textOffsetY = textOffsetY,
+                textAlignment = textAlign,
+                isBold = isBold,
+                isItalic = isItalic,
+                isUnderline = isUnderline
             )
         }
     }

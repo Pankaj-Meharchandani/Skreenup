@@ -26,6 +26,7 @@ import com.example.skreenup.ui.models.CutoutType
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.FrameType
 import com.example.skreenup.ui.models.TextFont
+import com.example.skreenup.ui.models.TextAlignLabel
 import android.graphics.Typeface
 
 object MockupRenderer {
@@ -54,7 +55,11 @@ object MockupRenderer {
         textFontSize: Float = 48f,
         textColor: Color = Color.White,
         textOffsetX: Float = 0f,
-        textOffsetY: Float = 0f
+        textOffsetY: Float = 0f,
+        textAlignment: TextAlignLabel = TextAlignLabel.CENTER,
+        isBold: Boolean = false,
+        isItalic: Boolean = false,
+        isUnderline: Boolean = false
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height
@@ -117,6 +122,9 @@ object MockupRenderer {
                         drawRect(color = Color.LightGray, topLeft = Offset(compLeft, compTop), size = Size(compWidth, compHeight))
                     }
                 }
+                BackgroundType.TRANSPARENT -> {
+                    // Do nothing, leave it transparent
+                }
             }
         }
 
@@ -178,26 +186,49 @@ object MockupRenderer {
         if (text.isNotEmpty()) {
             val exportTextFactor = if (isExport) compWidth / 1000f else 1f
             val finalTextColor = textColor.toArgb()
-            val finalTypeface = when (textFont) {
-                TextFont.ROBOTO -> Typeface.create("sans-serif", Typeface.NORMAL)
-                TextFont.INTER -> Typeface.create("sans-serif-medium", Typeface.NORMAL)
-                TextFont.MONTSERRAT -> Typeface.create("sans-serif-light", Typeface.NORMAL)
-                TextFont.TIMES -> Typeface.create("serif", Typeface.NORMAL)
-                TextFont.CALIBRI -> Typeface.create("sans-serif-condensed", Typeface.NORMAL)
+            
+            val style = when {
+                isBold && isItalic -> Typeface.BOLD_ITALIC
+                isBold -> Typeface.BOLD
+                isItalic -> Typeface.ITALIC
+                else -> Typeface.NORMAL
+            }
+            
+            val baseTypeface = when (textFont) {
+                TextFont.ROBOTO -> Typeface.create("sans-serif", style)
+                TextFont.INTER -> Typeface.create("sans-serif-medium", style)
+                TextFont.MONTSERRAT -> Typeface.create("sans-serif-light", style)
+                TextFont.TIMES -> Typeface.create("serif", style)
+                TextFont.CALIBRI -> Typeface.create("sans-serif-condensed", style)
+                TextFont.PACIFICO -> Typeface.create("cursive", style)
+                TextFont.BEBAS -> Typeface.create("sans-serif-black", style)
+                TextFont.PLAYFAIR -> Typeface.create("serif-monospace", style)
             }
 
             val paint = android.graphics.Paint().apply {
                 color = finalTextColor
-                typeface = finalTypeface
+                typeface = baseTypeface
                 textSize = textFontSize * exportTextFactor
-                textAlign = android.graphics.Paint.Align.CENTER
                 isAntiAlias = true
+                if (isUnderline) isUnderlineText = true
+                
+                this.textAlign = when (textAlignment) {
+                    TextAlignLabel.LEFT -> android.graphics.Paint.Align.LEFT
+                    TextAlignLabel.CENTER -> android.graphics.Paint.Align.CENTER
+                    TextAlignLabel.RIGHT -> android.graphics.Paint.Align.RIGHT
+                }
             }
 
             val lines = text.split("\n")
             val lineHeight = paint.fontSpacing
-            val startY = compTop + compHeight / 2 + (textOffsetY * exportTextFactor) - ((lines.size - 1) * lineHeight / 2)
-            val centerX = compLeft + compWidth / 2 + (textOffsetX * exportTextFactor)
+            val totalTextHeight = lines.size * lineHeight
+            val startY = compTop + compHeight / 2 + (textOffsetY * exportTextFactor) - (totalTextHeight / 2) + paint.textSize/2
+            
+            val centerX = when (textAlignment) {
+                TextAlignLabel.LEFT -> compLeft + 40f * exportTextFactor + (textOffsetX * exportTextFactor)
+                TextAlignLabel.CENTER -> compLeft + compWidth / 2 + (textOffsetX * exportTextFactor)
+                TextAlignLabel.RIGHT -> compLeft + compWidth - 40f * exportTextFactor + (textOffsetX * exportTextFactor)
+            }
 
             lines.forEachIndexed { index, line ->
                 drawContext.canvas.nativeCanvas.drawText(

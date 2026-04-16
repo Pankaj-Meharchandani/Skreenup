@@ -25,7 +25,8 @@ enum class BackgroundType {
     SOLID,
     GRADIENT,
     BLUR,
-    IMAGE
+    IMAGE,
+    TRANSPARENT
 }
 
 @Immutable
@@ -37,10 +38,20 @@ enum class CompositionAspectRatio(val ratio: Float, val label: String) {
 }
 
 @Immutable
-enum class TextFont(val label: String) {
-    ROBOTO("Roboto"),
-    INTER("Inter"),
-    MONTSERRAT("Montserrat"),
-    TIMES("Times New Roman"),
-    CALIBRI("Calibri")
+enum class TextFont(val label: String, val family: String) {
+    ROBOTO("Roboto", "sans-serif"),
+    INTER("Inter", "sans-serif-medium"),
+    MONTSERRAT("Montserrat", "sans-serif-light"),
+    TIMES("Times New Roman", "serif"),
+    CALIBRI("Calibri", "sans-serif-condensed"),
+    PACIFICO("Script", "cursive"),
+    BEBAS("Condensed Bold", "sans-serif-black"),
+    PLAYFAIR("Playfair", "serif-monospace")
+}
+
+@Immutable
+enum class TextAlignLabel(val label: String) {
+    LEFT("Left"),
+    CENTER("Center"),
+    RIGHT("Right")
 }

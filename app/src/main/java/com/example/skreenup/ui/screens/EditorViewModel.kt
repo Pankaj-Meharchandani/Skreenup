@@ -43,6 +43,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _backgroundImage = MutableStateFlow<ImageBitmap?>(null)
     val backgroundImage: StateFlow<ImageBitmap?> = _backgroundImage.asStateFlow()
 
+    private val _screenBackgroundColor = MutableStateFlow(Color(0xFF2C2C2C))
+    val screenBackgroundColor: StateFlow<Color> = _screenBackgroundColor.asStateFlow()
+
     // Adjust State
     private val _scale = MutableStateFlow(0.8f)
     val scale: StateFlow<Float> = _scale.asStateFlow()
@@ -130,9 +133,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setImageScale(value: Float) {
-        val mid = 1.0f // (0.5 + 1.5) / 2
-        val snapThreshold = 0.02f
-        _imageScale.value = if (kotlin.math.abs(value - mid) <= snapThreshold) mid else value
+        val snapAngles = listOf(0f, 0.5f, 1.0f, 1.5f, 2.0f)
+        val snapThreshold = 0.04f
+        val snapped = snapAngles.firstOrNull { kotlin.math.abs(value - it) <= snapThreshold }
+        _imageScale.value = snapped ?: value
     }
 
     fun setScreenshotRotation(value: Float) {
@@ -192,6 +196,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         parseHexColor(value)?.let { end ->
             _gradientColors.value = listOf(_gradientColors.value[0], end)
         }
+    }
+
+    fun setScreenBackgroundColor(color: Color) {
+        _screenBackgroundColor.value = color
     }
 
     private fun parseHexColor(hex: String): Color? {

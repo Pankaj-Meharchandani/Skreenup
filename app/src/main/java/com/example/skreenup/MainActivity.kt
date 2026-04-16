@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddPhotoAlternate
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Monitor
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Smartphone
@@ -67,12 +68,14 @@ import com.example.skreenup.navigation.AdjustTab
 import com.example.skreenup.navigation.BackgroundTab
 import com.example.skreenup.navigation.Editor
 import com.example.skreenup.navigation.FrameTab
+import com.example.skreenup.navigation.ScreenTab
 import com.example.skreenup.navigation.SkreenupNavKey
 import com.example.skreenup.navigation.SkreenupTabKey
 import com.example.skreenup.ui.screens.AboutScreen
 import com.example.skreenup.ui.screens.tabs.AdjustTabScreen
 import com.example.skreenup.ui.screens.tabs.BackgroundTabScreen
 import com.example.skreenup.ui.screens.tabs.FrameTabScreen
+import com.example.skreenup.ui.screens.tabs.ScreenTabScreen
 import com.example.skreenup.ui.theme.SkreenupTheme
 import com.example.skreenup.ui.components.DeviceFrame
 import com.example.skreenup.ui.components.MockupRenderer.drawMockup
@@ -149,6 +152,7 @@ fun EditorScreen(
     val backgroundColor by editorViewModel.backgroundColor.collectAsState()
     val gradientColors by editorViewModel.gradientColors.collectAsState()
     val backgroundImage by editorViewModel.backgroundImage.collectAsState()
+    val screenBackgroundColor by editorViewModel.screenBackgroundColor.collectAsState()
     val scale by editorViewModel.scale.collectAsState()
     val imageScale by editorViewModel.imageScale.collectAsState()
     val aspectRatio by editorViewModel.aspectRatio.collectAsState()
@@ -192,7 +196,8 @@ fun EditorScreen(
                                 screenshotOffsetY = screenshotOffsetY,
                                 aspectRatio = aspectRatio,
                                 rotationDegrees = rotation,
-                                screenshotRotation = screenshotRotation
+                                screenshotRotation = screenshotRotation,
+                                screenBackgroundColor = screenBackgroundColor
                             )
                             val success = saveBitmapToGallery(context, bitmap)
                             if (success) {
@@ -244,6 +249,17 @@ fun EditorScreen(
                     icon = { Icon(Icons.Rounded.Tune, contentDescription = "Adjust") },
                     label = { Text("Adjust") }
                 )
+                NavigationBarItem(
+                    selected = currentTab == ScreenTab,
+                    onClick = { 
+                        if (currentTab != ScreenTab) {
+                            tabBackStack.clear()
+                            tabBackStack.add(ScreenTab)
+                        }
+                    },
+                    icon = { Icon(Icons.Rounded.Monitor, contentDescription = "Screen") },
+                    label = { Text("Screen") }
+                )
             }
         }
     ) { innerPadding ->
@@ -283,7 +299,8 @@ fun EditorScreen(
                     screenshotOffsetY = screenshotOffsetY,
                     aspectRatio = aspectRatio,
                     rotationDegrees = rotation,
-                    screenshotRotation = screenshotRotation
+                    screenshotRotation = screenshotRotation,
+                    screenBackgroundColor = screenBackgroundColor
                 )
 
                 if (screenshot == null) {
@@ -328,6 +345,9 @@ fun EditorScreen(
                     entry<AdjustTab> {
                         AdjustTabScreen(editorViewModel)
                     }
+                    entry<ScreenTab> {
+                        ScreenTabScreen(editorViewModel)
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -353,7 +373,8 @@ suspend fun captureToBitmap(
     screenshotOffsetY: Float,
     aspectRatio: CompositionAspectRatio,
     rotationDegrees: Float = 0f,
-    screenshotRotation: Float = 0f
+    screenshotRotation: Float = 0f,
+    screenBackgroundColor: Color = Color(0xFF2C2C2C)
 ): Bitmap {
     return withContext(Dispatchers.Default) {
         val exportWidth = 2048
@@ -386,7 +407,8 @@ suspend fun captureToBitmap(
                 watermarkText = "",
                 isExport = true,
                 rotationDegrees = rotationDegrees,
-                screenshotRotation = screenshotRotation
+                screenshotRotation = screenshotRotation,
+                screenBackgroundColor = screenBackgroundColor
             )
         }
 

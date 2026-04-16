@@ -68,7 +68,8 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
             value = scale,
             onValueChange = { viewModel.setScale(it) },
             valueRange = 0.2f..1.0f,
-            icon = Icons.Rounded.Fullscreen
+            icon = Icons.Rounded.Fullscreen,
+            hintPoints = listOf(0.2f, 0.6f, 1.0f)
         )
 
         // Image Scaling
@@ -76,8 +77,9 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
             label = "Screenshot Fit",
             value = imageScale,
             onValueChange = { viewModel.setImageScale(it) },
-            valueRange = 0.5f..1.5f,
-            icon = Icons.Rounded.AspectRatio
+            valueRange = 0.0f..2.0f,
+            icon = Icons.Rounded.AspectRatio,
+            hintPoints = listOf(0f, 0.5f, 1f, 1.5f, 2f)
         )
 
         // Export Ratio
@@ -185,7 +187,8 @@ fun AdjustmentItem(
     onValueChange: (Float) -> Unit,
     valueRange: ClosedFloatingPointRange<Float>,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    isDegrees: Boolean = false
+    isDegrees: Boolean = false,
+    hintPoints: List<Float> = listOf(valueRange.start, (valueRange.start + valueRange.endInclusive) / 2, valueRange.endInclusive)
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -212,7 +215,8 @@ fun AdjustmentItem(
         SnappingSlider(
             value = value,
             onValueChange = onValueChange,
-            valueRange = valueRange
+            valueRange = valueRange,
+            hintPoints = hintPoints
         )
     }
 }
@@ -244,7 +248,8 @@ fun OffsetSlider(
 fun SnappingSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float>
+    valueRange: ClosedFloatingPointRange<Float>,
+    hintPoints: List<Float> = listOf(valueRange.start, (valueRange.start + valueRange.endInclusive) / 2, valueRange.endInclusive)
 ) {
     Box(
         modifier = Modifier.fillMaxWidth(),
@@ -257,12 +262,9 @@ fun SnappingSlider(
                 .padding(horizontal = 10.dp), // Adjust padding based on default slider thumb padding
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // 0% Dot
-            HintDot()
-            // 50% Dot
-            HintDot()
-            // 100% Dot
-            HintDot()
+            hintPoints.forEach { _ ->
+                HintDot()
+            }
         }
 
         Slider(
@@ -278,8 +280,8 @@ fun SnappingSlider(
 private fun HintDot() {
     Box(
         modifier = Modifier
-            .size(4.dp)
+            .size(6.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.outlineVariant)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
     )
 }

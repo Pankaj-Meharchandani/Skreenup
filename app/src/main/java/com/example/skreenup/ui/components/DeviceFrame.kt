@@ -32,6 +32,7 @@ fun DeviceFrame(
     watermarkText: String = "",
     rotationDegrees: Float = 0f,
     screenshotRotation: Float = 0f,
+    screenBackgroundColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color(0xFF2C2C2C),
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -58,6 +59,7 @@ fun DeviceFrame(
                 aspectRatio = aspectRatio,
                 showWatermark = showWatermark,
                 watermarkText = watermarkText,
+                screenBackgroundColor = screenBackgroundColor,
                 isExport = false,
                 rotationDegrees = rotationDegrees,
                 screenshotRotation = screenshotRotation

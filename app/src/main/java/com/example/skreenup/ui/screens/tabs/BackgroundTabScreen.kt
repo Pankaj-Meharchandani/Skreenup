@@ -47,8 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.screens.EditorViewModel
+import com.example.skreenup.ui.components.ColorSelector
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackgroundTabScreen(viewModel: EditorViewModel) {
     val backgroundType by viewModel.backgroundType.collectAsState()
@@ -196,45 +196,4 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
             }
         }
     }
-}
-
-@Composable
-fun ColorSelector(selectedColor: Color, onColorSelected: (Color) -> Unit) {
-    val colors = listOf(
-        Color(0xFF3F51B5), Color(0xFF006A6A), Color(0xFFBA1A1A), 
-        Color(0xFF6750A4), Color(0xFF0061A4), Color(0xFF006E1C),
-        Color(0xFF7D5260), Color(0xFF1B1B1F), Color(0xFFFFFFFF)
-    )
-
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Material Palette", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(vertical = 4.dp)
-        ) {
-            items(colors) { color ->
-                ColorCircle(
-                    color = color,
-                    isSelected = selectedColor == color,
-                    onClick = { onColorSelected(color) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ColorCircle(color: Color, isSelected: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(52.dp)
-            .clip(CircleShape)
-            .background(color)
-            .border(
-                width = if (isSelected) 3.dp else 1.dp,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                shape = CircleShape
-            )
-            .clickable(onClick = onClick)
-    )
 }

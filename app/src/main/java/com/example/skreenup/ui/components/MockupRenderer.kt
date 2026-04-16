@@ -43,6 +43,7 @@ object MockupRenderer {
         aspectRatio: CompositionAspectRatio,
         showWatermark: Boolean,
         watermarkText: String,
+        screenBackgroundColor: Color = Color(0xFF2C2C2C),
         isExport: Boolean = false,
         rotationDegrees: Float = 0f,
         screenshotRotation: Float = 0f
@@ -159,7 +160,8 @@ object MockupRenderer {
                     cornerRadiusPx = cornerRadiusPx,
                     currentScreenshotOffsetX = currentScreenshotOffsetX,
                     currentScreenshotOffsetY = currentScreenshotOffsetY,
-                    screenshotRotation = screenshotRotation
+                    screenshotRotation = screenshotRotation,
+                    screenBackgroundColor = screenBackgroundColor
                 )
             }
         }
@@ -196,7 +198,8 @@ object MockupRenderer {
         cornerRadiusPx: Float,
         currentScreenshotOffsetX: Float,
         currentScreenshotOffsetY: Float,
-        screenshotRotation: Float
+        screenshotRotation: Float,
+        screenBackgroundColor: Color
     ) {
         val frameRect = Rect(Offset(frameLeft, frameTop), Size(frameWidth, frameHeight))
 
@@ -262,6 +265,12 @@ object MockupRenderer {
 
         // ── 5. Clip and Draw Screenshot ──
         clipPath(framePath) {
+            drawRect(
+                color = screenBackgroundColor,
+                topLeft = Offset(frameLeft, frameTop),
+                size = Size(frameWidth, frameHeight)
+            )
+
             if (screenshot != null) {
                 val imgAspectRatio = screenshot.width.toFloat() / screenshot.height.toFloat()
                 var imgWidth: Float
@@ -304,12 +313,6 @@ object MockupRenderer {
                         blendMode = BlendMode.Screen
                     )
                 }
-            } else {
-                drawRect(
-                    color = Color(0xFF2C2C2C),
-                    topLeft = Offset(frameLeft, frameTop),
-                    size = Size(frameWidth, frameHeight)
-                )
             }
         }
 

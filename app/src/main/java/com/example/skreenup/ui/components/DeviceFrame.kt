@@ -31,6 +31,7 @@ fun DeviceFrame(
     showWatermark: Boolean = false,
     watermarkText: String = "",
     rotationDegrees: Float = 0f,
+    screenshotRotation: Float = 0f,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -58,7 +59,8 @@ fun DeviceFrame(
                 showWatermark = showWatermark,
                 watermarkText = watermarkText,
                 isExport = false,
-                rotationDegrees = rotationDegrees
+                rotationDegrees = rotationDegrees,
+                screenshotRotation = screenshotRotation
             )
         }
     }

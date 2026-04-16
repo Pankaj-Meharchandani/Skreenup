@@ -44,7 +44,8 @@ object MockupRenderer {
         showWatermark: Boolean,
         watermarkText: String,
         isExport: Boolean = false,
-        rotationDegrees: Float = 0f
+        rotationDegrees: Float = 0f,
+        screenshotRotation: Float = 0f
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height
@@ -157,7 +158,8 @@ object MockupRenderer {
                     pixelScale = pixelScale,
                     cornerRadiusPx = cornerRadiusPx,
                     currentScreenshotOffsetX = currentScreenshotOffsetX,
-                    currentScreenshotOffsetY = currentScreenshotOffsetY
+                    currentScreenshotOffsetY = currentScreenshotOffsetY,
+                    screenshotRotation = screenshotRotation
                 )
             }
         }
@@ -193,7 +195,8 @@ object MockupRenderer {
         pixelScale: Float,
         cornerRadiusPx: Float,
         currentScreenshotOffsetX: Float,
-        currentScreenshotOffsetY: Float
+        currentScreenshotOffsetY: Float,
+        screenshotRotation: Float
     ) {
         val frameRect = Rect(Offset(frameLeft, frameTop), Size(frameWidth, frameHeight))
 
@@ -224,16 +227,37 @@ object MockupRenderer {
         )
 
         // ── 4. Draw Shadow (Double layered for depth) ──
-        val shadowWidth = 16 * (frameWidth / 300f)
+        val shadowAlpha = 0.15f
+        val shadowOffset = 4 * pixelScale
+        
+        // Use a simple diffuse shadow by drawing a slightly larger, offset, semi-transparent path
+        val shadowPath = Path().apply {
+            addRoundRect(
+                RoundRect(
+                    rect = frameRect.translate(Offset(shadowOffset, shadowOffset)),
+                    cornerRadius = CornerRadius(cornerRadiusPx)
+                )
+            )
+        }
         drawPath(
-            path = framePath,
-            color = Color.Black.copy(alpha = 0.15f),
-            style = Stroke(width = shadowWidth)
+            path = shadowPath,
+            color = Color.Black.copy(alpha = shadowAlpha),
+            style = Fill
         )
+        
+        // Optional: second softer layer
+        val shadowPath2 = Path().apply {
+            addRoundRect(
+                RoundRect(
+                    rect = frameRect.translate(Offset(shadowOffset * 2, shadowOffset * 2)),
+                    cornerRadius = CornerRadius(cornerRadiusPx)
+                )
+            )
+        }
         drawPath(
-            path = framePath,
-            color = Color.Black.copy(alpha = 0.1f),
-            style = Stroke(width = shadowWidth * 2f)
+            path = shadowPath2,
+            color = Color.Black.copy(alpha = shadowAlpha * 0.5f),
+            style = Fill
         )
 
         // ── 5. Clip and Draw Screenshot ──
@@ -254,12 +278,16 @@ object MockupRenderer {
                 val imgLeft = frameLeft + (frameWidth - imgWidth) / 2 + currentScreenshotOffsetX
                 val imgTop = frameTop + (frameHeight - imgHeight) / 2 + currentScreenshotOffsetY
 
-                drawImage(
-                    image = screenshot,
-                    dstOffset = IntOffset(imgLeft.toInt(), imgTop.toInt()),
-                    dstSize = IntSize(imgWidth.toInt(), imgHeight.toInt()),
-                    blendMode = BlendMode.SrcOver
-                )
+                withTransform({
+                    rotate(degrees = screenshotRotation, pivot = Offset(imgLeft + imgWidth / 2, imgTop + imgHeight / 2))
+                }) {
+                    drawImage(
+                        image = screenshot,
+                        dstOffset = IntOffset(imgLeft.toInt(), imgTop.toInt()),
+                        dstSize = IntSize(imgWidth.toInt(), imgHeight.toInt()),
+                        blendMode = BlendMode.SrcOver
+                    )
+                }
 
                 // Reflection Effect (Glossy Diagonal Slash)
                 if (deviceModel.hasReflection) {
@@ -285,23 +313,33 @@ object MockupRenderer {
             }
         }
 
-        // ── 6. Draw Frame Border and Cutouts ──
+        // 6. Draw Frame Border and Cutouts ──
+        val isMobile = deviceModel.type == FrameType.IPHONE || deviceModel.type == FrameType.ANDROID_PHONE
         val strokeWidth = 5 * (frameWidth / 300f)
 
-        // 6a. Metallic Frame (Outer Rim)
-        drawPath(
-            path = framePath,
-            brush = Brush.linearGradient(
-                0.0f to Color(0xFFB0B0B0),
-                0.3f to Color(0xFFF5F5F7),
-                0.5f to Color(0xFF8E8E93),
-                0.7f to Color(0xFFF5F5F7),
-                1.0f to Color(0xFFB0B0B0),
-                start = Offset(frameLeft, frameTop),
-                end = Offset(frameLeft + frameWidth, frameTop + frameHeight)
-            ),
-            style = Stroke(width = strokeWidth)
-        )
+        // 6a. Metallic Frame (Outer Rim) - MOBILE ONLY for high-fidelity look
+        if (isMobile) {
+            drawPath(
+                path = framePath,
+                brush = Brush.linearGradient(
+                    0.0f to Color(0xFFB0B0B0),
+                    0.3f to Color(0xFFF5F5F7),
+                    0.5f to Color(0xFF8E8E93),
+                    0.7f to Color(0xFFF5F5F7),
+                    1.0f to Color(0xFFB0B0B0),
+                    start = Offset(frameLeft, frameTop),
+                    end = Offset(frameLeft + frameWidth, frameTop + frameHeight)
+                ),
+                style = Stroke(width = strokeWidth)
+            )
+        } else {
+            // Tablet/Laptop/PC: Simple dark border
+            drawPath(
+                path = framePath,
+                color = Color(0xFF2C2C2C),
+                style = Stroke(width = 2 * pixelScale)
+            )
+        }
 
         // 6b. Inner Bezel (Deep Black)
         val bezelWidthPx = (deviceModel.bezelWidthDp * 0.3527f) * pixelScale
@@ -380,19 +418,21 @@ object MockupRenderer {
             CutoutType.NONE -> {}
         }
 
-        // 6d. Specular Highlights (Corner glints)
-        drawPath(
-            path = framePath,
-            brush = Brush.linearGradient(
-                0.0f to Color.White.copy(alpha = 0.5f),
-                0.15f to Color.Transparent,
-                0.85f to Color.Transparent,
-                1.0f to Color.White.copy(alpha = 0.3f),
-                start = Offset(frameLeft, frameTop),
-                end = Offset(frameLeft + frameWidth, frameTop + frameHeight)
-            ),
-            style = Stroke(width = strokeWidth * 0.3f)
-        )
+        // 6d. Specular Highlights (Corner glints) - MOBILE ONLY
+        if (isMobile) {
+            drawPath(
+                path = framePath,
+                brush = Brush.linearGradient(
+                    0.0f to Color.White.copy(alpha = 0.5f),
+                    0.15f to Color.Transparent,
+                    0.85f to Color.Transparent,
+                    1.0f to Color.White.copy(alpha = 0.3f),
+                    start = Offset(frameLeft, frameTop),
+                    end = Offset(frameLeft + frameWidth, frameTop + frameHeight)
+                ),
+                style = Stroke(width = strokeWidth * 0.3f)
+            )
+        }
     }
 
     /**

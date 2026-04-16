@@ -50,6 +50,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _imageScale = MutableStateFlow(1.0f)
     val imageScale: StateFlow<Float> = _imageScale.asStateFlow()
 
+    private val _screenshotRotation = MutableStateFlow(0f)
+    val screenshotRotation: StateFlow<Float> = _screenshotRotation.asStateFlow()
+
     private val _aspectRatio = MutableStateFlow(CompositionAspectRatio.SQUARE)
     val aspectRatio: StateFlow<CompositionAspectRatio> = _aspectRatio.asStateFlow()
 
@@ -106,6 +109,13 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _hexColorGradientEnd.value = "#" + Integer.toHexString(colors[1].toArgb()).uppercase().substring(2)
     }
 
+    fun swapGradientColors() {
+        val colors = _gradientColors.value
+        if (colors.size >= 2) {
+            setGradientColors(listOf(colors[1], colors[0]))
+        }
+    }
+
     fun setBackgroundImage(uri: Uri) {
         viewModelScope.launch {
             val bitmap = loadBitmapFromUri(getApplication(), uri)
@@ -121,15 +131,34 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _imageScale.value = value
     }
 
+    fun setScreenshotRotation(value: Float) {
+        _screenshotRotation.value = value
+    }
+
     fun setAspectRatio(ratio: CompositionAspectRatio) {
         _aspectRatio.value = ratio
     }
 
     // v2.1 Offset Setters
-    fun setFrameOffsetX(value: Float) { _frameOffsetX.value = value }
-    fun setFrameOffsetY(value: Float) { _frameOffsetY.value = value }
-    fun setScreenshotOffsetX(value: Float) { _screenshotOffsetX.value = value }
-    fun setScreenshotOffsetY(value: Float) { _screenshotOffsetY.value = value }
+    fun setFrameOffsetX(value: Float) {
+        val snapThreshold = 2f
+        _frameOffsetX.value = if (kotlin.math.abs(value) <= snapThreshold) 0f else value
+    }
+
+    fun setFrameOffsetY(value: Float) {
+        val snapThreshold = 2f
+        _frameOffsetY.value = if (kotlin.math.abs(value) <= snapThreshold) 0f else value
+    }
+
+    fun setScreenshotOffsetX(value: Float) {
+        val snapThreshold = 2f
+        _screenshotOffsetX.value = if (kotlin.math.abs(value) <= snapThreshold) 0f else value
+    }
+
+    fun setScreenshotOffsetY(value: Float) {
+        val snapThreshold = 2f
+        _screenshotOffsetY.value = if (kotlin.math.abs(value) <= snapThreshold) 0f else value
+    }
 
     // Rotation with snap
     fun setRotation(degrees: Float) {

@@ -157,6 +157,7 @@ fun EditorScreen(
     val frameOffsetY by editorViewModel.frameOffsetY.collectAsState()
     val screenshotOffsetX by editorViewModel.screenshotOffsetX.collectAsState()
     val screenshotOffsetY by editorViewModel.screenshotOffsetY.collectAsState()
+    val screenshotRotation by editorViewModel.screenshotRotation.collectAsState()
     val rotation by editorViewModel.rotation.collectAsState()
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -190,7 +191,8 @@ fun EditorScreen(
                                 screenshotOffsetX = screenshotOffsetX,
                                 screenshotOffsetY = screenshotOffsetY,
                                 aspectRatio = aspectRatio,
-                                rotationDegrees = rotation
+                                rotationDegrees = rotation,
+                                screenshotRotation = screenshotRotation
                             )
                             val success = saveBitmapToGallery(context, bitmap)
                             if (success) {
@@ -280,7 +282,8 @@ fun EditorScreen(
                     screenshotOffsetX = screenshotOffsetX,
                     screenshotOffsetY = screenshotOffsetY,
                     aspectRatio = aspectRatio,
-                    rotationDegrees = rotation
+                    rotationDegrees = rotation,
+                    screenshotRotation = screenshotRotation
                 )
 
                 if (screenshot == null) {
@@ -349,7 +352,8 @@ suspend fun captureToBitmap(
     screenshotOffsetX: Float,
     screenshotOffsetY: Float,
     aspectRatio: CompositionAspectRatio,
-    rotationDegrees: Float = 0f
+    rotationDegrees: Float = 0f,
+    screenshotRotation: Float = 0f
 ): Bitmap {
     return withContext(Dispatchers.Default) {
         val exportWidth = 2048
@@ -381,7 +385,8 @@ suspend fun captureToBitmap(
                 showWatermark = false,
                 watermarkText = "",
                 isExport = true,
-                rotationDegrees = rotationDegrees
+                rotationDegrees = rotationDegrees,
+                screenshotRotation = screenshotRotation
             )
         }
 

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -51,6 +52,7 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
     val frameOffsetY by viewModel.frameOffsetY.collectAsState()
     val screenshotOffsetX by viewModel.screenshotOffsetX.collectAsState()
     val screenshotOffsetY by viewModel.screenshotOffsetY.collectAsState()
+    val screenshotRotation by viewModel.screenshotRotation.collectAsState()
     val rotation by viewModel.rotation.collectAsState()
 
     Column(
@@ -76,6 +78,16 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
             onValueChange = { viewModel.setImageScale(it) },
             valueRange = 0.5f..1.5f,
             icon = Icons.Rounded.AspectRatio
+        )
+
+        // Screenshot Rotation
+        AdjustmentItem(
+            label = "Image Rotation",
+            value = screenshotRotation,
+            onValueChange = { viewModel.setScreenshotRotation(it) },
+            valueRange = -180f..180f,
+            icon = Icons.AutoMirrored.Rounded.RotateRight,
+            isDegrees = true
         )
 
         // Export Ratio
@@ -174,7 +186,8 @@ fun AdjustmentItem(
     value: Float,
     onValueChange: (Float) -> Unit,
     valueRange: ClosedFloatingPointRange<Float>,
-    icon: androidx.compose.ui.graphics.vector.ImageVector
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isDegrees: Boolean = false
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -192,7 +205,7 @@ fun AdjustmentItem(
                 )
             }
             Text(
-                text = "${(value * 100).toInt()}%",
+                text = if (isDegrees) "${value.toInt()}°" else "${(value * 100).toInt()}%",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
@@ -216,9 +229,16 @@ fun OffsetSlider(
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (value == 0f) {
+                    Spacer(Modifier.size(8.dp))
+                    Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
+                }
+            }
             Text("${value.toInt()}px", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
         }
         Slider(

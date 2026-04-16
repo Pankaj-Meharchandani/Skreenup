@@ -7,7 +7,17 @@ enum class FrameType {
     ANDROID_PHONE,
     IPHONE,
     TABLET,
+    LAPTOP,
     DESKTOP
+}
+
+@Immutable
+enum class DeviceCategory(val label: String) {
+    PHONE("Phone"),
+    TABLET("Tablet"),
+    LAPTOP("Laptop"),
+    WEB("Web"),
+    PC("PC")
 }
 
 @Immutable

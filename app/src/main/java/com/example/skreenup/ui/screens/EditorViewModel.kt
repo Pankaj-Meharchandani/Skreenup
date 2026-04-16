@@ -66,6 +66,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _screenshotOffsetY = MutableStateFlow(0f)
     val screenshotOffsetY: StateFlow<Float> = _screenshotOffsetY.asStateFlow()
 
+    // Rotation State
+    private val _rotation = MutableStateFlow(0f)
+    val rotation: StateFlow<Float> = _rotation.asStateFlow()
+
     // v2.1 Hex Color Input Strings
     private val _hexColorSolid = MutableStateFlow("#3F51B5")
     val hexColorSolid: StateFlow<String> = _hexColorSolid.asStateFlow()
@@ -126,6 +130,14 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun setFrameOffsetY(value: Float) { _frameOffsetY.value = value }
     fun setScreenshotOffsetX(value: Float) { _screenshotOffsetX.value = value }
     fun setScreenshotOffsetY(value: Float) { _screenshotOffsetY.value = value }
+
+    // Rotation with snap
+    fun setRotation(degrees: Float) {
+        val snapAngles = listOf(0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f, 360f)
+        val snapThreshold = 4f
+        val snapped = snapAngles.firstOrNull { kotlin.math.abs(degrees - it) <= snapThreshold }
+        _rotation.value = snapped ?: degrees
+    }
 
     // v2.1 Hex Color Setters
     fun setHexColorSolid(value: String) {

@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.IntOffset
@@ -42,7 +43,8 @@ object MockupRenderer {
         aspectRatio: CompositionAspectRatio,
         showWatermark: Boolean,
         watermarkText: String,
-        isExport: Boolean = false
+        isExport: Boolean = false,
+        rotationDegrees: Float = 0f
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height
@@ -121,8 +123,6 @@ object MockupRenderer {
             frameHeight = frameWidth / frameAspectRatio
         }
 
-        // Adjust offsets for export if needed (assuming offsets are in DP in preview)
-        // If they are in pixels in preview, they need to be scaled for export.
         val exportScaleFactor = if (isExport) compWidth / 1000f else 1f
         val currentFrameOffsetX = frameOffsetX * exportScaleFactor
         val currentFrameOffsetY = frameOffsetY * exportScaleFactor
@@ -131,10 +131,71 @@ object MockupRenderer {
 
         val frameLeft = compLeft + (compWidth - frameWidth) / 2 + currentFrameOffsetX
         val frameTop = compTop + (compHeight - frameHeight) / 2 + currentFrameOffsetY
-        val frameRect = Rect(Offset(frameLeft, frameTop), Size(frameWidth, frameHeight))
 
         val pixelScale = frameWidth / deviceModel.widthMm
         val cornerRadiusPx = (deviceModel.cornerRadiusDp * 0.3527f) * pixelScale
+
+        // Pivot for rotation = center of frame + chassis area
+        val isLaptop = deviceModel.type == FrameType.LAPTOP && deviceModel.hasChassis
+        val chassisTotalHeight = if (isLaptop) 14f * pixelScale else 0f
+        val pivotX = frameLeft + frameWidth / 2
+        val pivotY = frameTop + (frameHeight + chassisTotalHeight) / 2
+
+        // Wrap all device drawing in a rotation transform
+        clipPath(Path().apply { addRect(compRect) }) {
+            withTransform({
+                rotate(degrees = rotationDegrees, pivot = Offset(pivotX, pivotY))
+            }) {
+                drawDeviceAndContent(
+                    deviceModel = deviceModel,
+                    screenshot = screenshot,
+                    imageScale = imageScale,
+                    frameLeft = frameLeft,
+                    frameTop = frameTop,
+                    frameWidth = frameWidth,
+                    frameHeight = frameHeight,
+                    pixelScale = pixelScale,
+                    cornerRadiusPx = cornerRadiusPx,
+                    currentScreenshotOffsetX = currentScreenshotOffsetX,
+                    currentScreenshotOffsetY = currentScreenshotOffsetY
+                )
+            }
+        }
+
+        // 7. Draw Watermark (outside rotation)
+        if (showWatermark && watermarkText.isNotEmpty()) {
+            val paint = android.graphics.Paint().apply {
+                color = Color.White.copy(alpha = 0.7f).toArgb()
+                textSize = 16 * if (isExport) (compWidth / 400f) else density
+                textAlign = android.graphics.Paint.Align.RIGHT
+                isAntiAlias = true
+            }
+            drawContext.canvas.nativeCanvas.drawText(
+                watermarkText,
+                compLeft + compWidth - (if (isExport) 40f else 16.dp.toPx()),
+                compTop + compHeight - (if (isExport) 40f else 16.dp.toPx()),
+                paint
+            )
+        }
+    }
+
+    /**
+     * Draws the complete device: chassis, body, shadow, screenshot, frame border, cutouts, and highlights.
+     */
+    private fun DrawScope.drawDeviceAndContent(
+        deviceModel: DeviceModel,
+        screenshot: ImageBitmap?,
+        imageScale: Float,
+        frameLeft: Float,
+        frameTop: Float,
+        frameWidth: Float,
+        frameHeight: Float,
+        pixelScale: Float,
+        cornerRadiusPx: Float,
+        currentScreenshotOffsetX: Float,
+        currentScreenshotOffsetY: Float
+    ) {
+        val frameRect = Rect(Offset(frameLeft, frameTop), Size(frameWidth, frameHeight))
 
         val framePath = Path().apply {
             addRoundRect(
@@ -145,40 +206,24 @@ object MockupRenderer {
             )
         }
 
-        // 2.1 Draw Laptop Chassis
-        if (deviceModel.hasChassis && deviceModel.type == FrameType.DESKTOP) {
-            val chassisHeightPx = 8 * pixelScale
-            val chassisWidthPx = frameWidth * 1.15f
-            val chassisRect = Rect(
-                offset = Offset(frameLeft - (chassisWidthPx - frameWidth) / 2, frameTop + frameHeight),
-                size = Size(chassisWidthPx, chassisHeightPx)
-            )
-            
-            drawRoundRect(
-                color = Color(0xFF2C2C2C),
-                topLeft = chassisRect.topLeft,
-                size = chassisRect.size,
-                cornerRadius = CornerRadius(4 * pixelScale)
-            )
-            
-            val notchWidthPx = chassisWidthPx * 0.15f
-            val notchHeightPx = chassisHeightPx * 0.4f
-            drawRoundRect(
-                color = Color(0xFF1A1A1A),
-                topLeft = Offset(chassisRect.left + (chassisWidthPx - notchWidthPx) / 2, chassisRect.top),
-                size = Size(notchWidthPx, notchHeightPx),
-                cornerRadius = CornerRadius(0f, 0f)
-            )
+        val isLaptop = deviceModel.type == FrameType.LAPTOP && deviceModel.hasChassis
+
+        // ── 2.1 Draw Laptop Chassis (MacBook-style) ──
+        if (isLaptop) {
+            drawLaptopChassis(frameLeft, frameTop, frameWidth, frameHeight, pixelScale)
+        } else if (deviceModel.hasChassis && deviceModel.type == FrameType.DESKTOP) {
+            // PC Monitor stand
+            drawMonitorStand(frameLeft, frameTop, frameWidth, frameHeight, pixelScale)
         }
 
-        // 3. Draw solid device body (STRICTLY SECOND) - Fixes background bleeding
+        // ── 3. Draw solid device body ──
         drawPath(
             path = framePath,
             color = Color(0xFF1A1A1A),
             style = Fill
         )
 
-        // 4. Draw Shadow (Double layered for depth)
+        // ── 4. Draw Shadow (Double layered for depth) ──
         val shadowWidth = 16 * (frameWidth / 300f)
         drawPath(
             path = framePath,
@@ -191,13 +236,13 @@ object MockupRenderer {
             style = Stroke(width = shadowWidth * 2f)
         )
 
-        // 5. Clip and Draw Screenshot (STRICTLY THIRD)
+        // ── 5. Clip and Draw Screenshot ──
         clipPath(framePath) {
             if (screenshot != null) {
                 val imgAspectRatio = screenshot.width.toFloat() / screenshot.height.toFloat()
                 var imgWidth: Float
                 var imgHeight: Float
-                
+
                 if (frameWidth / frameHeight > imgAspectRatio) {
                     imgHeight = frameHeight * imageScale
                     imgWidth = imgHeight * imgAspectRatio
@@ -205,17 +250,17 @@ object MockupRenderer {
                     imgWidth = frameWidth * imageScale
                     imgHeight = imgWidth / imgAspectRatio
                 }
-                
+
                 val imgLeft = frameLeft + (frameWidth - imgWidth) / 2 + currentScreenshotOffsetX
                 val imgTop = frameTop + (frameHeight - imgHeight) / 2 + currentScreenshotOffsetY
-                
+
                 drawImage(
                     image = screenshot,
                     dstOffset = IntOffset(imgLeft.toInt(), imgTop.toInt()),
                     dstSize = IntSize(imgWidth.toInt(), imgHeight.toInt()),
                     blendMode = BlendMode.SrcOver
                 )
-                
+
                 // Reflection Effect (Glossy Diagonal Slash)
                 if (deviceModel.hasReflection) {
                     drawRect(
@@ -240,7 +285,7 @@ object MockupRenderer {
             }
         }
 
-        // 6. Draw Frame Border and Cutouts (STRICTLY LAST)
+        // ── 6. Draw Frame Border and Cutouts ──
         val strokeWidth = 5 * (frameWidth / 300f)
 
         // 6a. Metallic Frame (Outer Rim)
@@ -309,13 +354,27 @@ object MockupRenderer {
                 )
             }
             CutoutType.LAPTOP_NOTCH -> {
-                val notchWidthPx = frameWidth * 0.12f
-                val notchHeightPx = 4 * pixelScale
+                // Small webcam notch at top-center of screen
+                val notchWidthPx = 8f * pixelScale
+                val notchHeightPx = 3.5f * pixelScale
                 drawRoundRect(
-                    color = Color.Black,
-                    topLeft = Offset(frameLeft + (frameWidth - notchWidthPx) / 2, frameTop),
+                    color = Color(0xFF0A0A0A),
+                    topLeft = Offset(
+                        frameLeft + (frameWidth - notchWidthPx) / 2,
+                        frameTop + 1.5f * pixelScale
+                    ),
                     size = Size(notchWidthPx, notchHeightPx),
-                    cornerRadius = CornerRadius(0f, 0f)
+                    cornerRadius = CornerRadius(notchHeightPx / 2)
+                )
+                // Camera dot
+                val dotRadius = 1.2f * pixelScale
+                drawCircle(
+                    color = Color(0xFF333333),
+                    radius = dotRadius,
+                    center = Offset(
+                        frameLeft + frameWidth / 2,
+                        frameTop + 1.5f * pixelScale + notchHeightPx / 2
+                    )
                 )
             }
             CutoutType.NONE -> {}
@@ -334,22 +393,169 @@ object MockupRenderer {
             ),
             style = Stroke(width = strokeWidth * 0.3f)
         )
+    }
 
-        // 7. Draw Watermark
-        if (showWatermark && watermarkText.isNotEmpty()) {
-            val paint = android.graphics.Paint().apply {
-                color = Color.White.copy(alpha = 0.7f).toArgb()
-                // Use a relative text size based on density
-                textSize = 16 * if (isExport) (compWidth / 400f) else density
-                textAlign = android.graphics.Paint.Align.RIGHT
-                isAntiAlias = true
-            }
-            drawContext.canvas.nativeCanvas.drawText(
-                watermarkText,
-                compLeft + compWidth - (if (isExport) 40f else 16.dp.toPx()),
-                compTop + compHeight - (if (isExport) 40f else 16.dp.toPx()),
-                paint
+    /**
+     * Draws a MacBook-style chassis: lid edge, wedge base with metallic gradient,
+     * front lip, and subtle trackpad indent.
+     */
+    private fun DrawScope.drawLaptopChassis(
+        frameLeft: Float,
+        frameTop: Float,
+        frameWidth: Float,
+        frameHeight: Float,
+        pixelScale: Float
+    ) {
+        val chassisOverhang = frameWidth * 0.03f
+        val chassisWidth = frameWidth + chassisOverhang * 2
+        val chassisLeft = frameLeft - chassisOverhang
+        val chassisTopY = frameTop + frameHeight
+
+        // ── Lid hinge edge (thin dark line between screen and base) ──
+        val hingeHeight = 2f * pixelScale
+        drawRoundRect(
+            color = Color(0xFF1C1C1E),
+            topLeft = Offset(chassisLeft, chassisTopY),
+            size = Size(chassisWidth, hingeHeight),
+            cornerRadius = CornerRadius(0f)
+        )
+
+        // ── Main base body (wedge: thicker at rear, thinner at front) ──
+        val baseHeight = 8f * pixelScale
+        val baseTopY = chassisTopY + hingeHeight
+        val baseFrontRadius = 2f * pixelScale
+        val baseRearRadius = 1f * pixelScale
+
+        val basePath = Path().apply {
+            // Top-left (rear, slightly rounded)
+            moveTo(chassisLeft + baseRearRadius, baseTopY)
+            // Top edge
+            lineTo(chassisLeft + chassisWidth - baseRearRadius, baseTopY)
+            // Top-right corner
+            quadraticTo(
+                chassisLeft + chassisWidth, baseTopY,
+                chassisLeft + chassisWidth, baseTopY + baseRearRadius
             )
+            // Right edge to bottom-right
+            lineTo(chassisLeft + chassisWidth - chassisOverhang * 0.3f, baseTopY + baseHeight - baseFrontRadius)
+            quadraticTo(
+                chassisLeft + chassisWidth - chassisOverhang * 0.3f, baseTopY + baseHeight,
+                chassisLeft + chassisWidth - chassisOverhang * 0.3f - baseFrontRadius, baseTopY + baseHeight
+            )
+            // Bottom edge
+            lineTo(chassisLeft + chassisOverhang * 0.3f + baseFrontRadius, baseTopY + baseHeight)
+            // Bottom-left corner
+            quadraticTo(
+                chassisLeft + chassisOverhang * 0.3f, baseTopY + baseHeight,
+                chassisLeft + chassisOverhang * 0.3f, baseTopY + baseHeight - baseFrontRadius
+            )
+            // Left edge to top-left
+            lineTo(chassisLeft, baseTopY + baseRearRadius)
+            quadraticTo(chassisLeft, baseTopY, chassisLeft + baseRearRadius, baseTopY)
+            close()
         }
+
+        // Metallic gradient fill for the base
+        drawPath(
+            path = basePath,
+            brush = Brush.verticalGradient(
+                0.0f to Color(0xFFD4D4D8),
+                0.3f to Color(0xFFE8E8ED),
+                0.5f to Color(0xFFC7C7CC),
+                0.8f to Color(0xFFB0B0B5),
+                1.0f to Color(0xFFA0A0A5),
+                startY = baseTopY,
+                endY = baseTopY + baseHeight
+            )
+        )
+
+        // Top highlight on the base
+        drawLine(
+            brush = Brush.horizontalGradient(
+                0.0f to Color.Transparent,
+                0.2f to Color.White.copy(alpha = 0.5f),
+                0.5f to Color.White.copy(alpha = 0.7f),
+                0.8f to Color.White.copy(alpha = 0.5f),
+                1.0f to Color.Transparent,
+                startX = chassisLeft,
+                endX = chassisLeft + chassisWidth
+            ),
+            start = Offset(chassisLeft + chassisOverhang, baseTopY + 0.5f * pixelScale),
+            end = Offset(chassisLeft + chassisWidth - chassisOverhang, baseTopY + 0.5f * pixelScale),
+            strokeWidth = 1f * pixelScale
+        )
+
+        // ── Front lip / opening notch ──
+        val lipWidth = chassisWidth * 0.14f
+        val lipHeight = 1.5f * pixelScale
+        val lipLeft = chassisLeft + (chassisWidth - lipWidth) / 2
+        val lipTop = baseTopY + baseHeight - lipHeight
+        drawRoundRect(
+            color = Color(0xFF8E8E93),
+            topLeft = Offset(lipLeft, lipTop),
+            size = Size(lipWidth, lipHeight),
+            cornerRadius = CornerRadius(lipHeight / 2)
+        )
+
+        // Base edge outline
+        drawPath(
+            path = basePath,
+            color = Color(0xFF8A8A8E),
+            style = Stroke(width = 0.5f * pixelScale)
+        )
+
+        // ── Bottom shadow (under laptop) ──
+        drawRoundRect(
+            color = Color.Black.copy(alpha = 0.08f),
+            topLeft = Offset(chassisLeft + chassisOverhang, baseTopY + baseHeight),
+            size = Size(chassisWidth - chassisOverhang * 2, 3f * pixelScale),
+            cornerRadius = CornerRadius(2f * pixelScale)
+        )
+    }
+
+    /**
+     * Draws a PC monitor stand (simple thin neck + base).
+     */
+    private fun DrawScope.drawMonitorStand(
+        frameLeft: Float,
+        frameTop: Float,
+        frameWidth: Float,
+        frameHeight: Float,
+        pixelScale: Float
+    ) {
+        val neckWidth = frameWidth * 0.08f
+        val neckHeight = 12f * pixelScale
+        val neckLeft = frameLeft + (frameWidth - neckWidth) / 2
+        val neckTop = frameTop + frameHeight
+
+        // Neck
+        drawRect(
+            brush = Brush.horizontalGradient(
+                0.0f to Color(0xFFA0A0A5),
+                0.5f to Color(0xFFD4D4D8),
+                1.0f to Color(0xFFA0A0A5),
+                startX = neckLeft,
+                endX = neckLeft + neckWidth
+            ),
+            topLeft = Offset(neckLeft, neckTop),
+            size = Size(neckWidth, neckHeight)
+        )
+
+        // Base
+        val baseWidth = frameWidth * 0.35f
+        val baseHeight = 3f * pixelScale
+        val baseLeft = frameLeft + (frameWidth - baseWidth) / 2
+        val baseTop = neckTop + neckHeight
+        drawRoundRect(
+            brush = Brush.verticalGradient(
+                0.0f to Color(0xFFD4D4D8),
+                1.0f to Color(0xFFA0A0A5),
+                startY = baseTop,
+                endY = baseTop + baseHeight
+            ),
+            topLeft = Offset(baseLeft, baseTop),
+            size = Size(baseWidth, baseHeight),
+            cornerRadius = CornerRadius(baseHeight / 2)
+        )
     }
 }

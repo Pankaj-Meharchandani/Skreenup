@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.OpenWith
+import androidx.compose.material.icons.automirrored.rounded.RotateRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -50,6 +51,7 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
     val frameOffsetY by viewModel.frameOffsetY.collectAsState()
     val screenshotOffsetX by viewModel.screenshotOffsetX.collectAsState()
     val screenshotOffsetY by viewModel.screenshotOffsetY.collectAsState()
+    val rotation by viewModel.rotation.collectAsState()
 
     Column(
         modifier = Modifier
@@ -100,6 +102,39 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
                     )
                 }
             }
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+        // Device Rotation
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.AutoMirrored.Rounded.RotateRight, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.size(12.dp))
+                    Text(
+                        text = "Rotation",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+                Text(
+                    text = "${rotation.toInt()}°",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Slider(
+                value = rotation,
+                onValueChange = { viewModel.setRotation(it) },
+                valueRange = 0f..360f,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

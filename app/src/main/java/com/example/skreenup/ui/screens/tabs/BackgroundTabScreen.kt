@@ -118,24 +118,13 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
             }
             BackgroundType.GRADIENT -> {
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    Text("Gradient Builder", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("Gradient Builder", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                        Icon(
-                            imageVector = Icons.Rounded.SwapHoriz,
-                            contentDescription = "Swap Colors",
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .clickable { viewModel.swapGradientColors() }
-                                .padding(4.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(gradientColors[0]))
                             OutlinedTextField(
@@ -146,6 +135,18 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
                                 shape = MaterialTheme.shapes.medium
                             )
                         }
+
+                        Icon(
+                            imageVector = Icons.Rounded.SwapHoriz,
+                            contentDescription = "Swap Colors",
+                            modifier = Modifier
+                                .padding(top = 8.dp)
+                                .clip(CircleShape)
+                                .clickable { viewModel.swapGradientColors() }
+                                .padding(8.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(gradientColors[1]))
                             OutlinedTextField(

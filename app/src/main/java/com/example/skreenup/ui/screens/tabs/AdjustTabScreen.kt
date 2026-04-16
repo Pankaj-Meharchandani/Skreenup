@@ -80,16 +80,6 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
             icon = Icons.Rounded.AspectRatio
         )
 
-        // Screenshot Rotation
-        AdjustmentItem(
-            label = "Image Rotation",
-            value = screenshotRotation,
-            onValueChange = { viewModel.setScreenshotRotation(it) },
-            valueRange = -180f..180f,
-            icon = Icons.AutoMirrored.Rounded.RotateRight,
-            isDegrees = true
-        )
-
         // Export Ratio
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -118,35 +108,43 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-        // Device Rotation
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.AutoMirrored.Rounded.RotateRight, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.size(12.dp))
-                    Text(
-                        text = "Rotation",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold
-                    )
+        // Rotations Section
+        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            SectionHeader(label = "Orientation Controls", icon = Icons.AutoMirrored.Rounded.RotateRight)
+
+            // Frame Rotation
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Frame Rotation", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${rotation.toInt()}°", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
                 }
-                Text(
-                    text = "${rotation.toInt()}°",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+                SnappingSlider(
+                    value = rotation,
+                    onValueChange = { viewModel.setRotation(it) },
+                    valueRange = 0f..360f
                 )
             }
-            Slider(
-                value = rotation,
-                onValueChange = { viewModel.setRotation(it) },
-                valueRange = 0f..360f,
-                modifier = Modifier.fillMaxWidth()
-            )
+
+            // Image Rotation
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Image Rotation", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${screenshotRotation.toInt()}°", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
+                }
+                SnappingSlider(
+                    value = screenshotRotation,
+                    onValueChange = { viewModel.setScreenshotRotation(it) },
+                    valueRange = -180f..180f
+                )
+            }
         }
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -211,11 +209,10 @@ fun AdjustmentItem(
                 fontWeight = FontWeight.Bold
             )
         }
-        Slider(
+        SnappingSlider(
             value = value,
             onValueChange = onValueChange,
-            valueRange = valueRange,
-            modifier = Modifier.fillMaxWidth()
+            valueRange = valueRange
         )
     }
 }
@@ -232,20 +229,57 @@ fun OffsetSlider(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (value == 0f) {
-                    Spacer(Modifier.size(8.dp))
-                    Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
-                }
-            }
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("${value.toInt()}px", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
         }
+        SnappingSlider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = -500f..500f
+        )
+    }
+}
+
+@Composable
+fun SnappingSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>
+) {
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        // Overlay hint dots *inside* the slider track area
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp), // Adjust padding based on default slider thumb padding
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // 0% Dot
+            HintDot()
+            // 50% Dot
+            HintDot()
+            // 100% Dot
+            HintDot()
+        }
+
         Slider(
             value = value,
             onValueChange = onValueChange,
-            valueRange = -500f..500f,
+            valueRange = valueRange,
             modifier = Modifier.fillMaxWidth()
         )
     }
+}
+
+@Composable
+private fun HintDot() {
+    Box(
+        modifier = Modifier
+            .size(4.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.outlineVariant)
+    )
 }

@@ -124,15 +124,21 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setScale(value: Float) {
-        _scale.value = value
+        val mid = 0.6f // (0.2 + 1.0) / 2
+        val snapThreshold = 0.02f
+        _scale.value = if (kotlin.math.abs(value - mid) <= snapThreshold) mid else value
     }
 
     fun setImageScale(value: Float) {
-        _imageScale.value = value
+        val mid = 1.0f // (0.5 + 1.5) / 2
+        val snapThreshold = 0.02f
+        _imageScale.value = if (kotlin.math.abs(value - mid) <= snapThreshold) mid else value
     }
 
     fun setScreenshotRotation(value: Float) {
-        _screenshotRotation.value = value
+        val mid = 0f // (-180 + 180) / 2
+        val snapThreshold = 4f
+        _screenshotRotation.value = if (kotlin.math.abs(value - mid) <= snapThreshold) mid else value
     }
 
     fun setAspectRatio(ratio: CompositionAspectRatio) {

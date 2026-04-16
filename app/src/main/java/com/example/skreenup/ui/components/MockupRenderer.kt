@@ -178,11 +178,17 @@ object MockupRenderer {
             style = Fill
         )
 
-        // 4. Draw Shadow
+        // 4. Draw Shadow (Double layered for depth)
+        val shadowWidth = 16 * (frameWidth / 300f)
         drawPath(
             path = framePath,
-            color = Color.Black.copy(alpha = 0.3f),
-            style = Stroke(width = 12 * (frameWidth / 300f))
+            color = Color.Black.copy(alpha = 0.15f),
+            style = Stroke(width = shadowWidth)
+        )
+        drawPath(
+            path = framePath,
+            color = Color.Black.copy(alpha = 0.1f),
+            style = Stroke(width = shadowWidth * 2f)
         )
 
         // 5. Clip and Draw Screenshot (STRICTLY THIRD)
@@ -210,17 +216,21 @@ object MockupRenderer {
                     blendMode = BlendMode.SrcOver
                 )
                 
-                // Reflection Effect
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(Color.White.copy(alpha = 0.15f), Color.Transparent, Color.White.copy(alpha = 0.05f)),
-                        startY = frameTop,
-                        endY = frameTop + frameHeight
-                    ),
-                    topLeft = Offset(frameLeft, frameTop),
-                    size = Size(frameWidth, frameHeight),
-                    blendMode = BlendMode.Screen
-                )
+                // Reflection Effect (Glossy Diagonal Slash)
+                if (deviceModel.hasReflection) {
+                    drawRect(
+                        brush = Brush.linearGradient(
+                            0.4f to Color.Transparent,
+                            0.5f to Color.White.copy(alpha = 0.2f),
+                            0.6f to Color.Transparent,
+                            start = Offset(frameLeft, frameTop),
+                            end = Offset(frameLeft + frameWidth, frameTop + frameHeight)
+                        ),
+                        topLeft = Offset(frameLeft, frameTop),
+                        size = Size(frameWidth, frameHeight),
+                        blendMode = BlendMode.Screen
+                    )
+                }
             } else {
                 drawRect(
                     color = Color(0xFF2C2C2C),
@@ -231,12 +241,32 @@ object MockupRenderer {
         }
 
         // 6. Draw Frame Border and Cutouts (STRICTLY LAST)
+        val strokeWidth = 5 * (frameWidth / 300f)
+
+        // 6a. Metallic Frame (Outer Rim)
+        drawPath(
+            path = framePath,
+            brush = Brush.linearGradient(
+                0.0f to Color(0xFFB0B0B0),
+                0.3f to Color(0xFFF5F5F7),
+                0.5f to Color(0xFF8E8E93),
+                0.7f to Color(0xFFF5F5F7),
+                1.0f to Color(0xFFB0B0B0),
+                start = Offset(frameLeft, frameTop),
+                end = Offset(frameLeft + frameWidth, frameTop + frameHeight)
+            ),
+            style = Stroke(width = strokeWidth)
+        )
+
+        // 6b. Inner Bezel (Deep Black)
+        val bezelWidthPx = (deviceModel.bezelWidthDp * 0.3527f) * pixelScale
         drawPath(
             path = framePath,
             color = Color.Black,
-            style = Stroke(width = 4 * (frameWidth / 300f))
+            style = Stroke(width = bezelWidthPx)
         )
 
+        // 6c. Cutouts
         when (deviceModel.cutoutType) {
             CutoutType.DYNAMIC_ISLAND -> {
                 val islandWidthPx = 18 * pixelScale
@@ -290,6 +320,20 @@ object MockupRenderer {
             }
             CutoutType.NONE -> {}
         }
+
+        // 6d. Specular Highlights (Corner glints)
+        drawPath(
+            path = framePath,
+            brush = Brush.linearGradient(
+                0.0f to Color.White.copy(alpha = 0.5f),
+                0.15f to Color.Transparent,
+                0.85f to Color.Transparent,
+                1.0f to Color.White.copy(alpha = 0.3f),
+                start = Offset(frameLeft, frameTop),
+                end = Offset(frameLeft + frameWidth, frameTop + frameHeight)
+            ),
+            style = Stroke(width = strokeWidth * 0.3f)
+        )
 
         // 7. Draw Watermark
         if (showWatermark && watermarkText.isNotEmpty()) {

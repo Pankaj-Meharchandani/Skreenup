@@ -19,6 +19,8 @@ data class DeviceModel(
     val resHeight: Int,
     val type: FrameType,
     val cornerRadiusDp: Int = 32,
+    val bezelWidthDp: Int = 4,
+    val hasReflection: Boolean = true,
     val cutoutType: CutoutType = CutoutType.NONE,
     val hasChassis: Boolean = false
 ) {
@@ -34,7 +36,8 @@ val DeviceModels = listOf(
         resWidth = 1320,
         resHeight = 2868,
         type = FrameType.IPHONE,
-        cornerRadiusDp = 44, // Refined to 44pt
+        cornerRadiusDp = 44,
+        bezelWidthDp = 3,
         cutoutType = CutoutType.DYNAMIC_ISLAND
     ),
     DeviceModel(
@@ -45,7 +48,8 @@ val DeviceModels = listOf(
         resWidth = 1290,
         resHeight = 2796,
         type = FrameType.IPHONE,
-        cornerRadiusDp = 44, // Refined to 44pt
+        cornerRadiusDp = 44,
+        bezelWidthDp = 4,
         cutoutType = CutoutType.DYNAMIC_ISLAND
     ),
     DeviceModel(
@@ -57,6 +61,8 @@ val DeviceModels = listOf(
         resHeight = 2436,
         type = FrameType.IPHONE,
         cornerRadiusDp = 40,
+        bezelWidthDp = 8,
+        hasReflection = false,
         cutoutType = CutoutType.NOTCH
     ),
     DeviceModel(
@@ -83,13 +89,14 @@ val DeviceModels = listOf(
     ),
     DeviceModel(
         id = "laptop_full",
-        name = "Full Laptop",
+        name = "Laptop",
         widthMm = 304.1f,
         heightMm = 212.4f,
         resWidth = 2560,
         resHeight = 1600,
         type = FrameType.DESKTOP,
         cornerRadiusDp = 16,
+        hasReflection = false,
         cutoutType = CutoutType.LAPTOP_NOTCH,
         hasChassis = true
     )

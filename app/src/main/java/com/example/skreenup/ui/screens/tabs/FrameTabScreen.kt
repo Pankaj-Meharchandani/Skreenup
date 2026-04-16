@@ -10,8 +10,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -39,6 +42,7 @@ import com.example.skreenup.ui.components.drawScrollbar
 @Composable
 fun FrameTabScreen(viewModel: EditorViewModel) {
     val selectedDevice by viewModel.selectedDevice.collectAsState()
+    val showReflection by viewModel.showReflection.collectAsState()
     var selectedCategory by remember { mutableStateOf(selectedDevice.category) }
     val scrollState = rememberScrollState()
 
@@ -52,12 +56,35 @@ fun FrameTabScreen(viewModel: EditorViewModel) {
             .padding(vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            text = "Device Frame",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Device Frame",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.ExtraBold
+            )
+            
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Reflection", style = MaterialTheme.typography.labelMedium)
+                Spacer(Modifier.width(8.dp))
+                Switch(
+                    checked = showReflection,
+                    onCheckedChange = { viewModel.setShowReflection(it) },
+                    thumbContent = if (showReflection) {
+                        {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Rounded.AutoAwesome,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    } else null
+                )
+            }
+        }
 
         // Category Filter Chips
         LazyRow(

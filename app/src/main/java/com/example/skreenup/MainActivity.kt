@@ -18,12 +18,16 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddPhotoAlternate
+import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Save
@@ -128,7 +132,7 @@ fun SkreenupApp() {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun EditorScreen(
     onNavigateToAbout: () -> Unit,
@@ -137,6 +141,9 @@ fun EditorScreen(
     val tabBackStack = rememberNavBackStack(FrameTab)
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
+    
+    val isKeyboardVisible = WindowInsets.isImeVisible
+    val previewWeight = if (isKeyboardVisible) 0.5f else 1f
 
     val selectedDevice by editorViewModel.selectedDevice.collectAsState()
     val screenshot by editorViewModel.screenshot.collectAsState()
@@ -156,16 +163,20 @@ fun EditorScreen(
     val screenshotRotation by editorViewModel.screenshotRotation.collectAsState()
     val rotation by editorViewModel.rotation.collectAsState()
 
-    val text by editorViewModel.text.collectAsState()
-    val textFont by editorViewModel.textFont.collectAsState()
-    val textSize by editorViewModel.textSize.collectAsState()
+    val heading by editorViewModel.heading.collectAsState()
+    val subheading by editorViewModel.subheading.collectAsState()
+    val headingFont by editorViewModel.headingFont.collectAsState()
+    val subheadingFont by editorViewModel.subheadingFont.collectAsState()
+    val headingSize by editorViewModel.headingSize.collectAsState()
+    val subheadingSize by editorViewModel.subheadingSize.collectAsState()
+    val textGap by editorViewModel.textGap.collectAsState()
     val textOffsetX by editorViewModel.textOffsetX.collectAsState()
     val textOffsetY by editorViewModel.textOffsetY.collectAsState()
     val textColor by editorViewModel.textColor.collectAsState()
     val textAlign by editorViewModel.textAlign.collectAsState()
-    val isBold by editorViewModel.isBold.collectAsState()
-    val isItalic by editorViewModel.isItalic.collectAsState()
-    val isUnderline by editorViewModel.isUnderline.collectAsState()
+    val headingBold by editorViewModel.headingBold.collectAsState()
+    val subheadingBold by editorViewModel.subheadingBold.collectAsState()
+    val showReflection by editorViewModel.showReflection.collectAsState()
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -201,16 +212,20 @@ fun EditorScreen(
                                 rotationDegrees = rotation,
                                 screenshotRotation = screenshotRotation,
                                 screenBackgroundColor = screenBackgroundColor,
-                                text = text,
-                                textFont = textFont,
-                                textSize = textSize,
+                                heading = heading,
+                                subheading = subheading,
+                                headingFont = headingFont,
+                                subheadingFont = subheadingFont,
+                                headingSize = headingSize,
+                                subheadingSize = subheadingSize,
+                                textGap = textGap,
                                 textColor = textColor,
                                 textOffsetX = textOffsetX,
                                 textOffsetY = textOffsetY,
                                 textAlignment = textAlign,
-                                isBold = isBold,
-                                isItalic = isItalic,
-                                isUnderline = isUnderline
+                                headingBold = headingBold,
+                                subheadingBold = subheadingBold,
+                                showReflection = showReflection
                             )
                             val success = saveBitmapToGallery(context, bitmap)
                             if (success) {
@@ -284,7 +299,7 @@ fun EditorScreen(
             // Top area: Device Preview
             Box(
                 modifier = Modifier
-                    .weight(1f)
+                    .weight(previewWeight)
                     .fillMaxWidth()
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -314,16 +329,20 @@ fun EditorScreen(
                     rotationDegrees = rotation,
                     screenshotRotation = screenshotRotation,
                     screenBackgroundColor = screenBackgroundColor,
-                    text = text,
-                    textFont = textFont,
-                    textSize = textSize,
+                    heading = heading,
+                    subheading = subheading,
+                    headingFont = headingFont,
+                    subheadingFont = subheadingFont,
+                    headingSize = headingSize,
+                    subheadingSize = subheadingSize,
+                    textGap = textGap,
                     textColor = textColor,
                     textOffsetX = textOffsetX,
                     textOffsetY = textOffsetY,
                     textAlign = textAlign,
-                    isBold = isBold,
-                    isItalic = isItalic,
-                    isUnderline = isUnderline
+                    headingBold = headingBold,
+                    subheadingBold = subheadingBold,
+                    showReflection = showReflection
                 )
 
                 if (screenshot == null) {
@@ -398,16 +417,20 @@ suspend fun captureToBitmap(
     rotationDegrees: Float = 0f,
     screenshotRotation: Float = 0f,
     screenBackgroundColor: Color = Color(0xFF2C2C2C),
-    text: String = "",
-    textFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
-    textSize: Float = 48f,
+    heading: String = "",
+    subheading: String = "",
+    headingFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
+    subheadingFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
+    headingSize: Float = 60f,
+    subheadingSize: Float = 40f,
+    textGap: Float = 20f,
     textColor: Color = Color.White,
     textOffsetX: Float = 0f,
     textOffsetY: Float = 0f,
     textAlignment: com.example.skreenup.ui.models.TextAlignLabel = com.example.skreenup.ui.models.TextAlignLabel.CENTER,
-    isBold: Boolean = false,
-    isItalic: Boolean = false,
-    isUnderline: Boolean = false
+    headingBold: Boolean = true,
+    subheadingBold: Boolean = false,
+    showReflection: Boolean = true
 ): Bitmap {
     return withContext(Dispatchers.Default) {
         val exportWidth = 2048
@@ -442,16 +465,20 @@ suspend fun captureToBitmap(
                 rotationDegrees = rotationDegrees,
                 screenshotRotation = screenshotRotation,
                 screenBackgroundColor = screenBackgroundColor,
-                text = text,
-                textFont = textFont,
-                textFontSize = textSize,
+                heading = heading,
+                subheading = subheading,
+                headingFont = headingFont,
+                subheadingFont = subheadingFont,
+                headingSize = headingSize,
+                subheadingSize = subheadingSize,
+                textGap = textGap,
                 textColor = textColor,
                 textOffsetX = textOffsetX,
                 textOffsetY = textOffsetY,
                 textAlignment = textAlignment,
-                isBold = isBold,
-                isItalic = isItalic,
-                isUnderline = isUnderline
+                headingBold = headingBold,
+                subheadingBold = subheadingBold,
+                showReflection = showReflection
             )
         }
 

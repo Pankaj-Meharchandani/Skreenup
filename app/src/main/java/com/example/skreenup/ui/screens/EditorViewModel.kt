@@ -49,14 +49,26 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     val screenBackgroundColor: StateFlow<Color> = _screenBackgroundColor.asStateFlow()
 
     // Text State
-    private val _text = MutableStateFlow("")
-    val text: StateFlow<String> = _text.asStateFlow()
+    private val _heading = MutableStateFlow("")
+    val heading: StateFlow<String> = _heading.asStateFlow()
 
-    private val _textFont = MutableStateFlow(TextFont.POPPINS)
-    val textFont: StateFlow<TextFont> = _textFont.asStateFlow()
+    private val _subheading = MutableStateFlow("")
+    val subheading: StateFlow<String> = _subheading.asStateFlow()
 
-    private val _textSize = MutableStateFlow(48f)
-    val textSize: StateFlow<Float> = _textSize.asStateFlow()
+    private val _headingFont = MutableStateFlow(TextFont.POPPINS)
+    val headingFont: StateFlow<TextFont> = _headingFont.asStateFlow()
+
+    private val _subheadingFont = MutableStateFlow(TextFont.POPPINS)
+    val subheadingFont: StateFlow<TextFont> = _subheadingFont.asStateFlow()
+
+    private val _headingSize = MutableStateFlow(60f)
+    val headingSize: StateFlow<Float> = _headingSize.asStateFlow()
+
+    private val _subheadingSize = MutableStateFlow(40f)
+    val subheadingSize: StateFlow<Float> = _subheadingSize.asStateFlow()
+
+    private val _textGap = MutableStateFlow(20f)
+    val textGap: StateFlow<Float> = _textGap.asStateFlow()
 
     private val _textOffsetX = MutableStateFlow(0f)
     val textOffsetX: StateFlow<Float> = _textOffsetX.asStateFlow()
@@ -70,14 +82,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _textAlign = MutableStateFlow(TextAlignLabel.CENTER)
     val textAlign: StateFlow<TextAlignLabel> = _textAlign.asStateFlow()
 
-    private val _isBold = MutableStateFlow(false)
-    val isBold: StateFlow<Boolean> = _isBold.asStateFlow()
+    private val _headingBold = MutableStateFlow(true)
+    val headingBold: StateFlow<Boolean> = _headingBold.asStateFlow()
 
-    private val _isItalic = MutableStateFlow(false)
-    val isItalic: StateFlow<Boolean> = _isItalic.asStateFlow()
-
-    private val _isUnderline = MutableStateFlow(false)
-    val isUnderline: StateFlow<Boolean> = _isUnderline.asStateFlow()
+    private val _subheadingBold = MutableStateFlow(false)
+    val subheadingBold: StateFlow<Boolean> = _subheadingBold.asStateFlow()
 
     // Adjust State
     private val _scale = MutableStateFlow(0.8f)
@@ -108,6 +117,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     // Rotation State
     private val _rotation = MutableStateFlow(0f)
     val rotation: StateFlow<Float> = _rotation.asStateFlow()
+
+    private val _showReflection = MutableStateFlow(true)
+    val showReflection: StateFlow<Boolean> = _showReflection.asStateFlow()
 
     // v2.1 Hex Color Input Strings
     private val _hexColorSolid = MutableStateFlow("#3F51B5")
@@ -245,9 +257,13 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     // Text Setters
-    fun setText(value: String) { _text.value = value }
-    fun setTextFont(value: TextFont) { _textFont.value = value }
-    fun setTextSize(value: Float) { _textSize.value = value }
+    fun setHeading(value: String) { _heading.value = value }
+    fun setSubheading(value: String) { _subheading.value = value }
+    fun setHeadingFont(value: TextFont) { _headingFont.value = value }
+    fun setSubheadingFont(value: TextFont) { _subheadingFont.value = value }
+    fun setHeadingSize(value: Float) { _headingSize.value = value }
+    fun setSubheadingSize(value: Float) { _subheadingSize.value = value }
+    fun setTextGap(value: Float) { _textGap.value = value }
     fun setTextOffsetX(value: Float) {
         val snapThreshold = 2f
         _textOffsetX.value = if (kotlin.math.abs(value) <= snapThreshold) 0f else value
@@ -258,9 +274,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
     fun setTextColor(color: Color) { _textColor.value = color }
     fun setTextAlign(value: TextAlignLabel) { _textAlign.value = value }
-    fun setIsBold(value: Boolean) { _isBold.value = value }
-    fun setIsItalic(value: Boolean) { _isItalic.value = value }
-    fun setIsUnderline(value: Boolean) { _isUnderline.value = value }
+    fun setHeadingBold(value: Boolean) { _headingBold.value = value }
+    fun setSubheadingBold(value: Boolean) { _subheadingBold.value = value }
+
+    fun setShowReflection(value: Boolean) { _showReflection.value = value }
 
     private fun parseHexColor(hex: String): Color? {
         return try {

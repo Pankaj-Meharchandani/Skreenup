@@ -33,16 +33,20 @@ fun DeviceFrame(
     rotationDegrees: Float = 0f,
     screenshotRotation: Float = 0f,
     screenBackgroundColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color(0xFF2C2C2C),
-    text: String = "",
-    textFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
-    textSize: Float = 48f,
+    heading: String = "",
+    subheading: String = "",
+    headingFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
+    subheadingFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
+    headingSize: Float = 60f,
+    subheadingSize: Float = 40f,
+    textGap: Float = 20f,
     textColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.White,
     textOffsetX: Float = 0f,
     textOffsetY: Float = 0f,
     textAlign: com.example.skreenup.ui.models.TextAlignLabel = com.example.skreenup.ui.models.TextAlignLabel.CENTER,
-    isBold: Boolean = false,
-    isItalic: Boolean = false,
-    isUnderline: Boolean = false,
+    headingBold: Boolean = true,
+    subheadingBold: Boolean = false,
+    showReflection: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -73,16 +77,20 @@ fun DeviceFrame(
                 isExport = false,
                 rotationDegrees = rotationDegrees,
                 screenshotRotation = screenshotRotation,
-                text = text,
-                textFont = textFont,
-                textFontSize = textSize,
+                heading = heading,
+                subheading = subheading,
+                headingFont = headingFont,
+                subheadingFont = subheadingFont,
+                headingSize = headingSize,
+                subheadingSize = subheadingSize,
+                textGap = textGap,
                 textColor = textColor,
                 textOffsetX = textOffsetX,
                 textOffsetY = textOffsetY,
                 textAlignment = textAlign,
-                isBold = isBold,
-                isItalic = isItalic,
-                isUnderline = isUnderline
+                headingBold = headingBold,
+                subheadingBold = subheadingBold,
+                showReflection = showReflection
             )
         }
     }

@@ -1,7 +1,7 @@
 # Skreenup — Professional Screenshot Framing Made Simple
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Pankaj-Meharchandani/Skreenup/main/app/src/main/res/drawable/ic_launcher_foreground.xml" width="128" height="128" alt="Skreenup Logo" />
+  <img src="https://github.com/user-attachments/assets/c6f07488-7694-4fff-b70e-dc0b8bd50a5d" width="128" height="128" alt="Skreenup Logo" />
 </p>
 
 <p align="center">

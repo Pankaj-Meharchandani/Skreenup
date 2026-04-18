@@ -1,0 +1,91 @@
+# Skreenup — Professional Screenshot Framing Made Simple
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Pankaj-Meharchandani/Skreenup/main/app/src/main/res/drawable/ic_launcher_foreground.xml" width="128" height="128" alt="Skreenup Logo" />
+</p>
+
+<p align="center">
+  A modern, professional-looking Android application built with Jetpack Compose that allows users to create stunning screenshot mockups with realistic device frames and beautiful backgrounds.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Platform-Android-brightgreen?logo=android&logoColor=white&style=for-the-badge" alt="Platform" />
+  <img src="https://img.shields.io/badge/Language-Kotlin-orange?logo=kotlin&logoColor=white&style=for-the-badge" alt="Language" />
+  <img src="https://img.shields.io/badge/UI-Jetpack%20Compose-blue?logo=jetpackcompose&logoColor=white&style=for-the-badge" alt="UI" />
+  <img src="https://img.shields.io/badge/Architecture-MVVM-purple?style=for-the-badge" alt="Architecture" />
+  <img src="https://img.shields.io/badge/License-GNU-grey?style=for-the-badge" alt="License" />
+</p>
+
+---
+
+## 📸 Screenshots
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Pankaj-Meharchandani/Skreenup/main/screenshots/home.png" width="30%" alt="Home Screen" />
+  <img src="https://raw.githubusercontent.com/Pankaj-Meharchandani/Skreenup/main/screenshots/editor.png" width="30%" alt="Editor Screen" />
+</p>
+
+## 🚀 Features
+
+### 🖼️ Device Framing
+* **Multiple Device Frames:** Choose from a variety of Android and iOS device frames.
+* **Realistic Render:** High-quality device frames that adapt to your screenshot's aspect ratio.
+
+### 🎨 Background Customization
+* **Solid Colors & Gradients:** Apply vibrant solid colors or beautiful linear/radial gradients.
+* **Image Blurs:** Use a blurred version of your own screenshot or a custom image as a background.
+* **Patterns:** Choose from a set of curated patterns to add texture to your mockups.
+
+### ✍️ Personalization & Branding
+* **Custom Watermarks:** Add and customize your own watermark text to brand your mockups.
+* **Flexible Layouts:** Adjust the scale and position of the device frame within the canvas.
+* **Aspect Ratios:** Export in various formats optimized for social media (Square, Portrait, Story).
+
+### 💾 Persistence
+* **Project History:** All your previous designs are automatically saved locally using Room Database, so you can resume editing later.
+
+## 🛠 Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| Language | Kotlin (100%) |
+| UI Framework | Jetpack Compose (Material 3) |
+| Architecture | MVVM (Model-View-ViewModel) |
+| Navigation | Compose Navigation 3 |
+| Persistence | Room Database |
+| Image Loading | Coil |
+| Background Ops | Kotlin Coroutines & Flow |
+
+## 📂 Project Structure
+```text
+app/src/main/java/com/example/skreenup/
+│
+├── data/                # Room Database, DAOs, and Entities (Project, Preset)
+├── navigation/          # Navigation logic and screen definitions
+├── ui/
+│   ├── components/      # Reusable UI components (Buttons, Tabs, etc.)
+│   ├── models/          # UI-specific data models
+│   ├── screens/         # Feature screens (Home, Editor, About)
+│   │   └── tabs/        # Editor tab screens (Background, Frame, etc.)
+│   └── theme/           # App's Design System (Colors, Typography, Shapes)
+└── MainActivity.kt      # Main entry point of the application
+```
+
+## ⚙️ Getting Started
+
+### Prerequisites
+* Android Studio Ladybug (2024.2.1) or later
+* Android SDK 35 (Target 37)
+* JDK 11+
+
+### Build & Run
+1. Clone the repo: `git clone https://github.com/Pankaj-Meharchandani/Skreenup.git`
+2. Open in Android Studio.
+3. Sync Gradle and run on a device/emulator with API 30+.
+
+## 🛡 Permissions
+| Permission | Usage |
+|------------|-------|
+| `INTERNET` | Required for fetching images or updates (if applicable). |
+
+## 📄 License
+This project is licensed under the **GNU General Public License v3.0**. See the [LICENSE](LICENSE) file for details.

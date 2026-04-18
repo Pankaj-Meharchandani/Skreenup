@@ -1,6 +1,7 @@
 package com.example.skreenup
 
 import android.content.ContentValues
+import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
@@ -44,16 +45,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -77,10 +82,13 @@ import com.example.skreenup.ui.screens.tabs.TextTabScreen
 import com.example.skreenup.ui.theme.SkreenupTheme
 import com.example.skreenup.ui.components.DeviceFrame
 import com.example.skreenup.ui.components.MockupRenderer.drawMockup
+import com.example.skreenup.ui.components.UpdateDialog
 import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.models.CompositionAspectRatio
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.screens.EditorViewModel
+import com.example.skreenup.update.GitHubRelease
+import com.example.skreenup.update.UpdateChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -100,6 +108,39 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun SkreenupApp() {
+    val context = LocalContext.current
+    var showUpdateDialog by remember { mutableStateOf<GitHubRelease?>(null) }
+    
+    LaunchedEffect(Unit) {
+        val checker = UpdateChecker()
+        val latestRelease = withContext(Dispatchers.IO) {
+            checker.checkForUpdate()
+        }
+        
+        latestRelease?.let { release ->
+            val currentVersion = context.packageManager
+                .getPackageInfo(context.packageName, 0).versionName
+            
+            // Basic version comparison (tag_name vs versionName)
+            // Assuming tag_name is like "1.0.2" and versionName is "1.0.1"
+            if (release.tag_name != currentVersion) {
+                showUpdateDialog = release
+            }
+        }
+    }
+
+    if (showUpdateDialog != null) {
+        UpdateDialog(
+            release = showUpdateDialog!!,
+            onDismiss = { showUpdateDialog = null },
+            onUpdate = { url ->
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                context.startActivity(intent)
+                showUpdateDialog = null
+            }
+        )
+    }
+
     val mainBackStack = rememberNavBackStack(Editor)
 
     NavDisplay(

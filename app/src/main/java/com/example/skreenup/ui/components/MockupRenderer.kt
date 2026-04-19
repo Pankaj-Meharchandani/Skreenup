@@ -37,6 +37,8 @@ object MockupRenderer {
         backgroundColor: Color,
         gradientColors: List<Color>,
         backgroundImage: ImageBitmap?,
+        backgroundImageOffsetX: Float = 0f,
+        backgroundImageOffsetY: Float = 0f,
         scale: Float,
         imageScale: Float,
         frameOffsetX: Float,
@@ -102,10 +104,28 @@ object MockupRenderer {
                 }
                 BackgroundType.IMAGE -> {
                     if (backgroundImage != null) {
+                        val imgAspectRatio = backgroundImage.width.toFloat() / backgroundImage.height.toFloat()
+                        val compAspectRatio = compWidth / compHeight
+                        
+                        var drawWidth: Float
+                        var drawHeight: Float
+
+                        if (imgAspectRatio > compAspectRatio) {
+                            drawHeight = compHeight
+                            drawWidth = drawHeight * imgAspectRatio
+                        } else {
+                            drawWidth = compWidth
+                            drawHeight = drawWidth / imgAspectRatio
+                        }
+
+                        val exportScaleFactor = if (isExport) compWidth / 1000f else 1f
+                        val drawLeft = compLeft + (compWidth - drawWidth) / 2 + (backgroundImageOffsetX * exportScaleFactor)
+                        val drawTop = compTop + (compHeight - drawHeight) / 2 + (backgroundImageOffsetY * exportScaleFactor)
+
                         drawImage(
                             image = backgroundImage,
-                            dstOffset = IntOffset(compLeft.toInt(), compTop.toInt()),
-                            dstSize = IntSize(compWidth.toInt(), compHeight.toInt()),
+                            dstOffset = IntOffset(drawLeft.toInt(), drawTop.toInt()),
+                            dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt()),
                             blendMode = BlendMode.SrcOver
                         )
                     } else {

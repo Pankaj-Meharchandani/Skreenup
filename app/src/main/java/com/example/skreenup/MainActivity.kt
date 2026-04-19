@@ -192,6 +192,8 @@ fun EditorScreen(
     val backgroundColor by editorViewModel.backgroundColor.collectAsState()
     val gradientColors by editorViewModel.gradientColors.collectAsState()
     val backgroundImage by editorViewModel.backgroundImage.collectAsState()
+    val backgroundImageOffsetX by editorViewModel.backgroundImageOffsetX.collectAsState()
+    val backgroundImageOffsetY by editorViewModel.backgroundImageOffsetY.collectAsState()
     val screenBackgroundColor by editorViewModel.screenBackgroundColor.collectAsState()
     val scale by editorViewModel.scale.collectAsState()
     val imageScale by editorViewModel.imageScale.collectAsState()
@@ -243,6 +245,8 @@ fun EditorScreen(
                                 backgroundColor = backgroundColor,
                                 gradientColors = gradientColors,
                                 backgroundImage = backgroundImage,
+                                backgroundImageOffsetX = backgroundImageOffsetX,
+                                backgroundImageOffsetY = backgroundImageOffsetY,
                                 scale = scale,
                                 imageScale = imageScale,
                                 frameOffsetX = frameOffsetX,
@@ -360,6 +364,8 @@ fun EditorScreen(
                     backgroundColor = backgroundColor,
                     gradientColors = gradientColors,
                     backgroundImage = backgroundImage,
+                    backgroundImageOffsetX = backgroundImageOffsetX,
+                    backgroundImageOffsetY = backgroundImageOffsetY,
                     scale = scale,
                     imageScale = imageScale,
                     frameOffsetX = frameOffsetX,
@@ -448,6 +454,8 @@ suspend fun captureToBitmap(
     backgroundColor: Color,
     gradientColors: List<Color>,
     backgroundImage: ImageBitmap?,
+    backgroundImageOffsetX: Float = 0f,
+    backgroundImageOffsetY: Float = 0f,
     scale: Float,
     imageScale: Float,
     frameOffsetX: Float,
@@ -493,6 +501,8 @@ suspend fun captureToBitmap(
                 backgroundColor = backgroundColor,
                 gradientColors = gradientColors,
                 backgroundImage = backgroundImage,
+                backgroundImageOffsetX = backgroundImageOffsetX,
+                backgroundImageOffsetY = backgroundImageOffsetY,
                 scale = scale,
                 imageScale = imageScale,
                 frameOffsetX = frameOffsetX,

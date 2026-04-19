@@ -10,10 +10,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,11 +42,14 @@ import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.DeviceModels
 import com.example.skreenup.ui.screens.EditorViewModel
 import com.example.skreenup.ui.components.drawScrollbar
+import com.example.skreenup.ui.components.ColorSelector
 
 @Composable
 fun FrameTabScreen(viewModel: EditorViewModel) {
     val selectedDevice by viewModel.selectedDevice.collectAsState()
     val showReflection by viewModel.showReflection.collectAsState()
+    val screenBackgroundColor by viewModel.screenBackgroundColor.collectAsState()
+    val hexColorScreen by viewModel.hexColorScreen.collectAsState()
     var selectedCategory by remember { mutableStateOf(selectedDevice.category) }
     val scrollState = rememberScrollState()
 
@@ -76,7 +83,7 @@ fun FrameTabScreen(viewModel: EditorViewModel) {
                     thumbContent = if (showReflection) {
                         {
                             Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Rounded.AutoAwesome,
+                                imageVector = Icons.Rounded.AutoAwesome,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -116,6 +123,37 @@ fun FrameTabScreen(viewModel: EditorViewModel) {
                 )
             }
         }
+
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+
+        // Screen Color Section
+        Column(
+            modifier = Modifier.padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "Screen Color",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.ExtraBold
+            )
+
+            ColorSelector(
+                selectedColor = screenBackgroundColor,
+                onColorSelected = { viewModel.setScreenBackgroundColor(it) }
+            )
+
+            OutlinedTextField(
+                value = hexColorScreen,
+                onValueChange = { viewModel.setHexColorScreen(it) },
+                label = { Text("Manual Hex Code") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                leadingIcon = { Icon(Icons.Rounded.Palette, contentDescription = null) },
+                shape = MaterialTheme.shapes.medium
+            )
+        }
+
+        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -159,6 +197,8 @@ fun DeviceFrameItem(
                     backgroundColor = Color.Transparent,
                     gradientColors = emptyList(),
                     backgroundImage = null,
+                    backgroundImageOffsetX = 0f,
+                    backgroundImageOffsetY = 0f,
                     scale = 0.85f,
                     imageScale = 1.0f,
                     frameOffsetX = 0f,

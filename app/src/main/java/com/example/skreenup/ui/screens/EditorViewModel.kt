@@ -45,6 +45,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _backgroundImage = MutableStateFlow<ImageBitmap?>(null)
     val backgroundImage: StateFlow<ImageBitmap?> = _backgroundImage.asStateFlow()
 
+    private val _backgroundImageOffsetX = MutableStateFlow(0f)
+    val backgroundImageOffsetX: StateFlow<Float> = _backgroundImageOffsetX.asStateFlow()
+
+    private val _backgroundImageOffsetY = MutableStateFlow(0f)
+    val backgroundImageOffsetY: StateFlow<Float> = _backgroundImageOffsetY.asStateFlow()
+
     private val _screenBackgroundColor = MutableStateFlow(Color(0xFF2C2C2C))
     val screenBackgroundColor: StateFlow<Color> = _screenBackgroundColor.asStateFlow()
 
@@ -172,6 +178,14 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             val bitmap = loadBitmapFromUri(getApplication(), uri)
             _backgroundImage.value = bitmap?.asImageBitmap()
         }
+    }
+
+    fun setBackgroundImageOffsetX(value: Float) {
+        _backgroundImageOffsetX.value = value
+    }
+
+    fun setBackgroundImageOffsetY(value: Float) {
+        _backgroundImageOffsetY.value = value
     }
 
     fun setScale(value: Float) {

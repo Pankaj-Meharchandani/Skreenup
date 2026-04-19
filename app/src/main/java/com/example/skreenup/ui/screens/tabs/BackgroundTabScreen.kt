@@ -31,6 +31,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -49,13 +50,13 @@ import com.example.skreenup.ui.components.drawScrollbar
 fun BackgroundTabScreen(viewModel: EditorViewModel) {
     val backgroundType by viewModel.backgroundType.collectAsState()
     val backgroundColor by viewModel.backgroundColor.collectAsState()
-    val screenBackgroundColor by viewModel.screenBackgroundColor.collectAsState()
     val gradientColors by viewModel.gradientColors.collectAsState()
+    val backgroundImageOffsetX by viewModel.backgroundImageOffsetX.collectAsState()
+    val backgroundImageOffsetY by viewModel.backgroundImageOffsetY.collectAsState()
     
     val hexColorSolid by viewModel.hexColorSolid.collectAsState()
     val hexColorStart by viewModel.hexColorGradientStart.collectAsState()
     val hexColorEnd by viewModel.hexColorGradientEnd.collectAsState()
-    val hexColorScreen by viewModel.hexColorScreen.collectAsState()
 
     val scrollState = rememberScrollState()
 
@@ -163,22 +164,42 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
                 }
             }
             BackgroundType.IMAGE -> {
-                Button(
-                    onClick = {
-                        photoPickerLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Button(
+                        onClick = {
+                            photoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        ),
+                        shape = MaterialTheme.shapes.large
+                    ) {
+                        Icon(Icons.Rounded.Collections, contentDescription = null)
+                        Spacer(Modifier.size(12.dp))
+                        Text("Import Gallery Image")
+                    }
+
+                    Column {
+                        Text("Move Horizontal", style = MaterialTheme.typography.labelMedium)
+                        Slider(
+                            value = backgroundImageOffsetX,
+                            onValueChange = { viewModel.setBackgroundImageOffsetX(it) },
+                            valueRange = -500f..500f
                         )
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    ),
-                    shape = MaterialTheme.shapes.large
-                ) {
-                    Icon(Icons.Rounded.Collections, contentDescription = null)
-                    Spacer(Modifier.size(12.dp))
-                    Text("Import Gallery Image")
+                    }
+
+                    Column {
+                        Text("Move Vertical", style = MaterialTheme.typography.labelMedium)
+                        Slider(
+                            value = backgroundImageOffsetY,
+                            onValueChange = { viewModel.setBackgroundImageOffsetY(it) },
+                            valueRange = -500f..500f
+                        )
+                    }
                 }
             }
             BackgroundType.TRANSPARENT -> {
@@ -200,30 +221,6 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
-        // Screen Color Section
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(
-                text = "Screen Color",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold
-            )
-            
-            ColorSelector(
-                selectedColor = screenBackgroundColor,
-                onColorSelected = { viewModel.setScreenBackgroundColor(it) }
-            )
-
-            OutlinedTextField(
-                value = hexColorScreen,
-                onValueChange = { viewModel.setHexColorScreen(it) },
-                label = { Text("Manual Hex Code") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                leadingIcon = { Icon(Icons.Rounded.Palette, contentDescription = null) },
-                shape = MaterialTheme.shapes.medium
-            )
-        }
-        
         Spacer(Modifier.height(24.dp))
     }
 }

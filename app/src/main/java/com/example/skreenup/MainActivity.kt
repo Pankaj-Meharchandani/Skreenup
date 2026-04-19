@@ -195,6 +195,7 @@ fun EditorScreen(
     val backgroundImageOffsetX by editorViewModel.backgroundImageOffsetX.collectAsState()
     val backgroundImageOffsetY by editorViewModel.backgroundImageOffsetY.collectAsState()
     val backgroundImageScale by editorViewModel.backgroundImageScale.collectAsState()
+    val backgroundImageBlur by editorViewModel.backgroundImageBlur.collectAsState()
     val screenBackgroundColor by editorViewModel.screenBackgroundColor.collectAsState()
     val scale by editorViewModel.scale.collectAsState()
     val imageScale by editorViewModel.imageScale.collectAsState()
@@ -249,6 +250,7 @@ fun EditorScreen(
                                 backgroundImageOffsetX = backgroundImageOffsetX,
                                 backgroundImageOffsetY = backgroundImageOffsetY,
                                 backgroundImageScale = backgroundImageScale,
+                                backgroundImageBlur = backgroundImageBlur,
                                 scale = scale,
                                 imageScale = imageScale,
                                 frameOffsetX = frameOffsetX,
@@ -369,6 +371,7 @@ fun EditorScreen(
                     backgroundImageOffsetX = backgroundImageOffsetX,
                     backgroundImageOffsetY = backgroundImageOffsetY,
                     backgroundImageScale = backgroundImageScale,
+                    backgroundImageBlur = backgroundImageBlur,
                     scale = scale,
                     imageScale = imageScale,
                     frameOffsetX = frameOffsetX,
@@ -460,6 +463,7 @@ suspend fun captureToBitmap(
     backgroundImageOffsetX: Float = 0f,
     backgroundImageOffsetY: Float = 0f,
     backgroundImageScale: Float = 1.0f,
+    backgroundImageBlur: Float = 0f,
     scale: Float,
     imageScale: Float,
     frameOffsetX: Float,
@@ -508,6 +512,7 @@ suspend fun captureToBitmap(
                 backgroundImageOffsetX = backgroundImageOffsetX,
                 backgroundImageOffsetY = backgroundImageOffsetY,
                 backgroundImageScale = backgroundImageScale,
+                backgroundImageBlur = backgroundImageBlur,
                 scale = scale,
                 imageScale = imageScale,
                 frameOffsetX = frameOffsetX,

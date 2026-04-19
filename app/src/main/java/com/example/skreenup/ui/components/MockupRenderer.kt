@@ -28,6 +28,10 @@ import com.example.skreenup.ui.models.FrameType
 import com.example.skreenup.ui.models.TextFont
 import com.example.skreenup.ui.models.TextAlignLabel
 import android.graphics.Typeface
+import android.graphics.Paint as NativePaint
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 
 object MockupRenderer {
     fun DrawScope.drawMockup(
@@ -40,6 +44,7 @@ object MockupRenderer {
         backgroundImageOffsetX: Float = 0f,
         backgroundImageOffsetY: Float = 0f,
         backgroundImageScale: Float = 1.0f,
+        backgroundImageBlur: Float = 0f,
         scale: Float,
         imageScale: Float,
         frameOffsetX: Float,
@@ -123,12 +128,43 @@ object MockupRenderer {
                         val drawLeft = compLeft + (compWidth - drawWidth) / 2 + (backgroundImageOffsetX * exportScaleFactor)
                         val drawTop = compTop + (compHeight - drawHeight) / 2 + (backgroundImageOffsetY * exportScaleFactor)
 
-                        drawImage(
-                            image = backgroundImage,
-                            dstOffset = IntOffset(drawLeft.toInt(), drawTop.toInt()),
-                            dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt()),
-                            blendMode = BlendMode.SrcOver
-                        )
+                        val useBlur = backgroundImageBlur > 0
+                        
+                        if (useBlur && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            val paint = NativePaint()
+                            val effect = RenderEffect.createBlurEffect(
+                                backgroundImageBlur, 
+                                backgroundImageBlur, 
+                                Shader.TileMode.CLAMP
+                            )
+                            
+                            // Use reflection to call setRenderEffect to bypass unresolved reference issue in some environments
+                            try {
+                                val setRenderEffectMethod = paint.javaClass.methods.find { it.name == "setRenderEffect" }
+                                setRenderEffectMethod?.invoke(paint, effect)
+                            } catch (e: Exception) {
+                                // Fallback: if reflection fails, we just draw without blur
+                            }
+
+                            drawContext.canvas.nativeCanvas.saveLayer(
+                                compLeft, compTop, compLeft + compWidth, compTop + compHeight,
+                                paint
+                            )
+                            drawImage(
+                                image = backgroundImage,
+                                dstOffset = IntOffset(drawLeft.toInt(), drawTop.toInt()),
+                                dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt()),
+                                blendMode = BlendMode.SrcOver
+                            )
+                            drawContext.canvas.nativeCanvas.restore()
+                        } else {
+                            drawImage(
+                                image = backgroundImage,
+                                dstOffset = IntOffset(drawLeft.toInt(), drawTop.toInt()),
+                                dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt()),
+                                blendMode = BlendMode.SrcOver
+                            )
+                        }
                     } else {
                         drawRect(color = Color.LightGray, topLeft = Offset(compLeft, compTop), size = Size(compWidth, compHeight))
                     }
@@ -223,9 +259,9 @@ object MockupRenderer {
                     textSize = size * exportTextFactor
                     isAntiAlias = true
                     this.textAlign = when (textAlignment) {
-                        TextAlignLabel.LEFT -> android.graphics.Paint.Align.LEFT
-                        TextAlignLabel.CENTER -> android.graphics.Paint.Align.CENTER
-                        TextAlignLabel.RIGHT -> android.graphics.Paint.Align.RIGHT
+                        TextAlignLabel.LEFT -> NativePaint.Align.LEFT
+                        TextAlignLabel.CENTER -> NativePaint.Align.CENTER
+                        TextAlignLabel.RIGHT -> NativePaint.Align.RIGHT
                     }
                 }
             }

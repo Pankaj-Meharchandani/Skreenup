@@ -39,8 +39,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.screens.EditorViewModel
 import com.example.skreenup.ui.components.ColorSelector
@@ -53,6 +57,7 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
     val gradientColors by viewModel.gradientColors.collectAsState()
     val backgroundImageOffsetX by viewModel.backgroundImageOffsetX.collectAsState()
     val backgroundImageOffsetY by viewModel.backgroundImageOffsetY.collectAsState()
+    val backgroundImageScale by viewModel.backgroundImageScale.collectAsState()
     
     val hexColorSolid by viewModel.hexColorSolid.collectAsState()
     val hexColorStart by viewModel.hexColorGradientStart.collectAsState()
@@ -164,6 +169,16 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
                 }
             }
             BackgroundType.IMAGE -> {
+                val presets = listOf(
+                    "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=2070&auto=format&fit=crop",
+                    "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964&auto=format&fit=crop",
+                    "https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2029&auto=format&fit=crop",
+                    "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop",
+                    "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1974&auto=format&fit=crop",
+                    "https://images.unsplash.com/photo-1574169208507-84376144848b?q=80&w=2079&auto=format&fit=crop"
+                )
+                val context = LocalContext.current
+
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Button(
                         onClick = {
@@ -181,6 +196,41 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
                         Icon(Icons.Rounded.Collections, contentDescription = null)
                         Spacer(Modifier.size(12.dp))
                         Text("Import Gallery Image")
+                    }
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(presets) { url ->
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(url)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .clickable { viewModel.setPresetBackgroundImage(url) },
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Background Scale", style = MaterialTheme.typography.labelMedium)
+                            Text("${(backgroundImageScale * 100).toInt()}%", style = MaterialTheme.typography.labelSmall)
+                        }
+                        Slider(
+                            value = backgroundImageScale,
+                            onValueChange = { viewModel.setBackgroundImageScale(it) },
+                            valueRange = 0f..2f
+                        )
                     }
 
                     Column {

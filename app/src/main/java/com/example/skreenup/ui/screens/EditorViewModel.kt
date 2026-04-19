@@ -51,6 +51,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _backgroundImageOffsetY = MutableStateFlow(0f)
     val backgroundImageOffsetY: StateFlow<Float> = _backgroundImageOffsetY.asStateFlow()
 
+    private val _backgroundImageScale = MutableStateFlow(1.0f)
+    val backgroundImageScale: StateFlow<Float> = _backgroundImageScale.asStateFlow()
+
     private val _screenBackgroundColor = MutableStateFlow(Color(0xFF2C2C2C))
     val screenBackgroundColor: StateFlow<Color> = _screenBackgroundColor.asStateFlow()
 
@@ -188,6 +191,18 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _backgroundImageOffsetY.value = value
     }
 
+    fun setBackgroundImageScale(value: Float) {
+        _backgroundImageScale.value = value
+    }
+
+    fun setPresetBackgroundImage(url: String) {
+        viewModelScope.launch {
+            val bitmap = loadBitmapFromUrl(getApplication(), url)
+            _backgroundImage.value = bitmap?.asImageBitmap()
+            _backgroundType.value = BackgroundType.IMAGE
+        }
+    }
+
     fun setScale(value: Float) {
         val mid = 0.6f // (0.2 + 1.0) / 2
         val snapThreshold = 0.02f
@@ -307,6 +322,23 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             val loader = ImageLoader(context)
             val request = ImageRequest.Builder(context)
                 .data(uri)
+                .allowHardware(false)
+                .build()
+
+            val result = loader.execute(request)
+            if (result is SuccessResult) {
+                (result.drawable as android.graphics.drawable.BitmapDrawable).bitmap
+            } else {
+                null
+            }
+        }
+    }
+
+    private suspend fun loadBitmapFromUrl(context: android.content.Context, url: String): Bitmap? {
+        return withContext(Dispatchers.IO) {
+            val loader = ImageLoader(context)
+            val request = ImageRequest.Builder(context)
+                .data(url)
                 .allowHardware(false)
                 .build()
 

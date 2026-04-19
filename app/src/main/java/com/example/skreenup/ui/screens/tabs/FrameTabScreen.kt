@@ -199,6 +199,7 @@ fun DeviceFrameItem(
                     backgroundImage = null,
                     backgroundImageOffsetX = 0f,
                     backgroundImageOffsetY = 0f,
+                    backgroundImageScale = 1.0f,
                     scale = 0.85f,
                     imageScale = 1.0f,
                     frameOffsetX = 0f,

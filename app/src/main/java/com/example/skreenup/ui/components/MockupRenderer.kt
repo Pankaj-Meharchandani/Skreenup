@@ -39,6 +39,7 @@ object MockupRenderer {
         backgroundImage: ImageBitmap?,
         backgroundImageOffsetX: Float = 0f,
         backgroundImageOffsetY: Float = 0f,
+        backgroundImageScale: Float = 1.0f,
         scale: Float,
         imageScale: Float,
         frameOffsetX: Float,
@@ -111,10 +112,10 @@ object MockupRenderer {
                         var drawHeight: Float
 
                         if (imgAspectRatio > compAspectRatio) {
-                            drawHeight = compHeight
+                            drawHeight = compHeight * backgroundImageScale
                             drawWidth = drawHeight * imgAspectRatio
                         } else {
-                            drawWidth = compWidth
+                            drawWidth = compWidth * backgroundImageScale
                             drawHeight = drawWidth / imgAspectRatio
                         }
 

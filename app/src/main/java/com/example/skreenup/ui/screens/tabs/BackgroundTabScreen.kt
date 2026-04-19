@@ -42,12 +42,12 @@ data class BackgroundPreset(val url: String, val category: String)
 val PRESET_BACKGROUNDS = listOf(
     // Clean / Minimalist (Less busy, great for readability)
     BackgroundPreset("https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?q=80&w=2067&auto=format&fit=crop", "Clean"),
-    BackgroundPreset("https://images.unsplash.com/photo-1554034483-04fac7973891?q=80&w=2070&auto=format&fit=crop", "Clean"),
+    BackgroundPreset("https://images.unsplash.com/photo-1519219788971-8d9797e0928e?q=80&w=1144&auto=format&fit=crop", "Table"),
     BackgroundPreset("https://images.unsplash.com/photo-1516550893923-42d28e5677af?q=80&w=2072&auto=format&fit=crop", "Clean"),
     BackgroundPreset("https://images.unsplash.com/photo-1508615039623-a25605d2b022?q=80&w=2070&auto=format&fit=crop", "Clean"),
     BackgroundPreset("https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?q=80&w=2012&auto=format&fit=crop", "Clean"),
     BackgroundPreset("https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=1974&auto=format&fit=crop", "Clean"),
-    BackgroundPreset("https://images.unsplash.com/photo-1553095066-5014bd75ad9d?q=80&w=2070&auto=format&fit=crop", "Clean"),
+    BackgroundPreset("https://images.unsplash.com/photo-1676256632648-422a85b88b4c?q=80&w=764&auto=format&fit=crop", "Podium"),
     BackgroundPreset("https://images.unsplash.com/photo-1505330622279-bf7d7fc918f4?q=80&w=2070&auto=format&fit=crop", "Clean"),
     BackgroundPreset("https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=2070&auto=format&fit=crop", "Clean"),
 
@@ -57,6 +57,7 @@ val PRESET_BACKGROUNDS = listOf(
     BackgroundPreset("https://images.unsplash.com/photo-1503220317375-aaad61436b1b?q=80&w=2070&auto=format&fit=crop", "Travel"),
     BackgroundPreset("https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=2070&auto=format&fit=crop", "Travel"),
     BackgroundPreset("https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=2070&auto=format&fit=crop", "Travel"),
+    BackgroundPreset("https://images.unsplash.com/photo-1515488764276-beab7607c1e6?q=80&w=2070&auto=format&fit=crop", "Travel"),
 
     // Abstract / Artistic (Originals restored)
     BackgroundPreset("https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=2070&auto=format&fit=crop", "Abstract"),
@@ -65,31 +66,31 @@ val PRESET_BACKGROUNDS = listOf(
     BackgroundPreset("https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop", "Abstract"),
     BackgroundPreset("https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1974&auto=format&fit=crop", "Abstract"),
     BackgroundPreset("https://images.unsplash.com/photo-1574169208507-84376144848b?q=80&w=2079&auto=format&fit=crop", "Abstract"),
+    BackgroundPreset("https://images.unsplash.com/photo-1506792006437-256b665541e2?q=80&w=687&auto=format&fit=crop", "Abstract"),
+    BackgroundPreset("https://images.unsplash.com/photo-1741681603736-54fe2c38daab?q=80&w=1332&auto=format&fit=crop", "Pixels"),
 
     // Tech
     BackgroundPreset("https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070&auto=format&fit=crop", "Tech"),
     BackgroundPreset("https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070&auto=format&fit=crop", "Tech"),
     BackgroundPreset("https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=2070&auto=format&fit=crop", "Tech"),
-    
+
     // Kids
-    BackgroundPreset("https://images.unsplash.com/photo-1515488764276-beab7607c1e6?q=80&w=2070&auto=format&fit=crop", "Kids"),
-    BackgroundPreset("https://images.unsplash.com/photo-1533514114760-4389f5fd356b?q=80&w=2069&auto=format&fit=crop", "Kids"),
     BackgroundPreset("https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?q=80&w=2070&auto=format&fit=crop", "Kids"),
-    
+
     // Fun
     BackgroundPreset("https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=2025&auto=format&fit=crop", "Fun"),
     BackgroundPreset("https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070&auto=format&fit=crop", "Fun"),
-    BackgroundPreset("https://images.unsplash.com/photo-1514525253344-ad1919420042?q=80&w=2070&auto=format&fit=crop", "Fun"),
-    
+    BackgroundPreset("https://images.unsplash.com/photo-1664111036893-a95ffa5e5ff5?q=80&w=1170&auto=format&fit=crop", "Fun"),
+    BackgroundPreset("https://images.unsplash.com/photo-1664329182755-872386320782?q=80&w=1228&auto=format&fit=crop", "Fun"),
+
     // Beach
     BackgroundPreset("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2073&auto=format&fit=crop", "Beach"),
     BackgroundPreset("https://images.unsplash.com/photo-1473116763249-2faaef81ccda?q=80&w=2069&auto=format&fit=crop", "Beach"),
     BackgroundPreset("https://images.unsplash.com/photo-1519046904884-53103b34b206?q=80&w=2070&auto=format&fit=crop", "Beach"),
-    
+
     // Forest
     BackgroundPreset("https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2071&auto=format&fit=crop", "Forest"),
-    BackgroundPreset("https://images.unsplash.com/photo-1511497584788-876760111969?q=80&w=1932&auto=format&fit=crop", "Forest"),
-    BackgroundPreset("https://images.unsplash.com/photo-1448375235553-677057873d67?q=80&w=2070&auto=format&fit=crop", "Forest")
+    BackgroundPreset("https://images.unsplash.com/photo-1511497584788-876760111969?q=80&w=1932&auto=format&fit=crop", "Forest")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

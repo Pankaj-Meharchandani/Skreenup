@@ -124,26 +124,26 @@ object MockupRenderer {
                             drawHeight = drawWidth / imgAspectRatio
                         }
 
-                        val exportScaleFactor = if (isExport) compWidth / 1000f else 1f
-                        val drawLeft = compLeft + (compWidth - drawWidth) / 2 + (backgroundImageOffsetX * exportScaleFactor)
-                        val drawTop = compTop + (compHeight - drawHeight) / 2 + (backgroundImageOffsetY * exportScaleFactor)
+                        val currentExportScale = if (isExport) compWidth / 1000f else 1f
+                        val drawLeft = compLeft + (compWidth - drawWidth) / 2 + (backgroundImageOffsetX * currentExportScale)
+                        val drawTop = compTop + (compHeight - drawHeight) / 2 + (backgroundImageOffsetY * currentExportScale)
 
                         val useBlur = backgroundImageBlur > 0
-                        
+                        val effectiveBlur = backgroundImageBlur * currentExportScale
+
                         if (useBlur && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            val paint = NativePaint()
-                            val effect = RenderEffect.createBlurEffect(
-                                backgroundImageBlur, 
-                                backgroundImageBlur, 
+                            val paint = android.graphics.Paint()
+                            val blur = RenderEffect.createBlurEffect(
+                                effectiveBlur.coerceAtLeast(0.1f), 
+                                effectiveBlur.coerceAtLeast(0.1f), 
                                 Shader.TileMode.CLAMP
                             )
                             
-                            // Use reflection to call setRenderEffect to bypass unresolved reference issue in some environments
                             try {
-                                val setRenderEffectMethod = paint.javaClass.methods.find { it.name == "setRenderEffect" }
-                                setRenderEffectMethod?.invoke(paint, effect)
+                                val setRenderEffectMethod = paint.javaClass.getMethod("setRenderEffect", RenderEffect::class.java)
+                                setRenderEffectMethod.invoke(paint, blur)
                             } catch (e: Exception) {
-                                // Fallback: if reflection fails, we just draw without blur
+                                // Fallback
                             }
 
                             drawContext.canvas.nativeCanvas.saveLayer(

@@ -42,7 +42,13 @@ fun AdjustmentItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     isDegrees: Boolean = false,
     showAsRaw: Boolean = false,
-    hintPoints: List<Float> = listOf(valueRange.start, (valueRange.start + valueRange.endInclusive) / 2, valueRange.endInclusive)
+    hintPoints: List<Float> = listOf(
+        valueRange.start,
+        valueRange.start + (valueRange.endInclusive - valueRange.start) * 0.25f,
+        valueRange.start + (valueRange.endInclusive - valueRange.start) * 0.5f,
+        valueRange.start + (valueRange.endInclusive - valueRange.start) * 0.75f,
+        valueRange.endInclusive
+    )
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -98,7 +104,8 @@ fun OffsetSlider(
         SnappingSlider(
             value = value,
             onValueChange = onValueChange,
-            valueRange = -500f..500f
+            valueRange = -500f..500f,
+            hintPoints = listOf(-500f, -250f, 0f, 250f, 500f)
         )
     }
 }
@@ -108,40 +115,56 @@ fun SnappingSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
     valueRange: ClosedFloatingPointRange<Float>,
-    hintPoints: List<Float> = listOf(valueRange.start, (valueRange.start + valueRange.endInclusive) / 2, valueRange.endInclusive)
+    snapThresholdPercent: Float = 0.03f, // 3% of range as requested (+-3)
+    hintPoints: List<Float> = listOf(
+        valueRange.start,
+        valueRange.start + (valueRange.endInclusive - valueRange.start) * 0.25f,
+        valueRange.start + (valueRange.endInclusive - valueRange.start) * 0.5f,
+        valueRange.start + (valueRange.endInclusive - valueRange.start) * 0.75f,
+        valueRange.endInclusive
+    )
 ) {
+    val totalRange = valueRange.endInclusive - valueRange.start
+    val threshold = totalRange * snapThresholdPercent
+
     Box(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(44.dp),
         contentAlignment = Alignment.Center
     ) {
-        Row(
+        // Background Hint Dots
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 10.dp) // Align with Slider thumb track
         ) {
-            hintPoints.forEach { _ ->
-                HintDot()
+            val width = maxWidth
+            hintPoints.forEach { point ->
+                val fraction = if (totalRange != 0f) (point - valueRange.start) / totalRange else 0f
+                Box(
+                    modifier = Modifier
+                        .offset(x = width * fraction - 3.dp)
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                )
             }
         }
 
         Slider(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = { newValue ->
+                val closestSnap = hintPoints.minByOrNull { Math.abs(it - newValue) }
+                val snappedValue = if (closestSnap != null && Math.abs(closestSnap - newValue) <= threshold) {
+                    closestSnap
+                } else {
+                    newValue
+                }
+                onValueChange(snappedValue)
+            },
             valueRange = valueRange,
             modifier = Modifier.fillMaxWidth()
         )
     }
-}
-
-@Composable
-private fun HintDot() {
-    Box(
-        modifier = Modifier
-            .size(6.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
-    )
 }
 
 @Composable

@@ -48,6 +48,7 @@ import coil.request.ImageRequest
 import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.screens.EditorViewModel
 import com.example.skreenup.ui.components.ColorSelector
+import com.example.skreenup.ui.components.SnappingSlider
 import com.example.skreenup.ui.components.drawScrollbar
 
 @Composable
@@ -226,28 +227,31 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
                             Text("Background Scale", style = MaterialTheme.typography.labelMedium)
                             Text("${(backgroundImageScale * 100).toInt()}%", style = MaterialTheme.typography.labelSmall)
                         }
-                        Slider(
+                        SnappingSlider(
                             value = backgroundImageScale,
                             onValueChange = { viewModel.setBackgroundImageScale(it) },
-                            valueRange = 0f..2f
+                            valueRange = 0f..2f,
+                            hintPoints = listOf(0f, 0.5f, 1f, 1.5f, 2f)
                         )
                     }
 
                     Column {
                         Text("Move Horizontal", style = MaterialTheme.typography.labelMedium)
-                        Slider(
+                        SnappingSlider(
                             value = backgroundImageOffsetX,
                             onValueChange = { viewModel.setBackgroundImageOffsetX(it) },
-                            valueRange = -500f..500f
+                            valueRange = -500f..500f,
+                            hintPoints = listOf(-500f, -250f, 0f, 250f, 500f)
                         )
                     }
 
                     Column {
                         Text("Move Vertical", style = MaterialTheme.typography.labelMedium)
-                        Slider(
+                        SnappingSlider(
                             value = backgroundImageOffsetY,
                             onValueChange = { viewModel.setBackgroundImageOffsetY(it) },
-                            valueRange = -500f..500f
+                            valueRange = -500f..500f,
+                            hintPoints = listOf(-500f, -250f, 0f, 250f, 500f)
                         )
                     }
                 }

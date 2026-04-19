@@ -204,22 +204,15 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setScale(value: Float) {
-        val mid = 0.6f // (0.2 + 1.0) / 2
-        val snapThreshold = 0.02f
-        _scale.value = if (kotlin.math.abs(value - mid) <= snapThreshold) mid else value
+        _scale.value = value
     }
 
     fun setImageScale(value: Float) {
-        val snapAngles = listOf(0f, 0.5f, 1.0f, 1.5f, 2.0f)
-        val snapThreshold = 0.04f
-        val snapped = snapAngles.firstOrNull { kotlin.math.abs(value - it) <= snapThreshold }
-        _imageScale.value = snapped ?: value
+        _imageScale.value = value
     }
 
     fun setScreenshotRotation(value: Float) {
-        val mid = 0f // (-180 + 180) / 2
-        val snapThreshold = 4f
-        _screenshotRotation.value = if (kotlin.math.abs(value - mid) <= snapThreshold) mid else value
+        _screenshotRotation.value = value
     }
 
     fun setAspectRatio(ratio: CompositionAspectRatio) {
@@ -228,31 +221,24 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     // v2.1 Offset Setters
     fun setFrameOffsetX(value: Float) {
-        val snapThreshold = 2f
-        _frameOffsetX.value = if (kotlin.math.abs(value) <= snapThreshold) 0f else value
+        _frameOffsetX.value = value
     }
 
     fun setFrameOffsetY(value: Float) {
-        val snapThreshold = 2f
-        _frameOffsetY.value = if (kotlin.math.abs(value) <= snapThreshold) 0f else value
+        _frameOffsetY.value = value
     }
 
     fun setScreenshotOffsetX(value: Float) {
-        val snapThreshold = 2f
-        _screenshotOffsetX.value = if (kotlin.math.abs(value) <= snapThreshold) 0f else value
+        _screenshotOffsetX.value = value
     }
 
     fun setScreenshotOffsetY(value: Float) {
-        val snapThreshold = 2f
-        _screenshotOffsetY.value = if (kotlin.math.abs(value) <= snapThreshold) 0f else value
+        _screenshotOffsetY.value = value
     }
 
     // Rotation with snap
     fun setRotation(degrees: Float) {
-        val snapAngles = listOf(0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f, 360f)
-        val snapThreshold = 4f
-        val snapped = snapAngles.firstOrNull { kotlin.math.abs(degrees - it) <= snapThreshold }
-        _rotation.value = snapped ?: degrees
+        _rotation.value = degrees
     }
 
     // v2.1 Hex Color Setters
@@ -294,12 +280,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun setSubheadingSize(value: Float) { _subheadingSize.value = value }
     fun setTextGap(value: Float) { _textGap.value = value }
     fun setTextOffsetX(value: Float) {
-        val snapThreshold = 2f
-        _textOffsetX.value = if (kotlin.math.abs(value) <= snapThreshold) 0f else value
+        _textOffsetX.value = value
     }
     fun setTextOffsetY(value: Float) {
-        val snapThreshold = 2f
-        _textOffsetY.value = if (kotlin.math.abs(value) <= snapThreshold) 0f else value
+        _textOffsetY.value = value
     }
     fun setTextColor(color: Color) { _textColor.value = color }
     fun setTextAlign(value: TextAlignLabel) { _textAlign.value = value }

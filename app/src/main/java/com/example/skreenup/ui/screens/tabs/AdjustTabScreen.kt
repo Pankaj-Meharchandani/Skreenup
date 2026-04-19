@@ -53,7 +53,7 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
             onValueChange = { viewModel.setScale(it) },
             valueRange = 0.2f..1.0f,
             icon = Icons.Rounded.Fullscreen,
-            hintPoints = listOf(0.2f, 0.6f, 1.0f)
+            hintPoints = listOf(0.2f, 0.4f, 0.6f, 0.8f, 1.0f)
         )
 
         // Image Scaling

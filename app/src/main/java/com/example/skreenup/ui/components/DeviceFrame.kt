@@ -54,11 +54,7 @@ fun DeviceFrame(
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                compositingStrategy = CompositingStrategy.Offscreen
-            }
+        modifier = modifier.fillMaxSize()
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawMockup(

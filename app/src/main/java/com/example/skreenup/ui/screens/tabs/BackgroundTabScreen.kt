@@ -295,12 +295,21 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
                             Text("Background Blur", style = MaterialTheme.typography.labelMedium)
                             Text("${backgroundImageBlur.toInt()}px", style = MaterialTheme.typography.labelSmall)
                         }
-                        SnappingSlider(
-                            value = backgroundImageBlur,
-                            onValueChange = { viewModel.setBackgroundImageBlur(it) },
-                            valueRange = 0f..100f,
-                            hintPoints = listOf(0f, 25f, 50f, 75f, 100f)
-                        )
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                            SnappingSlider(
+                                value = backgroundImageBlur,
+                                onValueChange = { viewModel.setBackgroundImageBlur(it) },
+                                valueRange = 0f..100f,
+                                hintPoints = listOf(0f, 25f, 50f, 75f, 100f)
+                            )
+                        } else {
+                            Text(
+                                "Blur effect is only supported on Android 12 and above.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
                     }
 
                     Column {

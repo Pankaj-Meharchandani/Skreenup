@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.IntOffset
@@ -71,7 +72,8 @@ object MockupRenderer {
         textAlignment: TextAlignLabel = TextAlignLabel.CENTER,
         headingBold: Boolean = true,
         subheadingBold: Boolean = false,
-        showReflection: Boolean = true
+        showReflection: Boolean = true,
+        skipBackground: Boolean = false
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height
@@ -96,81 +98,81 @@ object MockupRenderer {
         val exportTextFactor = compWidth / 1000f
 
         // 1. Draw Background (STRICTLY FIRST)
-        clipPath(Path().apply { addRect(compRect) }) {
-            when (backgroundType) {
-                BackgroundType.SOLID -> {
-                    drawRect(color = backgroundColor, topLeft = Offset(compLeft, compTop), size = Size(compWidth, compHeight))
-                }
-                BackgroundType.GRADIENT -> {
-                    drawRect(
-                        brush = Brush.linearGradient(colors = gradientColors),
-                        topLeft = Offset(compLeft, compTop),
-                        size = Size(compWidth, compHeight)
-                    )
-                }
-                BackgroundType.IMAGE -> {
-                    if (backgroundImage != null) {
-                        val imgAspectRatio = backgroundImage.width.toFloat() / backgroundImage.height.toFloat()
-                        val compAspectRatio = compWidth / compHeight
-                        
-                        var drawWidth: Float
-                        var drawHeight: Float
-
-                        if (imgAspectRatio > compAspectRatio) {
-                            drawHeight = compHeight * backgroundImageScale
-                            drawWidth = drawHeight * imgAspectRatio
-                        } else {
-                            drawWidth = compWidth * backgroundImageScale
-                            drawHeight = drawWidth / imgAspectRatio
-                        }
-
-                        val currentExportScale = if (isExport) compWidth / 1000f else 1f
-                        val drawLeft = compLeft + (compWidth - drawWidth) / 2 + (backgroundImageOffsetX * currentExportScale)
-                        val drawTop = compTop + (compHeight - drawHeight) / 2 + (backgroundImageOffsetY * currentExportScale)
-
-                        val useBlur = backgroundImageBlur > 0
-                        val effectiveBlur = backgroundImageBlur * currentExportScale
-
-                        if (useBlur && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            val paint = android.graphics.Paint()
-                            val blur = RenderEffect.createBlurEffect(
-                                effectiveBlur.coerceAtLeast(0.1f), 
-                                effectiveBlur.coerceAtLeast(0.1f), 
-                                Shader.TileMode.CLAMP
-                            )
+        if (!skipBackground) {
+            clipPath(Path().apply { addRect(compRect) }) {
+                when (backgroundType) {
+                    BackgroundType.SOLID -> {
+                        drawRect(color = backgroundColor, topLeft = Offset(compLeft, compTop), size = Size(compWidth, compHeight))
+                    }
+                    BackgroundType.GRADIENT -> {
+                        drawRect(
+                            brush = Brush.linearGradient(colors = gradientColors),
+                            topLeft = Offset(compLeft, compTop),
+                            size = Size(compWidth, compHeight)
+                        )
+                    }
+                    BackgroundType.IMAGE -> {
+                        if (backgroundImage != null) {
+                            val imgAspectRatio = backgroundImage.width.toFloat() / backgroundImage.height.toFloat()
+                            val compAspectRatio = compWidth / compHeight
                             
-                            try {
-                                val setRenderEffectMethod = paint.javaClass.getMethod("setRenderEffect", RenderEffect::class.java)
-                                setRenderEffectMethod.invoke(paint, blur)
-                            } catch (e: Exception) {
-                                // Fallback
+                            var drawWidth: Float
+                            var drawHeight: Float
+
+                            if (imgAspectRatio > compAspectRatio) {
+                                drawHeight = compHeight * backgroundImageScale
+                                drawWidth = drawHeight * imgAspectRatio
+                            } else {
+                                drawWidth = compWidth * backgroundImageScale
+                                drawHeight = drawWidth / imgAspectRatio
                             }
 
-                            drawContext.canvas.nativeCanvas.saveLayer(
-                                compLeft, compTop, compLeft + compWidth, compTop + compHeight,
-                                paint
-                            )
-                            drawImage(
-                                image = backgroundImage,
-                                dstOffset = IntOffset(drawLeft.toInt(), drawTop.toInt()),
-                                dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt()),
-                                blendMode = BlendMode.SrcOver
-                            )
-                            drawContext.canvas.nativeCanvas.restore()
+                            val currentExportScale = if (isExport) compWidth / 1000f else 1f
+                            val drawLeft = compLeft + (compWidth - drawWidth) / 2 + (backgroundImageOffsetX * currentExportScale)
+                            val drawTop = compTop + (compHeight - drawHeight) / 2 + (backgroundImageOffsetY * currentExportScale)
+
+                            val useBlur = backgroundImageBlur > 0
+                            val effectiveBlur = backgroundImageBlur * currentExportScale
+
+                            if (useBlur) {
+                                // Multi-pass software blur for both hardware and software canvases
+                                // This works everywhere and doesn't rely on API 31+ RenderEffect
+                                val passes = 8
+                                val step = (effectiveBlur / passes).coerceAtLeast(1f)
+
+                                // Draw the base image at lower alpha for the "center" of the blur
+                                drawImage(
+                                    image = backgroundImage,
+                                    dstOffset = IntOffset(drawLeft.toInt(), drawTop.toInt()),
+                                    dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt()),
+                                    alpha = 0.3f
+                                )
+
+                                // Draw offset passes
+                                for (i in 1..passes) {
+                                    val offset = i * step
+                                    val alpha = 0.7f / (passes * 4)
+
+                                    drawImage(image = backgroundImage, dstOffset = IntOffset((drawLeft - offset).toInt(), drawTop.toInt()), dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt()), alpha = alpha)
+                                    drawImage(image = backgroundImage, dstOffset = IntOffset((drawLeft + offset).toInt(), drawTop.toInt()), dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt()), alpha = alpha)
+                                    drawImage(image = backgroundImage, dstOffset = IntOffset(drawLeft.toInt(), (drawTop - offset).toInt()), dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt()), alpha = alpha)
+                                    drawImage(image = backgroundImage, dstOffset = IntOffset(drawLeft.toInt(), (drawTop + offset).toInt()), dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt()), alpha = alpha)
+                                }
+                            } else {
+                                drawImage(
+                                    image = backgroundImage,
+                                    dstOffset = IntOffset(drawLeft.toInt(), drawTop.toInt()),
+                                    dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt()),
+                                    blendMode = BlendMode.SrcOver
+                                )
+                            }
                         } else {
-                            drawImage(
-                                image = backgroundImage,
-                                dstOffset = IntOffset(drawLeft.toInt(), drawTop.toInt()),
-                                dstSize = IntSize(drawWidth.toInt(), drawHeight.toInt()),
-                                blendMode = BlendMode.SrcOver
-                            )
+                            drawRect(color = Color.LightGray, topLeft = Offset(compLeft, compTop), size = Size(compWidth, compHeight))
                         }
-                    } else {
-                        drawRect(color = Color.LightGray, topLeft = Offset(compLeft, compTop), size = Size(compWidth, compHeight))
                     }
-                }
-                BackgroundType.TRANSPARENT -> {
-                    // Do nothing, leave it transparent
+                    BackgroundType.TRANSPARENT -> {
+                        // Do nothing, leave it transparent
+                    }
                 }
             }
         }

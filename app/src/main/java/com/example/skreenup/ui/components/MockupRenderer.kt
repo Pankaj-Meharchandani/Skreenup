@@ -93,7 +93,7 @@ object MockupRenderer {
 
         // Normalized Scaling Factor: Base everything on a 1000px width "design space"
         // This ensures the preview and export are visually identical regardless of resolution.
-        val exportTextFactor = compWidth / 1000f
+        val resolutionScale = compWidth / 1000f
 
         // 1. Draw Background (STRICTLY FIRST)
         clipPath(Path().apply { addRect(compRect) }) {
@@ -103,7 +103,11 @@ object MockupRenderer {
                 }
                 BackgroundType.GRADIENT -> {
                     drawRect(
-                        brush = Brush.linearGradient(colors = gradientColors),
+                        brush = Brush.linearGradient(
+                            colors = gradientColors,
+                            start = Offset(compLeft, compTop),
+                            end = Offset(compLeft + compWidth, compTop + compHeight)
+                        ),
                         topLeft = Offset(compLeft, compTop),
                         size = Size(compWidth, compHeight)
                     )
@@ -124,9 +128,8 @@ object MockupRenderer {
                             drawHeight = drawWidth / imgAspectRatio
                         }
 
-                        val currentExportScale = if (isExport) compWidth / 1000f else 1f
-                        val drawLeft = compLeft + (compWidth - drawWidth) / 2 + (backgroundImageOffsetX * currentExportScale)
-                        val drawTop = compTop + (compHeight - drawHeight) / 2 + (backgroundImageOffsetY * currentExportScale)
+                        val drawLeft = compLeft + (compWidth - drawWidth) / 2 + (backgroundImageOffsetX * resolutionScale)
+                        val drawTop = compTop + (compHeight - drawHeight) / 2 + (backgroundImageOffsetY * resolutionScale)
 
                         val useBlur = backgroundImageBlur > 0
 
@@ -166,11 +169,10 @@ object MockupRenderer {
             frameHeight = frameWidth / frameAspectRatio
         }
 
-        val exportScaleFactor = if (isExport) compWidth / 1000f else 1f
-        val currentFrameOffsetX = frameOffsetX * exportScaleFactor
-        val currentFrameOffsetY = frameOffsetY * exportScaleFactor
-        val currentScreenshotOffsetX = screenshotOffsetX * exportScaleFactor
-        val currentScreenshotOffsetY = screenshotOffsetY * exportScaleFactor
+        val currentFrameOffsetX = frameOffsetX * resolutionScale
+        val currentFrameOffsetY = frameOffsetY * resolutionScale
+        val currentScreenshotOffsetX = screenshotOffsetX * resolutionScale
+        val currentScreenshotOffsetY = screenshotOffsetY * resolutionScale
 
         val frameLeft = compLeft + (compWidth - frameWidth) / 2 + currentFrameOffsetX
         val frameTop = compTop + (compHeight - frameHeight) / 2 + currentFrameOffsetY
@@ -234,7 +236,7 @@ object MockupRenderer {
                 return android.graphics.Paint().apply {
                     color = finalTextColor
                     typeface = tf
-                    textSize = size * exportTextFactor
+                    textSize = size * resolutionScale
                     isAntiAlias = true
                     this.textAlign = when (textAlignment) {
                         TextAlignLabel.LEFT -> NativePaint.Align.LEFT
@@ -242,7 +244,7 @@ object MockupRenderer {
                         TextAlignLabel.RIGHT -> NativePaint.Align.RIGHT
                     }
                     if (showTextShadow) {
-                        setShadowLayer(10f * exportTextFactor, 2f * exportTextFactor, 2f * exportTextFactor, Color.Black.copy(alpha = 0.5f).toArgb())
+                        setShadowLayer(10f * resolutionScale, 2f * resolutionScale, 2f * resolutionScale, Color.Black.copy(alpha = 0.5f).toArgb())
                     }
                 }
             }
@@ -258,7 +260,7 @@ object MockupRenderer {
 
             val headingLineHeight = headingPaint.fontSpacing
             val subheadingLineHeight = subheadingPaint.fontSpacing
-            val gap = textGap * exportTextFactor
+            val gap = textGap * resolutionScale
 
             // Precise block heights (Top of first line to bottom of last line)
             val headingBlockHeight = if (hText.isNotEmpty()) {
@@ -272,13 +274,13 @@ object MockupRenderer {
             val totalTextHeight = headingBlockHeight + (if (hText.isNotEmpty() && sText.isNotEmpty()) gap else 0f) + subheadingBlockHeight
 
             val centerX = when (textAlignment) {
-                TextAlignLabel.LEFT -> compLeft + 60f * exportTextFactor + (textOffsetX * exportTextFactor)
-                TextAlignLabel.CENTER -> compLeft + compWidth / 2 + (textOffsetX * exportTextFactor)
-                TextAlignLabel.RIGHT -> compLeft + compWidth - 60f * exportTextFactor + (textOffsetX * exportTextFactor)
+                TextAlignLabel.LEFT -> compLeft + 60f * resolutionScale + (textOffsetX * resolutionScale)
+                TextAlignLabel.CENTER -> compLeft + compWidth / 2 + (textOffsetX * resolutionScale)
+                TextAlignLabel.RIGHT -> compLeft + compWidth - 60f * resolutionScale + (textOffsetX * resolutionScale)
             }
 
             // Top of the entire text block, centered vertically
-            val blockTop = compTop + compHeight / 2 + (textOffsetY * exportTextFactor) - (totalTextHeight / 2)
+            val blockTop = compTop + compHeight / 2 + (textOffsetY * resolutionScale) - (totalTextHeight / 2)
 
             if (hText.isNotEmpty()) {
                 // First baseline is at blockTop + the distance from font top to baseline (which is -hMetrics.ascent)

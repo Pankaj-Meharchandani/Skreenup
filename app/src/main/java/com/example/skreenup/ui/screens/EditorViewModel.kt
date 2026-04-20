@@ -133,6 +133,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _showReflection = MutableStateFlow(true)
     val showReflection: StateFlow<Boolean> = _showReflection.asStateFlow()
 
+    // v2.2 New Styling Features
+    private val _textShadow = MutableStateFlow(true)
+    val textShadow: StateFlow<Boolean> = _textShadow.asStateFlow()
+
     // v2.1 Hex Color Input Strings
     private val _hexColorSolid = MutableStateFlow("#3F51B5")
     val hexColorSolid: StateFlow<String> = _hexColorSolid.asStateFlow()
@@ -298,6 +302,43 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun setSubheadingBold(value: Boolean) { _subheadingBold.value = value }
 
     fun setShowReflection(value: Boolean) { _showReflection.value = value }
+
+    fun setTextShadow(value: Boolean) { _textShadow.value = value }
+
+    fun resetAll() {
+        _selectedDevice.value = DeviceModels.first()
+        _backgroundType.value = BackgroundType.GRADIENT
+        setBackgroundColor(Color(0xFF3F51B5))
+        setGradientColors(listOf(Color(0xFF3F51B5), Color(0xFF006A6A)))
+        _backgroundImage.value = null
+        _backgroundImageOffsetX.value = 0f
+        _backgroundImageOffsetY.value = 0f
+        _backgroundImageScale.value = 1.0f
+        _backgroundImageBlur.value = 0f
+        setScreenBackgroundColor(Color(0xFF2C2C2C))
+        
+        _heading.value = ""
+        _subheading.value = ""
+        _headingSize.value = 60f
+        _subheadingSize.value = 40f
+        _textGap.value = 20f
+        _textOffsetX.value = 0f
+        _textOffsetY.value = 0f
+        _textColor.value = Color.White
+        _textAlign.value = TextAlignLabel.CENTER
+        
+        _scale.value = 0.8f
+        _imageScale.value = 1.0f
+        _screenshotRotation.value = 0f
+        _aspectRatio.value = CompositionAspectRatio.SQUARE
+        _frameOffsetX.value = 0f
+        _frameOffsetY.value = 0f
+        _screenshotOffsetX.value = 0f
+        _screenshotOffsetY.value = 0f
+        _rotation.value = 0f
+        _showReflection.value = true
+        _textShadow.value = true
+    }
 
     private fun parseHexColor(hex: String): Color? {
         return try {

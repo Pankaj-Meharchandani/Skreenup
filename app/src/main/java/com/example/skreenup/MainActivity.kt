@@ -31,6 +31,7 @@ import androidx.compose.material.icons.rounded.AddPhotoAlternate
 import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.TextFields
@@ -222,6 +223,7 @@ fun EditorScreen(
     val headingBold by editorViewModel.headingBold.collectAsState()
     val subheadingBold by editorViewModel.subheadingBold.collectAsState()
     val showReflection by editorViewModel.showReflection.collectAsState()
+    val textShadow by editorViewModel.textShadow.collectAsState()
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -234,6 +236,9 @@ fun EditorScreen(
             TopAppBar(
                 title = { Text("Skreenup") },
                 actions = {
+                    IconButton(onClick = { editorViewModel.resetAll() }) {
+                        Icon(Icons.Rounded.Refresh, contentDescription = "Reset All")
+                    }
                     IconButton(onClick = onNavigateToAbout) {
                         Icon(Icons.Rounded.Info, contentDescription = "About")
                     }
@@ -274,7 +279,8 @@ fun EditorScreen(
                                 textAlignment = textAlign,
                                 headingBold = headingBold,
                                 subheadingBold = subheadingBold,
-                                showReflection = showReflection
+                                showReflection = showReflection,
+                                showTextShadow = textShadow
                             )
                             val success = saveBitmapToGallery(context, bitmap)
                             if (success) {
@@ -396,6 +402,7 @@ fun EditorScreen(
                     headingBold = headingBold,
                     subheadingBold = subheadingBold,
                     showReflection = showReflection,
+                    showTextShadow = textShadow,
                     onScaleChange = { editorViewModel.setScale(it) },
                     onRotationChange = { editorViewModel.setRotation(it) },
                     onFrameOffsetChange = { x, y ->
@@ -478,7 +485,8 @@ suspend fun captureToBitmap(
     textAlignment: com.example.skreenup.ui.models.TextAlignLabel = com.example.skreenup.ui.models.TextAlignLabel.CENTER,
     headingBold: Boolean = true,
     subheadingBold: Boolean = false,
-    showReflection: Boolean = true
+    showReflection: Boolean = true,
+    showTextShadow: Boolean = true
 ): Bitmap {
     return withContext(Dispatchers.Default) {
         val exportWidth = 2048
@@ -530,7 +538,8 @@ suspend fun captureToBitmap(
                 textAlignment = textAlignment,
                 headingBold = headingBold,
                 subheadingBold = subheadingBold,
-                showReflection = showReflection
+                showReflection = showReflection,
+                showTextShadow = showTextShadow
             )
         }
 

@@ -70,7 +70,8 @@ object MockupRenderer {
         textAlignment: TextAlignLabel = TextAlignLabel.CENTER,
         headingBold: Boolean = true,
         subheadingBold: Boolean = false,
-        showReflection: Boolean = true
+        showReflection: Boolean = true,
+        showTextShadow: Boolean = true
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height
@@ -239,6 +240,9 @@ object MockupRenderer {
                         TextAlignLabel.LEFT -> NativePaint.Align.LEFT
                         TextAlignLabel.CENTER -> NativePaint.Align.CENTER
                         TextAlignLabel.RIGHT -> NativePaint.Align.RIGHT
+                    }
+                    if (showTextShadow) {
+                        setShadowLayer(10f * exportTextFactor, 2f * exportTextFactor, 2f * exportTextFactor, Color.Black.copy(alpha = 0.5f).toArgb())
                     }
                 }
             }
@@ -460,32 +464,23 @@ object MockupRenderer {
         }
 
         // 6. Draw Frame Border and Cutouts ──
-        val isMobile = deviceModel.type == FrameType.IPHONE || deviceModel.type == FrameType.ANDROID_PHONE
+        val isHandheld = deviceModel.type == FrameType.IPHONE || 
+                         deviceModel.type == FrameType.ANDROID_PHONE || 
+                         deviceModel.type == FrameType.TABLET
         val strokeWidth = 5 * (frameWidth / 300f)
 
-        // 6a. Metallic Frame (Outer Rim) - MOBILE ONLY for high-fidelity look
-        if (isMobile) {
-            drawPath(
-                path = framePath,
-                brush = Brush.linearGradient(
-                    0.0f to Color(0xFFB0B0B0),
-                    0.3f to Color(0xFFF5F5F7),
-                    0.5f to Color(0xFF8E8E93),
-                    0.7f to Color(0xFFF5F5F7),
-                    1.0f to Color(0xFFB0B0B0),
-                    start = Offset(frameLeft, frameTop),
-                    end = Offset(frameLeft + frameWidth, frameTop + frameHeight)
-                ),
-                style = Stroke(width = strokeWidth)
-            )
+        // 6a. Frame (Outer Rim)
+        val frameOutlineColor = if (deviceModel.cutoutType == CutoutType.SAFARI) {
+            Color.White
         } else {
-            // Tablet/Laptop/PC: Simple dark border
-            drawPath(
-                path = framePath,
-                color = Color(0xFF2C2C2C),
-                style = Stroke(width = 2 * pixelScale)
-            )
+            Color(0xFF2C2C2C)
         }
+
+        drawPath(
+            path = framePath,
+            color = frameOutlineColor,
+            style = Stroke(width = if (isHandheld) strokeWidth else 2 * pixelScale)
+        )
 
         // 6b. Inner Bezel (Deep Black)
         val bezelWidthPx = (deviceModel.bezelWidthDp * 0.3527f) * pixelScale
@@ -571,22 +566,6 @@ object MockupRenderer {
                 drawOperaHeader(frameLeft, frameTop, frameWidth, frameHeight, pixelScale, cornerRadiusPx)
             }
             CutoutType.NONE -> {}
-        }
-
-        // 6d. Specular Highlights (Corner glints) - MOBILE ONLY
-        if (isMobile) {
-            drawPath(
-                path = framePath,
-                brush = Brush.linearGradient(
-                    0.0f to Color.White.copy(alpha = 0.5f),
-                    0.15f to Color.Transparent,
-                    0.85f to Color.Transparent,
-                    1.0f to Color.White.copy(alpha = 0.3f),
-                    start = Offset(frameLeft, frameTop),
-                    end = Offset(frameLeft + frameWidth, frameTop + frameHeight)
-                ),
-                style = Stroke(width = strokeWidth * 0.3f)
-            )
         }
     }
 
@@ -714,9 +693,6 @@ object MockupRenderer {
         )
     }
 
-    /**
-     * Draws a PC monitor stand (simple thin neck + base) with realistic shadows.
-     */
     private fun DrawScope.drawMonitorStand(
         frameLeft: Float,
         frameTop: Float,

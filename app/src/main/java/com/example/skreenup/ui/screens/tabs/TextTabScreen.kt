@@ -42,6 +42,7 @@ fun TextTabScreen(viewModel: EditorViewModel) {
     val textAlign by viewModel.textAlign.collectAsState()
     val headingBold by viewModel.headingBold.collectAsState()
     val subheadingBold by viewModel.subheadingBold.collectAsState()
+    val textShadow by viewModel.textShadow.collectAsState()
 
     val scrollState = rememberScrollState()
 
@@ -144,7 +145,22 @@ fun TextTabScreen(viewModel: EditorViewModel) {
 
         // Text Color
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(text = "Text Color", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "Text Color", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Shadow", style = MaterialTheme.typography.labelMedium)
+                    Spacer(Modifier.width(8.dp))
+                    Switch(
+                        checked = textShadow,
+                        onCheckedChange = { viewModel.setTextShadow(it) }
+                    )
+                }
+            }
             ColorSelector(selectedColor = textColor, onColorSelected = { viewModel.setTextColor(it) })
         }
 

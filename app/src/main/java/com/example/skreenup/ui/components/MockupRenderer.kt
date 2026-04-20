@@ -561,6 +561,12 @@ object MockupRenderer {
                     )
                 )
             }
+            CutoutType.SAFARI -> {
+                drawSafariHeader(frameLeft, frameTop, frameWidth, pixelScale, cornerRadiusPx)
+            }
+            CutoutType.CHROME -> {
+                drawChromeHeader(frameLeft, frameTop, frameWidth, pixelScale, cornerRadiusPx)
+            }
             CutoutType.NONE -> {}
         }
 
@@ -743,6 +749,189 @@ object MockupRenderer {
             size = Size(baseWidth, baseHeight),
             cornerRadius = CornerRadius(baseHeight / 2)
         )
+    }
+
+    private fun DrawScope.drawSafariHeader(
+        frameLeft: Float,
+        frameTop: Float,
+        frameWidth: Float,
+        pixelScale: Float,
+        cornerRadiusPx: Float
+    ) {
+        val headerHeight = 16f * pixelScale
+        // Draw header background
+        val headerPath = Path().apply {
+            addRoundRect(
+                RoundRect(
+                    rect = Rect(Offset(frameLeft, frameTop), Size(frameWidth, headerHeight + cornerRadiusPx)),
+                    topLeft = CornerRadius(cornerRadiusPx),
+                    topRight = CornerRadius(cornerRadiusPx)
+                )
+            )
+        }
+        
+        // Use a slight gradient for the Safari header
+        drawPath(
+            path = headerPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(Color(0xFFF6F6F6), Color(0xFFEBEBEB)),
+                startY = frameTop,
+                endY = frameTop + headerHeight
+            )
+        )
+
+        // Bottom border of the header
+        drawLine(
+            color = Color(0xFFD1D1D1),
+            start = Offset(frameLeft, frameTop + headerHeight),
+            end = Offset(frameLeft + frameWidth, frameTop + headerHeight),
+            strokeWidth = 0.5f * pixelScale
+        )
+
+        // Window controls (Red, Yellow, Green)
+        val btnRadius = 2.2f * pixelScale
+        val btnY = frameTop + headerHeight / 2
+        val startX = frameLeft + 8f * pixelScale
+        val spacing = 6f * pixelScale
+
+        drawCircle(Color(0xFFFF5F56), radius = btnRadius, center = Offset(startX, btnY))
+        drawCircle(Color(0xFFFFBD2E), radius = btnRadius, center = Offset(startX + spacing, btnY))
+        drawCircle(Color(0xFF27C93F), radius = btnRadius, center = Offset(startX + spacing * 2, btnY))
+
+        // URL Bar
+        val urlBarWidth = frameWidth * 0.55f
+        val urlBarHeight = 10f * pixelScale
+        val urlBarLeft = frameLeft + (frameWidth - urlBarWidth) / 2
+        val urlBarTop = frameTop + (headerHeight - urlBarHeight) / 2
+
+        drawRoundRect(
+            color = Color.White.copy(alpha = 0.8f),
+            topLeft = Offset(urlBarLeft, urlBarTop),
+            size = Size(urlBarWidth, urlBarHeight),
+            cornerRadius = CornerRadius(3f * pixelScale)
+        )
+        
+        // Subtle border for URL Bar
+        drawRoundRect(
+            color = Color(0xFFD1D1D1),
+            topLeft = Offset(urlBarLeft, urlBarTop),
+            size = Size(urlBarWidth, urlBarHeight),
+            cornerRadius = CornerRadius(3f * pixelScale),
+            style = Stroke(width = 0.3f * pixelScale)
+        )
+
+        // Search icon (simplified magnifying glass)
+        val iconSize = 2.5f * pixelScale
+        val iconX = urlBarLeft + 4f * pixelScale
+        val iconY = urlBarTop + urlBarHeight / 2
+        drawCircle(
+            color = Color(0xFF999999),
+            radius = iconSize / 2,
+            center = Offset(iconX, iconY),
+            style = Stroke(width = 0.5f * pixelScale)
+        )
+        drawLine(
+            color = Color(0xFF999999),
+            start = Offset(iconX + iconSize / 2.5f, iconY + iconSize / 2.5f),
+            end = Offset(iconX + iconSize / 1.5f, iconY + iconSize / 1.5f),
+            strokeWidth = 0.5f * pixelScale
+        )
+    }
+
+    private fun DrawScope.drawChromeHeader(
+        frameLeft: Float,
+        frameTop: Float,
+        frameWidth: Float,
+        pixelScale: Float,
+        cornerRadiusPx: Float
+    ) {
+        val tabAreaHeight = 12f * pixelScale
+        val navAreaHeight = 14f * pixelScale
+        val totalHeaderHeight = tabAreaHeight + navAreaHeight
+        
+        // 1. Tab Area (Top part)
+        val headerPath = Path().apply {
+            addRoundRect(
+                RoundRect(
+                    rect = Rect(Offset(frameLeft, frameTop), Size(frameWidth, totalHeaderHeight + cornerRadiusPx)),
+                    topLeft = CornerRadius(cornerRadiusPx),
+                    topRight = CornerRadius(cornerRadiusPx)
+                )
+            )
+        }
+        
+        // Dark theme Chrome
+        drawPath(
+            path = headerPath,
+            color = Color(0xFF202124)
+        )
+
+        // Draw a single "active" tab
+        val tabWidth = 60f * pixelScale
+        val tabHeight = 10f * pixelScale
+        val tabLeft = frameLeft + 8f * pixelScale
+        val tabTop = frameTop + (tabAreaHeight - tabHeight) + 2f * pixelScale
+        
+        val activeTabPath = Path().apply {
+            moveTo(tabLeft - 4f * pixelScale, frameTop + tabAreaHeight)
+            quadraticTo(tabLeft, frameTop + tabAreaHeight, tabLeft, frameTop + tabAreaHeight - 4f * pixelScale)
+            lineTo(tabLeft, tabTop + 2f * pixelScale)
+            quadraticTo(tabLeft, tabTop, tabLeft + 2f * pixelScale, tabTop)
+            lineTo(tabLeft + tabWidth - 2f * pixelScale, tabTop)
+            quadraticTo(tabLeft + tabWidth, tabTop, tabLeft + tabWidth, tabTop + 2f * pixelScale)
+            lineTo(tabLeft + tabWidth, frameTop + tabAreaHeight - 4f * pixelScale)
+            quadraticTo(tabLeft + tabWidth, frameTop + tabAreaHeight, tabLeft + tabWidth + 4f * pixelScale, frameTop + tabAreaHeight)
+            close()
+        }
+        drawPath(path = activeTabPath, color = Color(0xFF35363A))
+
+        // 2. Navigation Area (Bottom part)
+        drawRect(
+            color = Color(0xFF35363A),
+            topLeft = Offset(frameLeft, frameTop + tabAreaHeight),
+            size = Size(frameWidth, navAreaHeight)
+        )
+
+        // Navigation Buttons (Back, Forward, Refresh)
+        val btnY = frameTop + tabAreaHeight + navAreaHeight / 2
+        val btnRadius = 1.2f * pixelScale
+        val btnStartX = frameLeft + 10f * pixelScale
+        val btnSpacing = 8f * pixelScale
+
+        repeat(3) { i ->
+            drawCircle(
+                color = Color.White.copy(alpha = 0.7f),
+                radius = btnRadius,
+                center = Offset(btnStartX + i * btnSpacing, btnY),
+                style = Stroke(width = 0.8f * pixelScale)
+            )
+        }
+
+        // URL Bar
+        val urlBarWidth = frameWidth - (btnStartX + 3 * btnSpacing + 10f * pixelScale) - 30f * pixelScale
+        val urlBarHeight = 10f * pixelScale
+        val urlBarLeft = btnStartX + 3 * btnSpacing
+        val urlBarTop = frameTop + tabAreaHeight + (navAreaHeight - urlBarHeight) / 2
+
+        drawRoundRect(
+            color = Color(0xFF202124),
+            topLeft = Offset(urlBarLeft, urlBarTop),
+            size = Size(urlBarWidth, urlBarHeight),
+            cornerRadius = CornerRadius(urlBarHeight / 2)
+        )
+        
+        // Window controls (Minimize, Maximize, Close) - Right side
+        val controlY = frameTop + 5f * pixelScale
+        val controlStartX = frameLeft + frameWidth - 30f * pixelScale
+        val controlSpacing = 8f * pixelScale
+        
+        repeat(3) { i ->
+             drawRect(
+                 color = if (i == 2) Color(0xFFE81123) else Color.White.copy(alpha = 0.5f),
+                 topLeft = Offset(controlStartX + i * controlSpacing, controlY),
+                 size = Size(4f * pixelScale, 0.5f * pixelScale)
+             )
+        }
     }
 
     /**

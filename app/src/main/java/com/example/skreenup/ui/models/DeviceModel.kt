@@ -6,7 +6,9 @@ enum class CutoutType {
     DYNAMIC_ISLAND,
     DOT,
     NOTCH,
-    LAPTOP_NOTCH
+    LAPTOP_NOTCH,
+    SAFARI,
+    CHROME
 }
 
 data class DeviceModel(
@@ -166,6 +168,34 @@ val DeviceModels = listOf(
     ),
 
     // ── Web ──
+    DeviceModel(
+        id = "web_safari",
+        name = "Safari (Mac)",
+        widthMm = 344.0f,
+        heightMm = 210.0f,
+        resWidth = 1920,
+        resHeight = 1080,
+        type = FrameType.DESKTOP,
+        category = DeviceCategory.WEB,
+        cornerRadiusDp = 10,
+        bezelWidthDp = 2,
+        hasReflection = false,
+        cutoutType = CutoutType.SAFARI
+    ),
+    DeviceModel(
+        id = "web_chrome",
+        name = "Chrome (Win)",
+        widthMm = 344.0f,
+        heightMm = 210.0f,
+        resWidth = 1920,
+        resHeight = 1080,
+        type = FrameType.DESKTOP,
+        category = DeviceCategory.WEB,
+        cornerRadiusDp = 8,
+        bezelWidthDp = 2,
+        hasReflection = false,
+        cutoutType = CutoutType.CHROME
+    ),
     DeviceModel(
         id = "web_desktop",
         name = "Web 1920",

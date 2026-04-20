@@ -40,6 +40,7 @@ import com.example.skreenup.ui.components.MockupRenderer.drawMockup
 fun DeviceFrame(
     screenshot: ImageBitmap?,
     deviceModel: DeviceModel,
+    modifier: Modifier = Modifier,
     backgroundType: BackgroundType = BackgroundType.SOLID,
     backgroundColor: Color = Color.White,
     gradientColors: List<Color> = listOf(Color(0xFF3F51B5), Color(0xFF006A6A)),
@@ -75,15 +76,24 @@ fun DeviceFrame(
     subheadingBold: Boolean = false,
     showReflection: Boolean = true,
     onScaleChange: (Float) -> Unit = {},
+    onRotationChange: (Float) -> Unit = {},
     onFrameOffsetChange: (Float, Float) -> Unit = { _, _ -> },
-    onTextOffsetChange: (Float, Float) -> Unit = { _, _ -> },
-    modifier: Modifier = Modifier
+    onTextOffsetChange: (Float, Float) -> Unit = { _, _ -> }
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     var activeTarget by remember { mutableStateOf<Target>(Target.NONE) }
+    
+    // Internal trackers to manage "breakable" snapping
+    var sessionPanX by remember { mutableStateOf(0f) }
+    var sessionPanY by remember { mutableStateOf(0f) }
+
+    // Snapping guides state
+    var showSnapLineX by remember { mutableStateOf(false) }
+    var showSnapLineY by remember { mutableStateOf(false) }
 
     // Use rememberUpdatedState to avoid restarting pointerInput when values change
     val currentScale by rememberUpdatedState(scale)
+    val currentRotation by rememberUpdatedState(rotationDegrees)
     val currentFrameOffsetX by rememberUpdatedState(frameOffsetX)
     val currentFrameOffsetY by rememberUpdatedState(frameOffsetY)
     val currentTextOffsetX by rememberUpdatedState(textOffsetX)
@@ -137,7 +147,7 @@ fun DeviceFrame(
             .fillMaxSize()
             .onSizeChanged { canvasSize = it }
             .pointerInput(canvasSize) {
-                detectTransformGestures { centroid, pan, zoom, _ ->
+                detectTransformGestures { centroid, pan, zoom, rotationChange ->
                     // Determine target on first movement if not set
                     if (activeTarget == Target.NONE) {
                         activeTarget = hitTest(
@@ -153,14 +163,22 @@ fun DeviceFrame(
                             textOffsetX = currentTextOffsetX,
                             textOffsetY = currentTextOffsetY
                         )
+                        // Initialize session tracking
+                        sessionPanX = currentFrameOffsetX
+                        sessionPanY = currentFrameOffsetY
                     }
 
-                    // Handle Zoom (always affects frame scale in this context)
+                    // 1. Handle Scale (Zoom)
                     if (zoom != 1f) {
                         onScaleChange((currentScale * zoom).coerceIn(0.1f, 2.0f))
                     }
 
-                    // Handle Pan
+                    // 2. Handle Rotation (Two fingers)
+                    if (rotationChange != 0f) {
+                        onRotationChange((currentRotation + rotationChange) % 360f)
+                    }
+
+                    // 3. Handle Pan
                     if (pan != Offset.Zero) {
                         val compWidth = if (canvasSize.width.toFloat() / canvasSize.height.toFloat() > currentRatio.ratio) {
                             canvasSize.height * currentRatio.ratio
@@ -172,35 +190,44 @@ fun DeviceFrame(
                         val dx = pan.x * normalizeFactor
                         val dy = pan.y * normalizeFactor
 
+                        sessionPanX += dx
+                        sessionPanY += dy
+
                         when (activeTarget) {
                             Target.FRAME -> {
-                                // ── Snap Logic ──
-                                // Snap to horizontal center (0) and vertical center (0)
-                                val snapThreshold = 18f // Normalize units
-                                var nextX = currentFrameOffsetX + dx
-                                var nextY = currentFrameOffsetY + dy
+                                // ── Professional "Breakable" Snap Logic ──
+                                val snapThreshold = 25f
+                                
+                                val snapX = kotlin.math.abs(sessionPanX) < snapThreshold
+                                val snapY = kotlin.math.abs(sessionPanY) < snapThreshold
 
-                                if (kotlin.math.abs(nextX) < snapThreshold) nextX = 0f
-                                if (kotlin.math.abs(nextY) < snapThreshold) nextY = 0f
+                                val finalX = if (snapX) 0f else sessionPanX
+                                val finalY = if (snapY) 0f else sessionPanY
+                                
+                                showSnapLineX = snapX
+                                showSnapLineY = snapY
 
-                                onFrameOffsetChange(nextX, nextY)
+                                onFrameOffsetChange(finalX, finalY)
                             }
-                            Target.TEXT -> onTextOffsetChange(currentTextOffsetX + dx, currentTextOffsetY + dy)
+                            Target.TEXT -> {
+                                onTextOffsetChange(currentTextOffsetX + dx, currentTextOffsetY + dy)
+                            }
                             else -> {
-                                // Default to frame if nothing hit or ambiguous
                                 onFrameOffsetChange(currentFrameOffsetX + dx, currentFrameOffsetY + dy)
                             }
                         }
                     }
                 }
             }
-            // Reset target when all fingers are lifted
+            // Reset target and guides when all fingers are lifted
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent()
                         if (event.changes.all { !it.pressed }) {
                             activeTarget = Target.NONE
+                            showSnapLineX = false
+                            showSnapLineY = false
                         }
                     }
                 }
@@ -246,6 +273,45 @@ fun DeviceFrame(
                 subheadingBold = subheadingBold,
                 showReflection = showReflection
             )
+        }
+
+        // ── Snapping Guidelines (Overlay) ──
+        if (showSnapLineX || showSnapLineY) {
+            val compWidth = if (canvasSize.width.toFloat() / canvasSize.height.toFloat() > currentRatio.ratio) {
+                canvasSize.height * currentRatio.ratio
+            } else {
+                canvasSize.width.toFloat()
+            }
+            val compHeight = compWidth / currentRatio.ratio
+            val compLeft = (canvasSize.width - compWidth) / 2
+            val compTop = (canvasSize.height - compHeight) / 2
+
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val strokeWidth = 1.dp.toPx()
+                val dashPathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                val guideColor = Color(0xFFFA1E4E).copy(alpha = 0.6f) // Theme accent or bright red
+
+                if (showSnapLineX) {
+                    // Vertical center line
+                    drawLine(
+                        color = guideColor,
+                        start = Offset(compLeft + compWidth / 2, compTop),
+                        end = Offset(compLeft + compWidth / 2, compTop + compHeight),
+                        strokeWidth = strokeWidth,
+                        pathEffect = dashPathEffect
+                    )
+                }
+                if (showSnapLineY) {
+                    // Horizontal center line
+                    drawLine(
+                        color = guideColor,
+                        start = Offset(compLeft, compTop + compHeight / 2),
+                        end = Offset(compLeft + compWidth, compTop + compHeight / 2),
+                        strokeWidth = strokeWidth,
+                        pathEffect = dashPathEffect
+                    )
+                }
+            }
         }
 
         // ── "Select Screenshot" UI (Only inside the frame) ──

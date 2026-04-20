@@ -29,8 +29,6 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
     val imageScale by viewModel.imageScale.collectAsState()
     val aspectRatio by viewModel.aspectRatio.collectAsState()
     
-    val frameOffsetX by viewModel.frameOffsetX.collectAsState()
-    val frameOffsetY by viewModel.frameOffsetY.collectAsState()
     val screenshotOffsetX by viewModel.screenshotOffsetX.collectAsState()
     val screenshotOffsetY by viewModel.screenshotOffsetY.collectAsState()
     val screenshotRotation by viewModel.screenshotRotation.collectAsState()
@@ -133,15 +131,6 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
                     hintPoints = listOf(-180f, -90f, 0f, 90f, 180f)
                 )
             }
-        }
-
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-        // Frame Offsets
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            SectionHeader(label = "Frame Positioning", icon = Icons.Rounded.OpenWith)
-            OffsetSlider(label = "Horizontal (X)", value = frameOffsetX, onValueChange = { viewModel.setFrameOffsetX(it) })
-            OffsetSlider(label = "Vertical (Y)", value = frameOffsetY, onValueChange = { viewModel.setFrameOffsetY(it) })
         }
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

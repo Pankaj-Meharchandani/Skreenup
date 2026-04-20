@@ -397,6 +397,7 @@ fun EditorScreen(
                     subheadingBold = subheadingBold,
                     showReflection = showReflection,
                     onScaleChange = { editorViewModel.setScale(it) },
+                    onRotationChange = { editorViewModel.setRotation(it) },
                     onFrameOffsetChange = { x, y ->
                         editorViewModel.setFrameOffsetX(x)
                         editorViewModel.setFrameOffsetY(y)

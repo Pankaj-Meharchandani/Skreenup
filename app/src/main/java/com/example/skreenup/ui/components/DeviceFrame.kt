@@ -75,7 +75,6 @@ fun DeviceFrame(
     subheadingBold: Boolean = false,
     showReflection: Boolean = true,
     showTextShadow: Boolean = true,
-    deviceBodyColor: Color = Color(0xFF1A1A1A),
     onScaleChange: (Float) -> Unit = {},
     onRotationChange: (Float) -> Unit = {},
     onFrameOffsetChange: (Float, Float) -> Unit = { _, _ -> },
@@ -314,8 +313,7 @@ fun DeviceFrame(
                 headingBold = headingBold,
                 subheadingBold = subheadingBold,
                 showReflection = showReflection,
-                showTextShadow = showTextShadow,
-                deviceBodyColor = deviceBodyColor
+                showTextShadow = showTextShadow
             )
         }
 

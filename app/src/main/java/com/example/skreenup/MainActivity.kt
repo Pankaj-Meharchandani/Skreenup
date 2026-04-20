@@ -224,7 +224,6 @@ fun EditorScreen(
     val subheadingBold by editorViewModel.subheadingBold.collectAsState()
     val showReflection by editorViewModel.showReflection.collectAsState()
     val textShadow by editorViewModel.textShadow.collectAsState()
-    val frameColor by editorViewModel.frameColor.collectAsState()
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -281,8 +280,7 @@ fun EditorScreen(
                                 headingBold = headingBold,
                                 subheadingBold = subheadingBold,
                                 showReflection = showReflection,
-                                showTextShadow = textShadow,
-                                deviceBodyColor = frameColor
+                                showTextShadow = textShadow
                             )
                             val success = saveBitmapToGallery(context, bitmap)
                             if (success) {
@@ -405,7 +403,6 @@ fun EditorScreen(
                     subheadingBold = subheadingBold,
                     showReflection = showReflection,
                     showTextShadow = textShadow,
-                    deviceBodyColor = frameColor,
                     onScaleChange = { editorViewModel.setScale(it) },
                     onRotationChange = { editorViewModel.setRotation(it) },
                     onFrameOffsetChange = { x, y ->
@@ -489,8 +486,7 @@ suspend fun captureToBitmap(
     headingBold: Boolean = true,
     subheadingBold: Boolean = false,
     showReflection: Boolean = true,
-    showTextShadow: Boolean = true,
-    deviceBodyColor: Color = Color(0xFF1A1A1A)
+    showTextShadow: Boolean = true
 ): Bitmap {
     return withContext(Dispatchers.Default) {
         val exportWidth = 2048
@@ -543,8 +539,7 @@ suspend fun captureToBitmap(
                 headingBold = headingBold,
                 subheadingBold = subheadingBold,
                 showReflection = showReflection,
-                showTextShadow = showTextShadow,
-                deviceBodyColor = deviceBodyColor
+                showTextShadow = showTextShadow
             )
         }
 

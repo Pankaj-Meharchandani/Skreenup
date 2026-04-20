@@ -137,9 +137,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _textShadow = MutableStateFlow(true)
     val textShadow: StateFlow<Boolean> = _textShadow.asStateFlow()
 
-    private val _frameColor = MutableStateFlow(Color(0xFF1A1A1A))
-    val frameColor: StateFlow<Color> = _frameColor.asStateFlow()
-
     // v2.1 Hex Color Input Strings
     private val _hexColorSolid = MutableStateFlow("#3F51B5")
     val hexColorSolid: StateFlow<String> = _hexColorSolid.asStateFlow()
@@ -307,7 +304,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun setShowReflection(value: Boolean) { _showReflection.value = value }
 
     fun setTextShadow(value: Boolean) { _textShadow.value = value }
-    fun setFrameColor(color: Color) { _frameColor.value = color }
 
     fun resetAll() {
         _selectedDevice.value = DeviceModels.first()
@@ -342,7 +338,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _rotation.value = 0f
         _showReflection.value = true
         _textShadow.value = true
-        _frameColor.value = Color(0xFF1A1A1A)
     }
 
     private fun parseHexColor(hex: String): Color? {

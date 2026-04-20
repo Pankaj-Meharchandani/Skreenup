@@ -48,7 +48,6 @@ import com.example.skreenup.ui.components.ColorSelector
 fun FrameTabScreen(viewModel: EditorViewModel) {
     val selectedDevice by viewModel.selectedDevice.collectAsState()
     val showReflection by viewModel.showReflection.collectAsState()
-    val frameColor by viewModel.frameColor.collectAsState()
     val screenBackgroundColor by viewModel.screenBackgroundColor.collectAsState()
     val hexColorScreen by viewModel.hexColorScreen.collectAsState()
     var selectedCategory by remember { mutableStateOf(selectedDevice.category) }
@@ -123,25 +122,6 @@ fun FrameTabScreen(viewModel: EditorViewModel) {
                     onClick = { viewModel.selectDevice(device) }
                 )
             }
-        }
-
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
-
-        // Frame Styling Section
-        Column(
-            modifier = Modifier.padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                text = "Frame Color",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold
-            )
-
-            ColorSelector(
-                selectedColor = frameColor,
-                onColorSelected = { viewModel.setFrameColor(it) }
-            )
         }
 
         HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)

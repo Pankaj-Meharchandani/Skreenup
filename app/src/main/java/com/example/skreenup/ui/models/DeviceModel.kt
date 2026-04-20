@@ -170,7 +170,7 @@ val DeviceModels = listOf(
     // ── Web ──
     DeviceModel(
         id = "web_safari",
-        name = "Safari (Mac)",
+        name = "Safari",
         widthMm = 344.0f,
         heightMm = 210.0f,
         resWidth = 1920,
@@ -184,7 +184,7 @@ val DeviceModels = listOf(
     ),
     DeviceModel(
         id = "web_chrome",
-        name = "Chrome (Win)",
+        name = "Chrome",
         widthMm = 344.0f,
         heightMm = 210.0f,
         resWidth = 1920,

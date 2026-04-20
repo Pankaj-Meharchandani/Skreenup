@@ -442,7 +442,7 @@ object MockupRenderer {
                 }
 
                 // Reflection Effect (Glossy Diagonal Slash)
-                if (showReflection && deviceModel.hasReflection) {
+                if (showReflection) {
                     drawRect(
                         brush = Brush.linearGradient(
                             0.4f to Color.Transparent,

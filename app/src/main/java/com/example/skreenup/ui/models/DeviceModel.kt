@@ -22,7 +22,6 @@ data class DeviceModel(
     val category: DeviceCategory,
     val cornerRadiusDp: Int = 32,
     val bezelWidthDp: Int = 4,
-    val hasReflection: Boolean = true,
     val cutoutType: CutoutType = CutoutType.NONE,
     val hasChassis: Boolean = false
 ) {
@@ -68,7 +67,6 @@ val DeviceModels = listOf(
         category = DeviceCategory.PHONE,
         cornerRadiusDp = 40,
         bezelWidthDp = 8,
-        hasReflection = false,
         cutoutType = CutoutType.NOTCH
     ),
     DeviceModel(
@@ -162,7 +160,6 @@ val DeviceModels = listOf(
         category = DeviceCategory.LAPTOP,
         cornerRadiusDp = 12,
         bezelWidthDp = 6,
-        hasReflection = false,
         cutoutType = CutoutType.LAPTOP_NOTCH,
         hasChassis = true
     ),
@@ -179,7 +176,6 @@ val DeviceModels = listOf(
         category = DeviceCategory.WEB,
         cornerRadiusDp = 10,
         bezelWidthDp = 2,
-        hasReflection = false,
         cutoutType = CutoutType.SAFARI
     ),
     DeviceModel(
@@ -193,7 +189,6 @@ val DeviceModels = listOf(
         category = DeviceCategory.WEB,
         cornerRadiusDp = 8,
         bezelWidthDp = 2,
-        hasReflection = false,
         cutoutType = CutoutType.CHROME
     ),
     DeviceModel(
@@ -207,7 +202,6 @@ val DeviceModels = listOf(
         category = DeviceCategory.WEB,
         cornerRadiusDp = 8,
         bezelWidthDp = 2,
-        hasReflection = false,
         cutoutType = CutoutType.NONE
     ),
 
@@ -223,7 +217,6 @@ val DeviceModels = listOf(
         category = DeviceCategory.PC,
         cornerRadiusDp = 4,
         bezelWidthDp = 8,
-        hasReflection = false,
         cutoutType = CutoutType.NONE,
         hasChassis = true
     )

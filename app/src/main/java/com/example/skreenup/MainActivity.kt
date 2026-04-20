@@ -395,7 +395,16 @@ fun EditorScreen(
                     textAlign = textAlign,
                     headingBold = headingBold,
                     subheadingBold = subheadingBold,
-                    showReflection = showReflection
+                    showReflection = showReflection,
+                    onScaleChange = { editorViewModel.setScale(it) },
+                    onFrameOffsetChange = { x, y ->
+                        editorViewModel.setFrameOffsetX(x)
+                        editorViewModel.setFrameOffsetY(y)
+                    },
+                    onTextOffsetChange = { x, y ->
+                        editorViewModel.setTextOffsetX(x)
+                        editorViewModel.setTextOffsetY(y)
+                    }
                 )
 
                 if (screenshot == null) {

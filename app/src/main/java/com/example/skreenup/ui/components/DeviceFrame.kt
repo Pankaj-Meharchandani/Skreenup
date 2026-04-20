@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -86,6 +85,7 @@ fun DeviceFrame(
     // Internal trackers to manage "breakable" snapping
     var sessionPanX by remember { mutableStateOf(0f) }
     var sessionPanY by remember { mutableStateOf(0f) }
+    var sessionRotation by remember { mutableStateOf(0f) }
 
     // Snapping guides state
     var showSnapLineX by remember { mutableStateOf(false) }
@@ -168,14 +168,17 @@ fun DeviceFrame(
                             Target.FRAME -> {
                                 sessionPanX = currentFrameOffsetX
                                 sessionPanY = currentFrameOffsetY
+                                sessionRotation = currentRotation
                             }
                             Target.TEXT -> {
                                 sessionPanX = currentTextOffsetX
                                 sessionPanY = currentTextOffsetY
+                                sessionRotation = 0f // Text doesn't rotate in this impl
                             }
                             else -> {
                                 sessionPanX = currentFrameOffsetX
                                 sessionPanY = currentFrameOffsetY
+                                sessionRotation = currentRotation
                             }
                         }
                     }
@@ -187,7 +190,20 @@ fun DeviceFrame(
 
                     // 2. Handle Rotation (Two fingers)
                     if (rotationChange != 0f) {
-                        onRotationChange((currentRotation + rotationChange) % 360f)
+                        sessionRotation = (sessionRotation + rotationChange) % 360f
+                        if (sessionRotation < 0) sessionRotation += 360f
+                        
+                        val snapPoints = listOf(0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f, 360f)
+                        val snapThreshold = 6f // Degrees
+                        
+                        var finalRotation = sessionRotation
+                        for (point in snapPoints) {
+                            if (kotlin.math.abs(sessionRotation - point) < snapThreshold) {
+                                finalRotation = if (point == 360f) 0f else point
+                                break
+                            }
+                        }
+                        onRotationChange(finalRotation)
                     }
 
                     // 3. Handle Pan

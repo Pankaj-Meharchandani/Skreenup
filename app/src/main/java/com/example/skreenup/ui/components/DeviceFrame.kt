@@ -75,6 +75,8 @@ fun DeviceFrame(
     subheadingBold: Boolean = false,
     showReflection: Boolean = true,
     showTextShadow: Boolean = true,
+    shadowIntensity: Float = 0.3f,
+    shadowSoftness: Float = 1.0f,
     onScaleChange: (Float) -> Unit = {},
     onRotationChange: (Float) -> Unit = {},
     onFrameOffsetChange: (Float, Float) -> Unit = { _, _ -> },
@@ -313,7 +315,9 @@ fun DeviceFrame(
                 headingBold = headingBold,
                 subheadingBold = subheadingBold,
                 showReflection = showReflection,
-                showTextShadow = showTextShadow
+                showTextShadow = showTextShadow,
+                shadowIntensity = shadowIntensity,
+                shadowSoftness = shadowSoftness
             )
         }
 

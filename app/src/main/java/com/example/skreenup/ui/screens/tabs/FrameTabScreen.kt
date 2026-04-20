@@ -211,7 +211,9 @@ fun DeviceFrameItem(
                     showWatermark = false,
                     watermarkText = "",
                     isExport = false,
-                    rotationDegrees = 0f
+                    rotationDegrees = 0f,
+                    shadowIntensity = 0.5f,
+                    shadowSoftness = 0.8f
                 )
             }
         }

@@ -280,7 +280,9 @@ fun EditorScreen(
                                 headingBold = headingBold,
                                 subheadingBold = subheadingBold,
                                 showReflection = showReflection,
-                                showTextShadow = textShadow
+                                showTextShadow = textShadow,
+                                shadowIntensity = editorViewModel.shadowIntensity.value,
+                                shadowSoftness = editorViewModel.shadowSoftness.value
                             )
                             val success = saveBitmapToGallery(context, bitmap)
                             if (success) {
@@ -403,6 +405,8 @@ fun EditorScreen(
                     subheadingBold = subheadingBold,
                     showReflection = showReflection,
                     showTextShadow = textShadow,
+                    shadowIntensity = editorViewModel.shadowIntensity.collectAsState().value,
+                    shadowSoftness = editorViewModel.shadowSoftness.collectAsState().value,
                     onScaleChange = { editorViewModel.setScale(it) },
                     onRotationChange = { editorViewModel.setRotation(it) },
                     onFrameOffsetChange = { x, y ->
@@ -486,7 +490,9 @@ suspend fun captureToBitmap(
     headingBold: Boolean = true,
     subheadingBold: Boolean = false,
     showReflection: Boolean = true,
-    showTextShadow: Boolean = true
+    showTextShadow: Boolean = true,
+    shadowIntensity: Float = 0.3f,
+    shadowSoftness: Float = 1.0f
 ): Bitmap {
     return withContext(Dispatchers.Default) {
         val exportWidth = 2048
@@ -539,7 +545,9 @@ suspend fun captureToBitmap(
                 headingBold = headingBold,
                 subheadingBold = subheadingBold,
                 showReflection = showReflection,
-                showTextShadow = showTextShadow
+                showTextShadow = showTextShadow,
+                shadowIntensity = shadowIntensity,
+                shadowSoftness = shadowSoftness
             )
         }
 

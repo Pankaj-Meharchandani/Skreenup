@@ -33,6 +33,8 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
     val screenshotOffsetY by viewModel.screenshotOffsetY.collectAsState()
     val screenshotRotation by viewModel.screenshotRotation.collectAsState()
     val rotation by viewModel.rotation.collectAsState()
+    val shadowIntensity by viewModel.shadowIntensity.collectAsState()
+    val shadowSoftness by viewModel.shadowSoftness.collectAsState()
 
     val scrollState = rememberScrollState()
 
@@ -129,6 +131,45 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
                     onValueChange = { viewModel.setScreenshotRotation(it) },
                     valueRange = -180f..180f,
                     hintPoints = listOf(-180f, -90f, 0f, 90f, 180f)
+                )
+            }
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+        // Shadow Realism Section
+        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            SectionHeader(label = "Realistic Shadowing", icon = Icons.Rounded.Fullscreen)
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Shadow Intensity", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${(shadowIntensity * 100).toInt()}%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
+                }
+                Slider(
+                    value = shadowIntensity,
+                    onValueChange = { viewModel.setShadowIntensity(it) },
+                    valueRange = 0f..1.0f
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Shadow Softness", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("x${"%.1f".format(shadowSoftness)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
+                }
+                Slider(
+                    value = shadowSoftness,
+                    onValueChange = { viewModel.setShadowSoftness(it) },
+                    valueRange = 0.1f..3.0f
                 )
             }
         }

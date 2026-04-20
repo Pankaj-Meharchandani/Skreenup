@@ -30,6 +30,7 @@ import com.example.skreenup.ui.models.FrameType
 import com.example.skreenup.ui.models.TextFont
 import com.example.skreenup.ui.models.TextAlignLabel
 import android.graphics.Typeface
+import android.graphics.BlurMaskFilter
 import android.graphics.Paint as NativePaint
 
 object MockupRenderer {
@@ -71,7 +72,9 @@ object MockupRenderer {
         headingBold: Boolean = true,
         subheadingBold: Boolean = false,
         showReflection: Boolean = true,
-        showTextShadow: Boolean = true
+        showTextShadow: Boolean = true,
+        shadowIntensity: Float = 0.3f,
+        shadowSoftness: Float = 1.0f
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height
@@ -205,7 +208,9 @@ object MockupRenderer {
                     currentScreenshotOffsetY = currentScreenshotOffsetY,
                     screenshotRotation = screenshotRotation,
                     screenBackgroundColor = screenBackgroundColor,
-                    showReflection = showReflection
+                    showReflection = showReflection,
+                    shadowIntensity = shadowIntensity,
+                    shadowSoftness = shadowSoftness
                 )
             }
         }
@@ -348,7 +353,9 @@ object MockupRenderer {
         currentScreenshotOffsetY: Float,
         screenshotRotation: Float,
         screenBackgroundColor: Color,
-        showReflection: Boolean
+        showReflection: Boolean,
+        shadowIntensity: Float,
+        shadowSoftness: Float
     ) {
         val frameRect = Rect(Offset(frameLeft, frameTop), Size(frameWidth, frameHeight))
 
@@ -371,45 +378,58 @@ object MockupRenderer {
             drawMonitorStand(frameLeft, frameTop, frameWidth, frameHeight, pixelScale)
         }
 
-        // ── 3. Draw Shadow (Double layered for depth) ──
-        val shadowAlpha = 0.15f
-        val shadowOffset = 4 * pixelScale
+        // ── 3. Realistic Multi-layered Soft Shadow ──
+        // We use the native canvas for BlurMaskFilter which provides much more realistic shadows
+        if (shadowIntensity > 0) {
+            val shadowPaint = NativePaint().apply {
+                color = android.graphics.Color.BLACK
+                isAntiAlias = true
+            }
 
-        // Use a simple diffuse shadow by drawing a slightly larger, offset, semi-transparent path
-        val shadowPath = Path().apply {
-            addRoundRect(
-                RoundRect(
-                    rect = frameRect.translate(Offset(shadowOffset, shadowOffset)),
-                    cornerRadius = CornerRadius(cornerRadiusPx)
-                )
+            // Layer 1: Ambient Occlusion (Close, dark)
+            shadowPaint.alpha = (255 * shadowIntensity * 0.8f).toInt()
+            shadowPaint.maskFilter = BlurMaskFilter((2 * pixelScale * shadowSoftness).coerceAtLeast(0.1f), BlurMaskFilter.Blur.NORMAL)
+            drawContext.canvas.nativeCanvas.drawRoundRect(
+                frameLeft, frameTop + 1 * pixelScale,
+                frameLeft + frameWidth, frameTop + frameHeight + 1 * pixelScale,
+                cornerRadiusPx, cornerRadiusPx, shadowPaint
+            )
+
+            // Layer 2: Main Drop Shadow
+            shadowPaint.alpha = (255 * shadowIntensity * 0.4f).toInt()
+            shadowPaint.maskFilter = BlurMaskFilter((10 * pixelScale * shadowSoftness).coerceAtLeast(0.1f), BlurMaskFilter.Blur.NORMAL)
+            drawContext.canvas.nativeCanvas.drawRoundRect(
+                frameLeft + 4 * pixelScale, frameTop + 8 * pixelScale,
+                frameLeft + frameWidth + 4 * pixelScale, frameTop + frameHeight + 8 * pixelScale,
+                cornerRadiusPx, cornerRadiusPx, shadowPaint
+            )
+
+            // Layer 3: Distant Soft Shadow
+            shadowPaint.alpha = (255 * shadowIntensity * 0.2f).toInt()
+            shadowPaint.maskFilter = BlurMaskFilter((25 * pixelScale * shadowSoftness).coerceAtLeast(0.1f), BlurMaskFilter.Blur.NORMAL)
+            drawContext.canvas.nativeCanvas.drawRoundRect(
+                frameLeft + 10 * pixelScale, frameTop + 20 * pixelScale,
+                frameLeft + frameWidth + 10 * pixelScale, frameTop + frameHeight + 20 * pixelScale,
+                cornerRadiusPx, cornerRadiusPx, shadowPaint
             )
         }
-        drawPath(
-            path = shadowPath,
-            color = Color.Black.copy(alpha = shadowAlpha),
-            style = Fill
-        )
 
-        // Optional: second softer layer
-        val shadowPath2 = Path().apply {
-            addRoundRect(
-                RoundRect(
-                    rect = frameRect.translate(Offset(shadowOffset * 2, shadowOffset * 2)),
-                    cornerRadius = CornerRadius(cornerRadiusPx)
-                )
-            )
-        }
-        drawPath(
-            path = shadowPath2,
-            color = Color.Black.copy(alpha = shadowAlpha * 0.5f),
-            style = Fill
-        )
-
-        // ── 4. Draw solid device body ──
+        // ── 4. Draw device body with metallic depth ──
         drawPath(
             path = framePath,
-            color = Color(0xFF1A1A1A),
+            brush = Brush.linearGradient(
+                colors = listOf(Color(0xFF2C2C2E), Color(0xFF1C1C1E), Color(0xFF2C2C2E)),
+                start = Offset(frameLeft, frameTop),
+                end = Offset(frameLeft + frameWidth, frameTop + frameHeight)
+            ),
             style = Fill
+        )
+
+        // ── 4.1 Subtle Rim Highlight (Makes it look 3D) ──
+        drawPath(
+            path = framePath,
+            color = Color.White.copy(alpha = 0.1f),
+            style = Stroke(width = 1f * pixelScale)
         )
 
         // ── 5. Clip and Draw Screenshot ──
@@ -447,19 +467,40 @@ object MockupRenderer {
                     )
                 }
 
+                // Screen Inner depth (Subtle shadow on the edges of the screenshot)
+                drawPath(
+                    path = framePath,
+                    color = Color.Black.copy(alpha = 0.15f),
+                    style = Stroke(width = 2 * pixelScale)
+                )
+
                 // Reflection Effect (Glossy Diagonal Slash)
                 if (showReflection) {
                     drawRect(
                         brush = Brush.linearGradient(
-                            0.4f to Color.Transparent,
-                            0.5f to Color.White.copy(alpha = 0.2f),
-                            0.6f to Color.Transparent,
+                            0.3f to Color.Transparent,
+                            0.45f to Color.White.copy(alpha = 0.15f),
+                            0.5f to Color.White.copy(alpha = 0.25f),
+                            0.55f to Color.White.copy(alpha = 0.15f),
+                            0.7f to Color.Transparent,
                             start = Offset(frameLeft, frameTop),
                             end = Offset(frameLeft + frameWidth, frameTop + frameHeight)
                         ),
                         topLeft = Offset(frameLeft, frameTop),
                         size = Size(frameWidth, frameHeight),
                         blendMode = BlendMode.Screen
+                    )
+                    
+                    // Subtle top-down gradient to simulate ambient light
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color.White.copy(alpha = 0.08f), Color.Transparent),
+                            startY = frameTop,
+                            endY = frameTop + frameHeight * 0.5f
+                        ),
+                        topLeft = Offset(frameLeft, frameTop),
+                        size = Size(frameWidth, frameHeight),
+                        blendMode = BlendMode.Plus
                     )
                 }
             }

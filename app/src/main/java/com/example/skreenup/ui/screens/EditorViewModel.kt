@@ -133,6 +133,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _showReflection = MutableStateFlow(true)
     val showReflection: StateFlow<Boolean> = _showReflection.asStateFlow()
 
+    private val _shadowIntensity = MutableStateFlow(0.3f)
+    val shadowIntensity: StateFlow<Float> = _shadowIntensity.asStateFlow()
+
+    private val _shadowSoftness = MutableStateFlow(1.0f)
+    val shadowSoftness: StateFlow<Float> = _shadowSoftness.asStateFlow()
+
     // v2.2 New Styling Features
     private val _textShadow = MutableStateFlow(true)
     val textShadow: StateFlow<Boolean> = _textShadow.asStateFlow()
@@ -303,6 +309,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setShowReflection(value: Boolean) { _showReflection.value = value }
 
+    fun setShadowIntensity(value: Float) { _shadowIntensity.value = value }
+
+    fun setShadowSoftness(value: Float) { _shadowSoftness.value = value }
+
     fun setTextShadow(value: Boolean) { _textShadow.value = value }
 
     fun resetAll() {
@@ -337,6 +347,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _screenshotOffsetY.value = 0f
         _rotation.value = 0f
         _showReflection.value = true
+        _shadowIntensity.value = 0.3f
+        _shadowSoftness.value = 1.0f
         _textShadow.value = true
     }
 

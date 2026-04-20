@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -43,6 +44,8 @@ import com.example.skreenup.ui.models.DeviceModels
 import com.example.skreenup.ui.screens.EditorViewModel
 import com.example.skreenup.ui.components.drawScrollbar
 import com.example.skreenup.ui.components.ColorSelector
+
+import com.example.skreenup.ui.components.TabHeader
 
 @Composable
 fun FrameTabScreen(viewModel: EditorViewModel) {
@@ -60,42 +63,35 @@ fun FrameTabScreen(viewModel: EditorViewModel) {
             .fillMaxSize()
             .verticalScroll(scrollState)
             .drawScrollbar(scrollState)
-            .padding(vertical = 12.dp),
+            .padding(horizontal = 24.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Device Frame",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold
-            )
-            
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Reflection", style = MaterialTheme.typography.labelMedium)
-                Spacer(Modifier.width(8.dp))
-                Switch(
-                    checked = showReflection,
-                    onCheckedChange = { viewModel.setShowReflection(it) },
-                    thumbContent = if (showReflection) {
-                        {
-                            Icon(
-                                imageVector = Icons.Rounded.AutoAwesome,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    } else null
-                )
+        TabHeader(
+            title = "Device Frame",
+            action = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Reflection", style = MaterialTheme.typography.labelMedium)
+                    Spacer(Modifier.width(8.dp))
+                    Switch(
+                        checked = showReflection,
+                        onCheckedChange = { viewModel.setShowReflection(it) },
+                        modifier = Modifier.scale(0.8f),
+                        thumbContent = if (showReflection) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Rounded.AutoAwesome,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        } else null
+                    )
+                }
             }
-        }
+        )
 
         // Category Filter Chips
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -111,7 +107,6 @@ fun FrameTabScreen(viewModel: EditorViewModel) {
 
         // Device Items
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -124,11 +119,10 @@ fun FrameTabScreen(viewModel: EditorViewModel) {
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
         // Screen Color Section
         Column(
-            modifier = Modifier.padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(

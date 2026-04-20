@@ -22,6 +22,8 @@ import com.example.skreenup.ui.models.CompositionAspectRatio
 import com.example.skreenup.ui.screens.EditorViewModel
 import com.example.skreenup.ui.components.*
 
+import com.example.skreenup.ui.components.TabHeader
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdjustTabScreen(viewModel: EditorViewModel) {
@@ -43,9 +45,14 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
             .fillMaxSize()
             .verticalScroll(scrollState)
             .drawScrollbar(scrollState)
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(28.dp)
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        TabHeader(
+            title = "Adjustments",
+            onReset = { viewModel.resetAdjustTab() }
+        )
+
         // Main Scaling
         AdjustmentItem(
             label = "Mockup Scale",

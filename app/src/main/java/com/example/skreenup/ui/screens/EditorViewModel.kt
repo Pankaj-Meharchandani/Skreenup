@@ -310,8 +310,13 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setTextShadow(value: Boolean) { _textShadow.value = value }
 
-    fun resetAll() {
+    fun resetFrameTab() {
         _selectedDevice.value = DeviceModels.first()
+        _showReflection.value = true
+        setScreenBackgroundColor(Color(0xFF2C2C2C))
+    }
+
+    fun resetBackgroundTab() {
         _backgroundType.value = BackgroundType.GRADIENT
         setBackgroundColor(Color(0xFF3F51B5))
         setGradientColors(listOf(Color(0xFF3F51B5), Color(0xFF006A6A)))
@@ -320,18 +325,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _backgroundImageOffsetY.value = 0f
         _backgroundImageScale.value = 1.0f
         _backgroundImageBlur.value = 0f
-        setScreenBackgroundColor(Color(0xFF2C2C2C))
-        
-        _heading.value = ""
-        _subheading.value = ""
-        _headingSize.value = 60f
-        _subheadingSize.value = 40f
-        _textGap.value = 20f
-        _textOffsetX.value = 0f
-        _textOffsetY.value = 0f
-        _textColor.value = Color.White
-        _textAlign.value = TextAlignLabel.CENTER
-        
+    }
+
+    fun resetAdjustTab() {
         _scale.value = 0.8f
         _imageScale.value = 1.0f
         _screenshotRotation.value = 0f
@@ -341,10 +337,32 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _screenshotOffsetX.value = 0f
         _screenshotOffsetY.value = 0f
         _rotation.value = 0f
-        _showReflection.value = true
         _shadowIntensity.value = 0.3f
         _shadowSoftness.value = 1.0f
+    }
+
+    fun resetTextTab() {
+        _heading.value = ""
+        _subheading.value = ""
+        _headingSize.value = 60f
+        _subheadingSize.value = 40f
+        _textGap.value = 20f
+        _textOffsetX.value = 0f
+        _textOffsetY.value = 0f
+        _textColor.value = Color.White
+        _textAlign.value = TextAlignLabel.CENTER
         _textShadow.value = true
+        _headingFont.value = TextFont.POPPINS
+        _subheadingFont.value = TextFont.POPPINS
+        _headingBold.value = true
+        _subheadingBold.value = false
+    }
+
+    fun resetAll() {
+        resetFrameTab()
+        resetBackgroundTab()
+        resetAdjustTab()
+        resetTextTab()
     }
 
     private fun parseHexColor(hex: String): Color? {

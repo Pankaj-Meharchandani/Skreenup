@@ -28,6 +28,8 @@ import com.example.skreenup.ui.models.TextAlignLabel
 import com.example.skreenup.ui.screens.EditorViewModel
 import com.example.skreenup.ui.components.*
 
+import com.example.skreenup.ui.components.TabHeader
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TextTabScreen(viewModel: EditorViewModel) {
@@ -51,9 +53,14 @@ fun TextTabScreen(viewModel: EditorViewModel) {
             .fillMaxSize()
             .verticalScroll(scrollState)
             .drawScrollbar(scrollState)
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(28.dp)
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        TabHeader(
+            title = "Text Overlay",
+            onReset = { viewModel.resetTextTab() }
+        )
+
         // Text Input Section
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             SectionHeader(label = "Heading", icon = Icons.Rounded.TextFields)

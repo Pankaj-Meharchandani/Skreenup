@@ -36,6 +36,7 @@ import com.example.skreenup.ui.screens.EditorViewModel
 import com.example.skreenup.ui.components.ColorSelector
 import com.example.skreenup.ui.components.SnappingSlider
 import com.example.skreenup.ui.components.drawScrollbar
+import com.example.skreenup.ui.components.TabHeader
 
 data class BackgroundPreset(val url: String, val category: String)
 
@@ -126,13 +127,12 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
             .fillMaxSize()
             .verticalScroll(scrollState)
             .drawScrollbar(scrollState)
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "Background Style",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.ExtraBold
+        TabHeader(
+            title = "Background",
+            onReset = { viewModel.resetBackgroundTab() }
         )
 
         LazyRow(

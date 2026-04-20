@@ -113,7 +113,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _aspectRatio = MutableStateFlow(CompositionAspectRatio.SQUARE)
     val aspectRatio: StateFlow<CompositionAspectRatio> = _aspectRatio.asStateFlow()
 
-    // v2.1 Offsets
     private val _frameOffsetX = MutableStateFlow(0f)
     val frameOffsetX: StateFlow<Float> = _frameOffsetX.asStateFlow()
 
@@ -139,11 +138,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _shadowSoftness = MutableStateFlow(1.0f)
     val shadowSoftness: StateFlow<Float> = _shadowSoftness.asStateFlow()
 
-    // v2.2 New Styling Features
     private val _textShadow = MutableStateFlow(true)
     val textShadow: StateFlow<Boolean> = _textShadow.asStateFlow()
 
-    // v2.1 Hex Color Input Strings
     private val _hexColorSolid = MutableStateFlow("#3F51B5")
     val hexColorSolid: StateFlow<String> = _hexColorSolid.asStateFlow()
 
@@ -236,7 +233,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _aspectRatio.value = ratio
     }
 
-    // v2.1 Offset Setters
     fun setFrameOffsetX(value: Float) {
         _frameOffsetX.value = value
     }
@@ -258,7 +254,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _rotation.value = degrees
     }
 
-    // v2.1 Hex Color Setters
     fun setHexColorSolid(value: String) {
         _hexColorSolid.value = value
         parseHexColor(value)?.let { _backgroundColor.value = it }

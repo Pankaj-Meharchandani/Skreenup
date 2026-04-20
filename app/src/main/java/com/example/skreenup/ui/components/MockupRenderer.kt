@@ -70,7 +70,9 @@ object MockupRenderer {
         textAlignment: TextAlignLabel = TextAlignLabel.CENTER,
         headingBold: Boolean = true,
         subheadingBold: Boolean = false,
-        showReflection: Boolean = true
+        showReflection: Boolean = true,
+        showTextShadow: Boolean = true,
+        deviceBodyColor: Color = Color(0xFF1A1A1A)
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height
@@ -202,7 +204,8 @@ object MockupRenderer {
                     currentScreenshotOffsetY = currentScreenshotOffsetY,
                     screenshotRotation = screenshotRotation,
                     screenBackgroundColor = screenBackgroundColor,
-                    showReflection = showReflection
+                    showReflection = showReflection,
+                    bodyColor = deviceBodyColor
                 )
             }
         }
@@ -239,6 +242,9 @@ object MockupRenderer {
                         TextAlignLabel.LEFT -> NativePaint.Align.LEFT
                         TextAlignLabel.CENTER -> NativePaint.Align.CENTER
                         TextAlignLabel.RIGHT -> NativePaint.Align.RIGHT
+                    }
+                    if (showTextShadow) {
+                        setShadowLayer(10f * exportTextFactor, 2f * exportTextFactor, 2f * exportTextFactor, Color.Black.copy(alpha = 0.5f).toArgb())
                     }
                 }
             }
@@ -342,7 +348,8 @@ object MockupRenderer {
         currentScreenshotOffsetY: Float,
         screenshotRotation: Float,
         screenBackgroundColor: Color,
-        showReflection: Boolean
+        showReflection: Boolean,
+        bodyColor: Color = Color(0xFF1A1A1A)
     ) {
         val frameRect = Rect(Offset(frameLeft, frameTop), Size(frameWidth, frameHeight))
 
@@ -359,10 +366,10 @@ object MockupRenderer {
 
         // ── 2.1 Draw Laptop Chassis (MacBook-style) ──
         if (isLaptop) {
-            drawLaptopChassis(frameLeft, frameTop, frameWidth, frameHeight, pixelScale)
+            drawLaptopChassis(frameLeft, frameTop, frameWidth, frameHeight, pixelScale, bodyColor)
         } else if (deviceModel.hasChassis && deviceModel.type == FrameType.DESKTOP) {
             // PC Monitor stand
-            drawMonitorStand(frameLeft, frameTop, frameWidth, frameHeight, pixelScale)
+            drawMonitorStand(frameLeft, frameTop, frameWidth, frameHeight, pixelScale, bodyColor)
         }
 
         // ── 3. Draw Shadow (Double layered for depth) ──
@@ -402,7 +409,7 @@ object MockupRenderer {
         // ── 4. Draw solid device body ──
         drawPath(
             path = framePath,
-            color = Color(0xFF1A1A1A),
+            color = bodyColor,
             style = Fill
         )
 
@@ -463,8 +470,12 @@ object MockupRenderer {
         val isMobile = deviceModel.type == FrameType.IPHONE || deviceModel.type == FrameType.ANDROID_PHONE
         val strokeWidth = 5 * (frameWidth / 300f)
 
-        // 6a. Metallic Frame (Outer Rim) - MOBILE ONLY for high-fidelity look
-        if (isMobile) {
+        // Use a default dark color to check if user has selected a custom color
+        val isDefaultBodyColor = bodyColor == Color(0xFF1A1A1A)
+
+        // 6a. Frame (Outer Rim)
+        if (isMobile && isDefaultBodyColor) {
+            // High-fidelity Metallic Frame ONLY for default color
             drawPath(
                 path = framePath,
                 brush = Brush.linearGradient(
@@ -479,11 +490,11 @@ object MockupRenderer {
                 style = Stroke(width = strokeWidth)
             )
         } else {
-            // Tablet/Laptop/PC: Simple dark border
+            // Use custom bodyColor for the frame stroke
             drawPath(
                 path = framePath,
-                color = Color(0xFF2C2C2C),
-                style = Stroke(width = 2 * pixelScale)
+                color = bodyColor,
+                style = Stroke(width = if (isMobile) strokeWidth else 2 * pixelScale)
             )
         }
 
@@ -599,7 +610,8 @@ object MockupRenderer {
         frameTop: Float,
         frameWidth: Float,
         frameHeight: Float,
-        pixelScale: Float
+        pixelScale: Float,
+        bodyColor: Color = Color(0xFF1A1A1A)
     ) {
         val chassisOverhang = frameWidth * 0.03f
         val chassisWidth = frameWidth + chassisOverhang * 2
@@ -650,19 +662,32 @@ object MockupRenderer {
             close()
         }
 
-        // Metallic gradient fill for the base
-        drawPath(
-            path = basePath,
-            brush = Brush.verticalGradient(
-                0.0f to Color(0xFFD4D4D8),
-                0.3f to Color(0xFFE8E8ED),
-                0.5f to Color(0xFFC7C7CC),
-                0.8f to Color(0xFFB0B0B5),
-                1.0f to Color(0xFFA0A0A5),
-                startY = baseTopY,
-                endY = baseTopY + baseHeight
+        // Metallic gradient fill for the base (Respect bodyColor if not default)
+        if (bodyColor == Color(0xFF1A1A1A)) {
+            drawPath(
+                path = basePath,
+                brush = Brush.verticalGradient(
+                    0.0f to Color(0xFFD4D4D8),
+                    0.3f to Color(0xFFE8E8ED),
+                    0.5f to Color(0xFFC7C7CC),
+                    0.8f to Color(0xFFB0B0B5),
+                    1.0f to Color(0xFFA0A0A5),
+                    startY = baseTopY,
+                    endY = baseTopY + baseHeight
+                )
             )
-        )
+        } else {
+            drawPath(
+                path = basePath,
+                brush = Brush.verticalGradient(
+                    0.0f to bodyColor.copy(alpha = 0.8f),
+                    0.5f to bodyColor,
+                    1.0f to bodyColor.copy(alpha = 0.9f),
+                    startY = baseTopY,
+                    endY = baseTopY + baseHeight
+                )
+            )
+        }
 
         // Top highlight on the base
         drawLine(
@@ -722,7 +747,8 @@ object MockupRenderer {
         frameTop: Float,
         frameWidth: Float,
         frameHeight: Float,
-        pixelScale: Float
+        pixelScale: Float,
+        bodyColor: Color = Color(0xFF1A1A1A)
     ) {
         val neckWidth = frameWidth * 0.08f
         val neckHeight = 12f * pixelScale
@@ -763,27 +789,48 @@ object MockupRenderer {
             size = Size(frameWidth * 1.2f, 16f * pixelScale)
         )
 
+        val isDefault = bodyColor == Color(0xFF1A1A1A)
+
         // 3. Neck
         drawRect(
-            brush = Brush.horizontalGradient(
-                0.0f to Color(0xFFA0A0A5),
-                0.5f to Color(0xFFD4D4D8),
-                1.0f to Color(0xFFA0A0A5),
-                startX = neckLeft,
-                endX = neckLeft + neckWidth
-            ),
+            brush = if (isDefault) {
+                Brush.horizontalGradient(
+                    0.0f to Color(0xFFA0A0A5),
+                    0.5f to Color(0xFFD4D4D8),
+                    1.0f to Color(0xFFA0A0A5),
+                    startX = neckLeft,
+                    endX = neckLeft + neckWidth
+                )
+            } else {
+                Brush.horizontalGradient(
+                    0.0f to bodyColor.copy(alpha = 0.8f),
+                    0.5f to bodyColor,
+                    1.0f to bodyColor.copy(alpha = 0.8f),
+                    startX = neckLeft,
+                    endX = neckLeft + neckWidth
+                )
+            },
             topLeft = Offset(neckLeft, neckTop),
             size = Size(neckWidth, neckHeight)
         )
 
         // 4. Base
         drawRoundRect(
-            brush = Brush.verticalGradient(
-                0.0f to Color(0xFFD4D4D8),
-                1.0f to Color(0xFFA0A0A5),
-                startY = baseTop,
-                endY = baseTop + baseHeight
-            ),
+            brush = if (isDefault) {
+                Brush.verticalGradient(
+                    0.0f to Color(0xFFD4D4D8),
+                    1.0f to Color(0xFFA0A0A5),
+                    startY = baseTop,
+                    endY = baseTop + baseHeight
+                )
+            } else {
+                Brush.verticalGradient(
+                    0.0f to bodyColor.copy(alpha = 0.7f),
+                    1.0f to bodyColor,
+                    startY = baseTop,
+                    endY = baseTop + baseHeight
+                )
+            },
             topLeft = Offset(baseLeft, baseTop),
             size = Size(baseWidth, baseHeight),
             cornerRadius = CornerRadius(baseHeight / 2)

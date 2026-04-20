@@ -365,14 +365,7 @@ object MockupRenderer {
             drawMonitorStand(frameLeft, frameTop, frameWidth, frameHeight, pixelScale)
         }
 
-        // ── 3. Draw solid device body ──
-        drawPath(
-            path = framePath,
-            color = Color(0xFF1A1A1A),
-            style = Fill
-        )
-
-        // ── 4. Draw Shadow (Double layered for depth) ──
+        // ── 3. Draw Shadow (Double layered for depth) ──
         val shadowAlpha = 0.15f
         val shadowOffset = 4 * pixelScale
 
@@ -403,6 +396,13 @@ object MockupRenderer {
         drawPath(
             path = shadowPath2,
             color = Color.Black.copy(alpha = shadowAlpha * 0.5f),
+            style = Fill
+        )
+
+        // ── 4. Draw solid device body ──
+        drawPath(
+            path = framePath,
+            color = Color(0xFF1A1A1A),
             style = Fill
         )
 
@@ -697,16 +697,22 @@ object MockupRenderer {
         )
 
         // ── Bottom shadow (under laptop) ──
-        drawRoundRect(
-            color = Color.Black.copy(alpha = 0.08f),
-            topLeft = Offset(chassisLeft + chassisOverhang, baseTopY + baseHeight),
-            size = Size(chassisWidth - chassisOverhang * 2, 3f * pixelScale),
-            cornerRadius = CornerRadius(2f * pixelScale)
+        val laptopShadowWidth = chassisWidth * 0.95f
+        val laptopShadowHeight = 4f * pixelScale
+        drawOval(
+            brush = Brush.radialGradient(
+                0.0f to Color.Black.copy(alpha = 0.12f),
+                1.0f to Color.Transparent,
+                center = Offset(chassisLeft + chassisWidth / 2, baseTopY + baseHeight),
+                radius = laptopShadowWidth / 2
+            ),
+            topLeft = Offset(chassisLeft + (chassisWidth - laptopShadowWidth) / 2, baseTopY + baseHeight - laptopShadowHeight / 2),
+            size = Size(laptopShadowWidth, laptopShadowHeight)
         )
     }
 
     /**
-     * Draws a PC monitor stand (simple thin neck + base).
+     * Draws a PC monitor stand (simple thin neck + base) with realistic shadows.
      */
     private fun DrawScope.drawMonitorStand(
         frameLeft: Float,
@@ -720,7 +726,41 @@ object MockupRenderer {
         val neckLeft = frameLeft + (frameWidth - neckWidth) / 2
         val neckTop = frameTop + frameHeight
 
-        // Neck
+        val baseWidth = frameWidth * 0.35f
+        val baseHeight = 3f * pixelScale
+        val baseLeft = frameLeft + (frameWidth - baseWidth) / 2
+        val baseTop = neckTop + neckHeight
+
+        // ── 1. Floor Shadow (Below the stand base) ──
+        // This creates the contact point on the "table" surface.
+        val shadowWidth = baseWidth * 1.6f
+        val shadowHeight = 8f * pixelScale
+        drawOval(
+            brush = Brush.radialGradient(
+                0.0f to Color.Black.copy(alpha = 0.3f),
+                0.6f to Color.Black.copy(alpha = 0.1f),
+                1.0f to Color.Transparent,
+                center = Offset(baseLeft + baseWidth / 2, baseTop + baseHeight),
+                radius = shadowWidth / 2
+            ),
+            topLeft = Offset(baseLeft + baseWidth / 2 - shadowWidth / 2, baseTop + baseHeight - shadowHeight / 2),
+            size = Size(shadowWidth, shadowHeight)
+        )
+
+        // ── 2. Ambient Occlusion Shadow (Under the monitor screen) ──
+        // Softens the area where the monitor's bulk hangs over the surface.
+        drawOval(
+            brush = Brush.radialGradient(
+                0.0f to Color.Black.copy(alpha = 0.15f),
+                1.0f to Color.Transparent,
+                center = Offset(frameLeft + frameWidth / 2, neckTop),
+                radius = frameWidth * 0.6f
+            ),
+            topLeft = Offset(frameLeft - frameWidth * 0.1f, neckTop - 4f * pixelScale),
+            size = Size(frameWidth * 1.2f, 16f * pixelScale)
+        )
+
+        // 3. Neck
         drawRect(
             brush = Brush.horizontalGradient(
                 0.0f to Color(0xFFA0A0A5),
@@ -733,11 +773,7 @@ object MockupRenderer {
             size = Size(neckWidth, neckHeight)
         )
 
-        // Base
-        val baseWidth = frameWidth * 0.35f
-        val baseHeight = 3f * pixelScale
-        val baseLeft = frameLeft + (frameWidth - baseWidth) / 2
-        val baseTop = neckTop + neckHeight
+        // 4. Base
         drawRoundRect(
             brush = Brush.verticalGradient(
                 0.0f to Color(0xFFD4D4D8),

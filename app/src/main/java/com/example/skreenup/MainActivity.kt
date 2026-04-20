@@ -406,25 +406,6 @@ fun EditorScreen(
                         editorViewModel.setTextOffsetY(y)
                     }
                 )
-
-                if (screenshot == null) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AddPhotoAlternate,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = Color.Gray
-                        )
-                        Text(
-                            text = "Select Screenshot",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = Color.Gray
-                        )
-                    }
-                }
             }
 
             // Bottom area: Tab Content

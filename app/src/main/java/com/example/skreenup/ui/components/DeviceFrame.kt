@@ -2,23 +2,35 @@ package com.example.skreenup.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AddPhotoAlternate
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.models.CompositionAspectRatio
 import com.example.skreenup.ui.models.DeviceModel
@@ -29,8 +41,8 @@ fun DeviceFrame(
     screenshot: ImageBitmap?,
     deviceModel: DeviceModel,
     backgroundType: BackgroundType = BackgroundType.SOLID,
-    backgroundColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.White,
-    gradientColors: List<androidx.compose.ui.graphics.Color> = listOf(androidx.compose.ui.graphics.Color(0xFF3F51B5), androidx.compose.ui.graphics.Color(0xFF006A6A)),
+    backgroundColor: Color = Color.White,
+    gradientColors: List<Color> = listOf(Color(0xFF3F51B5), Color(0xFF006A6A)),
     scale: Float = 0.8f,
     imageScale: Float = 1.0f,
     frameOffsetX: Float = 0f,
@@ -47,7 +59,7 @@ fun DeviceFrame(
     watermarkText: String = "",
     rotationDegrees: Float = 0f,
     screenshotRotation: Float = 0f,
-    screenBackgroundColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color(0xFF2C2C2C),
+    screenBackgroundColor: Color = Color(0xFF2C2C2C),
     heading: String = "",
     subheading: String = "",
     headingFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
@@ -55,7 +67,7 @@ fun DeviceFrame(
     headingSize: Float = 60f,
     subheadingSize: Float = 40f,
     textGap: Float = 20f,
-    textColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.White,
+    textColor: Color = Color.White,
     textOffsetX: Float = 0f,
     textOffsetY: Float = 0f,
     textAlign: com.example.skreenup.ui.models.TextAlignLabel = com.example.skreenup.ui.models.TextAlignLabel.CENTER,
@@ -80,6 +92,45 @@ fun DeviceFrame(
     val currentSubheading by rememberUpdatedState(subheading)
     val currentDevice by rememberUpdatedState(deviceModel)
     val currentRatio by rememberUpdatedState(aspectRatio)
+
+    // Calculate frame rect for hit-testing and prompt positioning
+    val frameRect = remember(canvasSize, currentDevice, currentScale, currentFrameOffsetX, currentFrameOffsetY, currentRatio) {
+        if (canvasSize.width <= 0 || canvasSize.height <= 0) return@remember Rect.Zero
+        
+        val canvasWidth = canvasSize.width.toFloat()
+        val canvasHeight = canvasSize.height.toFloat()
+        
+        val compWidth: Float
+        val compHeight: Float
+        if (canvasWidth / canvasHeight > currentRatio.ratio) {
+            compHeight = canvasHeight
+            compWidth = compHeight * currentRatio.ratio
+        } else {
+            compWidth = canvasWidth
+            compHeight = compWidth / currentRatio.ratio
+        }
+        val compLeft = (canvasWidth - compWidth) / 2
+        val compTop = (canvasHeight - compHeight) / 2
+        val exportScaleFactor = compWidth / 1000f
+
+        val frameAspectRatio = currentDevice.aspectRatio
+        val frameWidth: Float
+        val frameHeight: Float
+        if (compWidth / compHeight > frameAspectRatio) {
+            frameHeight = compHeight * currentScale
+            frameWidth = frameHeight * frameAspectRatio
+        } else {
+            frameWidth = compWidth * currentScale
+            frameHeight = frameWidth / frameAspectRatio
+        }
+
+        val fx = currentFrameOffsetX * exportScaleFactor
+        val fy = currentFrameOffsetY * exportScaleFactor
+        val frameLeft = compLeft + (compWidth - frameWidth) / 2 + fx
+        val frameTop = compTop + (compHeight - frameHeight) / 2 + fy
+        
+        Rect(Offset(frameLeft, frameTop), androidx.compose.ui.geometry.Size(frameWidth, frameHeight))
+    }
 
     Box(
         modifier = modifier
@@ -122,7 +173,18 @@ fun DeviceFrame(
                         val dy = pan.y * normalizeFactor
 
                         when (activeTarget) {
-                            Target.FRAME -> onFrameOffsetChange(currentFrameOffsetX + dx, currentFrameOffsetY + dy)
+                            Target.FRAME -> {
+                                // ── Snap Logic ──
+                                // Snap to horizontal center (0) and vertical center (0)
+                                val snapThreshold = 18f // Normalize units
+                                var nextX = currentFrameOffsetX + dx
+                                var nextY = currentFrameOffsetY + dy
+
+                                if (kotlin.math.abs(nextX) < snapThreshold) nextX = 0f
+                                if (kotlin.math.abs(nextY) < snapThreshold) nextY = 0f
+
+                                onFrameOffsetChange(nextX, nextY)
+                            }
                             Target.TEXT -> onTextOffsetChange(currentTextOffsetX + dx, currentTextOffsetY + dy)
                             else -> {
                                 // Default to frame if nothing hit or ambiguous
@@ -184,6 +246,48 @@ fun DeviceFrame(
                 subheadingBold = subheadingBold,
                 showReflection = showReflection
             )
+        }
+
+        // ── "Select Screenshot" UI (Only inside the frame) ──
+        if (screenshot == null && frameRect != Rect.Zero) {
+            Box(
+                modifier = Modifier
+                    .size(
+                        width = with(LocalDensity.current) { frameRect.width.toDp() },
+                        height = with(LocalDensity.current) { frameRect.height.toDp() }
+                    )
+                    .graphicsLayer {
+                        translationX = frameRect.left
+                        translationY = frameRect.top
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.graphicsLayer {
+                        // Apply rotation if needed, but usually keep text straight
+                        rotationZ = -rotationDegrees 
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.AddPhotoAlternate,
+                        contentDescription = null,
+                        modifier = Modifier.size(
+                            // Responsive size based on frame width
+                            with(LocalDensity.current) { (frameRect.width * 0.15f).coerceIn(24.dp.toPx(), 48.dp.toPx()).toDp() }
+                        ),
+                        tint = Color.Gray.copy(alpha = 0.6f)
+                    )
+                    if (frameRect.width > 120f) { // Hide text if frame is too small
+                        Text(
+                            text = "Select Screenshot",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            }
         }
     }
 }

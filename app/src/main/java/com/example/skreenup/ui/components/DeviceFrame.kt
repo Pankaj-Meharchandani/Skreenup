@@ -163,9 +163,21 @@ fun DeviceFrame(
                             textOffsetX = currentTextOffsetX,
                             textOffsetY = currentTextOffsetY
                         )
-                        // Initialize session tracking
-                        sessionPanX = currentFrameOffsetX
-                        sessionPanY = currentFrameOffsetY
+                        // Initialize session tracking based on target
+                        when (activeTarget) {
+                            Target.FRAME -> {
+                                sessionPanX = currentFrameOffsetX
+                                sessionPanY = currentFrameOffsetY
+                            }
+                            Target.TEXT -> {
+                                sessionPanX = currentTextOffsetX
+                                sessionPanY = currentTextOffsetY
+                            }
+                            else -> {
+                                sessionPanX = currentFrameOffsetX
+                                sessionPanY = currentFrameOffsetY
+                            }
+                        }
                     }
 
                     // 1. Handle Scale (Zoom)
@@ -210,7 +222,19 @@ fun DeviceFrame(
                                 onFrameOffsetChange(finalX, finalY)
                             }
                             Target.TEXT -> {
-                                onTextOffsetChange(currentTextOffsetX + dx, currentTextOffsetY + dy)
+                                // ── Professional "Breakable" Snap Logic for Text ──
+                                val snapThreshold = 25f
+                                
+                                val snapX = kotlin.math.abs(sessionPanX) < snapThreshold
+                                val snapY = kotlin.math.abs(sessionPanY) < snapThreshold
+
+                                val finalX = if (snapX) 0f else sessionPanX
+                                val finalY = if (snapY) 0f else sessionPanY
+                                
+                                showSnapLineX = snapX
+                                showSnapLineY = snapY
+
+                                onTextOffsetChange(finalX, finalY)
                             }
                             else -> {
                                 onFrameOffsetChange(currentFrameOffsetX + dx, currentFrameOffsetY + dy)

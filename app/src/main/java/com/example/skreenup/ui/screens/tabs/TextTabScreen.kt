@@ -11,7 +11,6 @@ import androidx.compose.material.icons.automirrored.rounded.FormatAlignRight
 import androidx.compose.material.icons.rounded.FormatAlignCenter
 import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.FormatSize
-import androidx.compose.material.icons.rounded.OpenWith
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.VerticalAlignCenter
 import androidx.compose.material3.*
@@ -39,8 +38,6 @@ fun TextTabScreen(viewModel: EditorViewModel) {
     val headingSize by viewModel.headingSize.collectAsState()
     val subheadingSize by viewModel.subheadingSize.collectAsState()
     val textGap by viewModel.textGap.collectAsState()
-    val textOffsetX by viewModel.textOffsetX.collectAsState()
-    val textOffsetY by viewModel.textOffsetY.collectAsState()
     val textColor by viewModel.textColor.collectAsState()
     val textAlign by viewModel.textAlign.collectAsState()
     val headingBold by viewModel.headingBold.collectAsState()
@@ -152,13 +149,6 @@ fun TextTabScreen(viewModel: EditorViewModel) {
         }
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-        // Text Positioning
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            SectionHeader(label = "Positioning", icon = Icons.Rounded.OpenWith)
-            OffsetSlider(label = "Horizontal (X)", value = textOffsetX, onValueChange = { viewModel.setTextOffsetX(it) })
-            OffsetSlider(label = "Vertical (Y)", value = textOffsetY, onValueChange = { viewModel.setTextOffsetY(it) })
-        }
 
         Spacer(Modifier.height(40.dp))
     }

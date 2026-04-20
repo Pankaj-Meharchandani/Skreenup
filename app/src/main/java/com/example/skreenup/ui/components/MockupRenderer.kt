@@ -567,6 +567,9 @@ object MockupRenderer {
             CutoutType.CHROME -> {
                 drawChromeHeader(frameLeft, frameTop, frameWidth, pixelScale, cornerRadiusPx)
             }
+            CutoutType.OPERA -> {
+                drawOperaHeader(frameLeft, frameTop, frameWidth, frameHeight, pixelScale, cornerRadiusPx)
+            }
             CutoutType.NONE -> {}
         }
 
@@ -1042,6 +1045,172 @@ object MockupRenderer {
             start = Offset(minx - 2f * pixelScale, cy),
             end = Offset(minx + 2f * pixelScale, cy),
             strokeWidth = 0.5f * pixelScale
+        )
+    }
+
+    private fun DrawScope.drawOperaHeader(
+        frameLeft: Float,
+        frameTop: Float,
+        frameWidth: Float,
+        frameHeight: Float,
+        pixelScale: Float,
+        cornerRadiusPx: Float
+    ) {
+        val sidebarWidth = 14f * pixelScale
+        val topBarHeight = 12f * pixelScale
+        val addressBarHeight = 14f * pixelScale
+        val totalHeaderHeight = topBarHeight + addressBarHeight
+        
+        val accentColor = Color(0xFFFA1E4E) // Opera GX Red
+        val darkBg = Color(0xFF0B0B0E)
+        val surfaceColor = Color(0xFF1C1C21)
+
+        // 1. Sidebar Background
+        val sidebarPath = Path().apply {
+            addRoundRect(
+                RoundRect(
+                    rect = Rect(Offset(frameLeft, frameTop), Size(sidebarWidth, frameHeight)),
+                    topLeft = CornerRadius(cornerRadiusPx),
+                    bottomLeft = CornerRadius(cornerRadiusPx)
+                )
+            )
+        }
+        drawPath(path = sidebarPath, color = darkBg)
+        
+        // Sidebar Border (Right)
+        drawLine(
+            color = Color.White.copy(alpha = 0.05f),
+            start = Offset(frameLeft + sidebarWidth, frameTop),
+            end = Offset(frameLeft + sidebarWidth, frameTop + frameHeight),
+            strokeWidth = 0.5f * pixelScale
+        )
+
+        // 2. Top Header Background
+        val headerPath = Path().apply {
+            addRoundRect(
+                RoundRect(
+                    rect = Rect(Offset(frameLeft, frameTop), Size(frameWidth, totalHeaderHeight)),
+                    topLeft = CornerRadius(cornerRadiusPx),
+                    topRight = CornerRadius(cornerRadiusPx)
+                )
+            )
+        }
+        drawPath(path = headerPath, color = darkBg)
+
+        // 3. Opera "O" Logo (Top Left)
+        val logoSize = 6f * pixelScale
+        val logoX = frameLeft + sidebarWidth / 2
+        val logoY = frameTop + topBarHeight / 2
+        drawCircle(
+            color = accentColor,
+            radius = logoSize / 2,
+            center = Offset(logoX, logoY),
+            style = Stroke(width = 1.2f * pixelScale)
+        )
+
+        // 4. Active Tab
+        val tabWidth = 50f * pixelScale
+        val tabHeight = 8f * pixelScale
+        val tabLeft = frameLeft + sidebarWidth + 4f * pixelScale
+        val tabTop = frameTop + (topBarHeight - tabHeight)
+        
+        drawRoundRect(
+            color = accentColor.copy(alpha = 0.8f),
+            topLeft = Offset(tabLeft, tabTop),
+            size = Size(tabWidth, tabHeight),
+            cornerRadius = CornerRadius(2f * pixelScale, 2f * pixelScale)
+        )
+        // Tab Text indicator
+        drawLine(
+            color = Color.White,
+            start = Offset(tabLeft + 12f * pixelScale, tabTop + tabHeight / 2),
+            end = Offset(tabLeft + 35f * pixelScale, tabTop + tabHeight / 2),
+            strokeWidth = 0.8f * pixelScale
+        )
+
+        // 5. Address Bar Area
+        drawRect(
+            color = darkBg,
+            topLeft = Offset(frameLeft + sidebarWidth, frameTop + topBarHeight),
+            size = Size(frameWidth - sidebarWidth, addressBarHeight)
+        )
+
+        // Navigation Icons
+        val navY = frameTop + topBarHeight + addressBarHeight / 2
+        val navStartX = frameLeft + sidebarWidth + 8f * pixelScale
+        val navSpacing = 10f * pixelScale
+        
+        // Back/Forward/Refresh (Simplified)
+        repeat(3) { i ->
+            drawCircle(
+                color = Color.White.copy(alpha = 0.4f),
+                radius = 1f * pixelScale,
+                center = Offset(navStartX + i * navSpacing, navY)
+            )
+        }
+
+        // URL Field
+        val urlLeft = navStartX + 3 * navSpacing
+        val urlWidth = frameWidth - (urlLeft - frameLeft) - 10f * pixelScale
+        val urlHeight = 8f * pixelScale
+        val urlTop = frameTop + topBarHeight + (addressBarHeight - urlHeight) / 2
+
+        drawRoundRect(
+            color = surfaceColor,
+            topLeft = Offset(urlLeft, urlTop),
+            size = Size(urlWidth, urlHeight),
+            cornerRadius = CornerRadius(urlHeight / 2)
+        )
+        // URL Search Icon
+        drawCircle(
+            color = Color.White.copy(0.3f),
+            radius = 1f * pixelScale,
+            center = Offset(urlLeft + 4f * pixelScale, urlTop + urlHeight / 2),
+            style = Stroke(0.5f * pixelScale)
+        )
+
+        // 6. Sidebar Icons (Opera GX style)
+        val iconStartY = frameTop + totalHeaderHeight + 10f * pixelScale
+        val iconSpacing = 18f * pixelScale
+        val iconSize = 4f * pixelScale
+        val iconX = frameLeft + sidebarWidth / 2
+
+        val sidebarIcons = listOf(
+            accentColor, // GX Control
+            Color.White.copy(0.7f), // Home
+            accentColor.copy(0.7f), // Speed Dial
+            Color.White.copy(0.5f), // Cleaner
+            Color.White.copy(0.5f), // CPU/RAM
+            Color.White.copy(0.5f), // Network
+            Color.White.copy(0.5f), // Downloads
+            Color.White.copy(0.5f), // Extensions
+            accentColor.copy(0.6f)  // Player/Twitch
+        )
+
+        sidebarIcons.forEachIndexed { index, color ->
+            val y = iconStartY + index * iconSpacing
+            if (index == 0) {
+                // GX Control Icon (Square-ish with dots)
+                drawRect(
+                    color = color,
+                    topLeft = Offset(iconX - iconSize/2, y - iconSize/2),
+                    size = Size(iconSize, iconSize),
+                    style = Stroke(0.8f * pixelScale)
+                )
+            } else {
+                drawCircle(
+                    color = color,
+                    radius = iconSize / 2.5f,
+                    center = Offset(iconX, y)
+                )
+            }
+        }
+        
+        // Active Sidebar Indicator (Glow on left)
+        drawRect(
+            color = accentColor,
+            topLeft = Offset(frameLeft, iconStartY - iconSize / 2),
+            size = Size(1f * pixelScale, iconSize)
         )
     }
 

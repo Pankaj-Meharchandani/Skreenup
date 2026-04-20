@@ -8,7 +8,8 @@ enum class CutoutType {
     NOTCH,
     LAPTOP_NOTCH,
     SAFARI,
-    CHROME
+    CHROME,
+    OPERA
 }
 
 data class DeviceModel(
@@ -190,6 +191,19 @@ val DeviceModels = listOf(
         cornerRadiusDp = 8,
         bezelWidthDp = 2,
         cutoutType = CutoutType.CHROME
+    ),
+    DeviceModel(
+        id = "web_opera",
+        name = "Opera GX",
+        widthMm = 344.0f,
+        heightMm = 210.0f,
+        resWidth = 1920,
+        resHeight = 1080,
+        type = FrameType.DESKTOP,
+        category = DeviceCategory.WEB,
+        cornerRadiusDp = 10,
+        bezelWidthDp = 2,
+        cutoutType = CutoutType.OPERA
     ),
     DeviceModel(
         id = "web_desktop",

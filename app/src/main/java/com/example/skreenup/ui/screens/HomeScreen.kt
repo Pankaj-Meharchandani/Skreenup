@@ -5,18 +5,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.History
 import com.example.skreenup.data.PRESET_TEMPLATES
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Smartphone
@@ -33,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -112,9 +106,14 @@ fun HomeScreen(
                     contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
                     items(PRESET_TEMPLATES) { template ->
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val previewFile = remember(template.id) { 
+                            java.io.File(context.filesDir, "preset_${template.id}.png") 
+                        }
                         PresetPreviewCard(
                             onClick = { onNavigateToEditor(null, null, template.id) },
-                            label = template.name
+                            label = template.name,
+                            previewUri = if (previewFile.exists()) previewFile.absolutePath else null
                         )
                     }
                 }

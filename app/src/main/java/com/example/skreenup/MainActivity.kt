@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.rounded.Bookmark
-import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Save
@@ -66,7 +65,10 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import com.example.skreenup.navigation.SkreenupNavKey
+import com.example.skreenup.data.PRESET_TEMPLATES
+import com.example.skreenup.ui.models.DeviceModels
+import com.example.skreenup.ui.models.TextFont
+import com.example.skreenup.ui.models.TextAlignLabel
 import com.example.skreenup.navigation.About
 import com.example.skreenup.navigation.AdjustTab
 import com.example.skreenup.navigation.BackgroundTab
@@ -80,7 +82,6 @@ import com.example.skreenup.navigation.TextTab
 import com.example.skreenup.navigation.YourTemplates
 import com.example.skreenup.ui.screens.AboutScreen
 import com.example.skreenup.ui.screens.HomeScreen
-import com.example.skreenup.ui.screens.HomeViewModel
 import com.example.skreenup.ui.screens.SettingsScreen
 import com.example.skreenup.ui.screens.tabs.AdjustTabScreen
 import com.example.skreenup.ui.screens.tabs.BackgroundTabScreen
@@ -118,6 +119,58 @@ class MainActivity : ComponentActivity() {
 fun SkreenupApp() {
     val context = LocalContext.current
     var showUpdateDialog by remember { mutableStateOf<GitHubRelease?>(null) }
+    
+    // Generate previews for preset templates if they don't exist
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            PRESET_TEMPLATES.forEach { template ->
+                val file = File(context.filesDir, "preset_${template.id}.png")
+                if (!file.exists()) {
+                    val device = DeviceModels.find { it.name == template.config.selectedDeviceName } ?: DeviceModels.first()
+                    val bitmap = captureToBitmap(
+                        density = Density(context),
+                        screenshot = null,
+                        deviceModel = device,
+                        backgroundType = BackgroundType.valueOf(template.config.backgroundType),
+                        backgroundColor = Color(template.config.backgroundColor),
+                        gradientColors = template.config.gradientColors.map { Color(it) },
+                        backgroundImage = null,
+                        scale = template.config.scale,
+                        imageScale = template.config.imageScale,
+                        frameOffsetX = template.config.frameOffsetX,
+                        frameOffsetY = template.config.frameOffsetY,
+                        screenshotOffsetX = template.config.screenshotOffsetX,
+                        screenshotOffsetY = template.config.screenshotOffsetY,
+                        aspectRatio = CompositionAspectRatio.valueOf(template.config.aspectRatio),
+                        rotationDegrees = template.config.rotation,
+                        screenshotRotation = template.config.screenshotRotation,
+                        screenBackgroundColor = Color(template.config.screenBackgroundColor),
+                        heading = template.config.heading,
+                        subheading = template.config.subheading,
+                        headingFont = TextFont.valueOf(template.config.headingFont),
+                        subheadingFont = TextFont.valueOf(template.config.subheadingFont),
+                        headingSize = template.config.headingSize,
+                        subheadingSize = template.config.subheadingSize,
+                        textGap = template.config.textGap,
+                        textColor = Color(template.config.textColor),
+                        textOffsetX = template.config.textOffsetX,
+                        textOffsetY = template.config.textOffsetY,
+                        textAlignment = TextAlignLabel.valueOf(template.config.textAlign),
+                        headingBold = template.config.headingBold,
+                        subheadingBold = template.config.subheadingBold,
+                        showReflection = template.config.showReflection,
+                        showTextShadow = template.config.textShadow,
+                        shadowIntensity = template.config.shadowIntensity,
+                        shadowSoftness = template.config.shadowSoftness,
+                        ignoreScreenshot = true
+                    )
+                    file.outputStream().use {
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 50, it)
+                    }
+                }
+            }
+        }
+    }
     
     LaunchedEffect(Unit) {
         val checker = UpdateChecker()
@@ -346,7 +399,8 @@ fun EditorScreen(
                                 showReflection = showReflection,
                                 showTextShadow = textShadow,
                                 shadowIntensity = editorViewModel.shadowIntensity.value,
-                                shadowSoftness = editorViewModel.shadowSoftness.value
+                                shadowSoftness = editorViewModel.shadowSoftness.value,
+                                ignoreScreenshot = true
                             )
                             val path = savePreviewToInternal(context, bitmap)
                             editorViewModel.saveTemplate(previewUri = path)
@@ -401,10 +455,13 @@ fun EditorScreen(
                                 showReflection = showReflection,
                                 showTextShadow = textShadow,
                                 shadowIntensity = editorViewModel.shadowIntensity.value,
-                                shadowSoftness = editorViewModel.shadowSoftness.value
+                                shadowSoftness = editorViewModel.shadowSoftness.value,
+                                ignoreScreenshot = false
                             )
+                            val path = savePreviewToInternal(context, bitmap)
                             val success = saveBitmapToGallery(context, bitmap)
                             if (success) {
+                                editorViewModel.saveToHistory(previewUri = path)
                                 Toast.makeText(context, "Export Saved!", Toast.LENGTH_SHORT).show()
                             } else {
                                 Toast.makeText(context, "Export failed.", Toast.LENGTH_SHORT).show()
@@ -611,7 +668,8 @@ suspend fun captureToBitmap(
     showReflection: Boolean = true,
     showTextShadow: Boolean = true,
     shadowIntensity: Float = 0.3f,
-    shadowSoftness: Float = 1.0f
+    shadowSoftness: Float = 1.0f,
+    ignoreScreenshot: Boolean = false
 ): Bitmap {
     return withContext(Dispatchers.Default) {
         val exportWidth = 2048
@@ -627,7 +685,7 @@ suspend fun captureToBitmap(
             size = Size(exportWidth.toFloat(), exportHeight.toFloat())
         ) {
             drawMockup(
-                screenshot = screenshot,
+                screenshot = if (ignoreScreenshot) null else screenshot,
                 deviceModel = deviceModel,
                 backgroundType = backgroundType,
                 backgroundColor = backgroundColor,

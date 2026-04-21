@@ -30,10 +30,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.io.File
-
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
     private val db = SkreenupDatabase.getDatabase(application)
     private val presetDao = db.presetDao()
@@ -529,13 +526,71 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 shadowSoftness = _shadowSoftness.value,
                 textShadow = _textShadow.value
             )
+            val configJson = Json.encodeToString(config)
+            
+            // Save to Presets
             val preset = Preset(
                 name = name,
-                configJson = Json.encodeToString(config),
+                configJson = configJson,
                 previewUri = previewUri
             )
             presetDao.insertPreset(preset)
+
+            // Also Save to History (Projects)
+            val project = Project(
+                name = name,
+                configJson = configJson,
+                previewUri = previewUri
+            )
+            projectDao.insertProject(project)
+
             _isSaved.value = true
+        }
+    }
+
+    fun saveToHistory(previewUri: String? = null) {
+        viewModelScope.launch {
+            val config = EditorConfig(
+                selectedDeviceName = _selectedDevice.value.name,
+                screenshotUri = _screenshotUri.value,
+                backgroundType = _backgroundType.value.name,
+                backgroundColor = _backgroundColor.value.toArgb(),
+                gradientColors = _gradientColors.value.map { it.toArgb() },
+                backgroundImageUri = _backgroundImageUri.value,
+                screenBackgroundColor = _screenBackgroundColor.value.toArgb(),
+                heading = _heading.value,
+                subheading = _subheading.value,
+                headingFont = _headingFont.value.name,
+                subheadingFont = _subheadingFont.value.name,
+                headingSize = _headingSize.value,
+                subheadingSize = _subheadingSize.value,
+                textGap = _textGap.value,
+                textOffsetX = _textOffsetX.value,
+                textOffsetY = _textOffsetY.value,
+                textColor = _textColor.value.toArgb(),
+                textAlign = _textAlign.value.name,
+                headingBold = _headingBold.value,
+                subheadingBold = _subheadingBold.value,
+                scale = _scale.value,
+                imageScale = _imageScale.value,
+                screenshotRotation = _screenshotRotation.value,
+                aspectRatio = _aspectRatio.value.name,
+                frameOffsetX = _frameOffsetX.value,
+                frameOffsetY = _frameOffsetY.value,
+                screenshotOffsetX = _screenshotOffsetX.value,
+                screenshotOffsetY = _screenshotOffsetY.value,
+                rotation = _rotation.value,
+                showReflection = _showReflection.value,
+                shadowIntensity = _shadowIntensity.value,
+                shadowSoftness = _shadowSoftness.value,
+                textShadow = _textShadow.value
+            )
+            val project = Project(
+                name = "Recent Project ${System.currentTimeMillis()}",
+                configJson = Json.encodeToString(config),
+                previewUri = previewUri
+            )
+            projectDao.insertProject(project)
         }
     }
 

@@ -30,6 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+import com.example.skreenup.ui.components.AppScaffold
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
@@ -38,7 +40,8 @@ fun HomeScreen(
     onNavigateToYourTemplates: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = viewModel(),
+    settingsViewModel: SettingsViewModel = viewModel()
 ) {
     val projects by viewModel.projects.collectAsState()
     val savedPresets by viewModel.presets.collectAsState()
@@ -93,17 +96,14 @@ fun HomeScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Skreenup", fontWeight = FontWeight.Bold) },
-                actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Rounded.Settings, contentDescription = "Settings")
-                    }
-                }
-            )
-        }
+    AppScaffold(
+        title = "Skreenup",
+        actions = {
+            IconButton(onClick = onNavigateToSettings) {
+                Icon(Icons.Rounded.Settings, contentDescription = "Settings")
+            }
+        },
+        settingsViewModel = settingsViewModel
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -172,6 +172,7 @@ fun HomeScreen(
                     text = "History",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
@@ -194,12 +195,12 @@ fun HomeScreen(
                                 onLongClick = { projectToDelete = project }
                             ),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = androidx.compose.ui.graphics.Color.Transparent
                         )
                     ) {
                         ListItem(
-                            headlineContent = { Text(project.name) },
-                            supportingContent = { Text("Modified: ${project.createdAt}") },
+                            headlineContent = { Text(project.name, color = MaterialTheme.colorScheme.onBackground) },
+                            supportingContent = { Text("Modified: ${project.createdAt}", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                             leadingContent = {
                                 if (project.previewUri != null) {
                                     AsyncImage(
@@ -208,12 +209,21 @@ fun HomeScreen(
                                         modifier = Modifier.size(40.dp)
                                     )
                                 } else {
-                                    Icon(Icons.Rounded.Smartphone, contentDescription = null)
+                                    Icon(
+                                        Icons.Rounded.Smartphone, 
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             },
                             trailingContent = {
-                                Icon(Icons.Rounded.ChevronRight, contentDescription = null)
-                            }
+                                Icon(
+                                    Icons.Rounded.ChevronRight, 
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent)
                         )
                     }
                 }
@@ -227,7 +237,8 @@ fun SectionHeader(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.Bold
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onBackground
     )
 }
 
@@ -248,7 +259,7 @@ fun PresetPreviewCard(
                 onLongClick = onLongClick
             ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
         )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -277,7 +288,8 @@ fun PresetPreviewCard(
                     Text(
                         text = label,
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
             }
@@ -298,7 +310,7 @@ fun HomeCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
         )
     ) {
         Column(
@@ -318,7 +330,8 @@ fun HomeCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
             Text(

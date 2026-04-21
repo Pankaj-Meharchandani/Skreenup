@@ -103,17 +103,31 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.OutputStream
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.example.skreenup.data.AppTheme
+import com.example.skreenup.ui.screens.SettingsViewModel
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            SkreenupTheme {
+            val settingsViewModel: SettingsViewModel = viewModel()
+            val theme by settingsViewModel.theme.collectAsState()
+            
+            val isDarkTheme = when (theme) {
+                AppTheme.LIGHT -> false
+                AppTheme.DARK -> true
+                AppTheme.SYSTEM -> isSystemInDarkTheme()
+            }
+
+            SkreenupTheme(darkTheme = isDarkTheme) {
                 SkreenupApp()
             }
         }
     }
 }
+
 
 @Composable
 fun SkreenupApp() {

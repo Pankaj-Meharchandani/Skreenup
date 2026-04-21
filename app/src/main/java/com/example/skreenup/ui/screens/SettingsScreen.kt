@@ -4,41 +4,210 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.ColorLens
+import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.skreenup.data.AppTheme
+import com.example.skreenup.ui.components.AppScaffold
+import com.example.skreenup.ui.screens.UpdateState
+
+import androidx.compose.material.icons.rounded.SystemUpdate
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateToAbout: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    settingsViewModel: SettingsViewModel = viewModel()
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Settings") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
+    val context = LocalContext.current
+    val theme by settingsViewModel.theme.collectAsState()
+    val useGradientBackground by settingsViewModel.useGradientBackground.collectAsState()
+    val updateState by settingsViewModel.updateState.collectAsState()
+
+    var showThemeDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(updateState) {
+        when (updateState) {
+            is UpdateState.UpToDate -> {
+                Toast.makeText(context, "App is up to date", Toast.LENGTH_SHORT).show()
+                settingsViewModel.resetUpdateState()
+            }
+            is UpdateState.Error -> {
+                Toast.makeText(context, "Failed to check for updates", Toast.LENGTH_SHORT).show()
+                settingsViewModel.resetUpdateState()
+            }
+            else -> {}
         }
+    }
+
+    AppScaffold(
+        title = "Settings",
+        onBack = onBack,
+        settingsViewModel = settingsViewModel
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            Text(
+                text = "Appearance",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            ListItem(
+                headlineContent = { Text("App Theme") },
+                supportingContent = { 
+                    Text(when(theme) {
+                        AppTheme.LIGHT -> "Light"
+                        AppTheme.DARK -> "Dark"
+                        AppTheme.SYSTEM -> "System Default"
+                    })
+                },
+                leadingContent = { Icon(Icons.Rounded.DarkMode, contentDescription = null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier.clickable { showThemeDialog = true }
+            )
+
+            ListItem(
+                headlineContent = { Text("App Gradient Background") },
+                supportingContent = { Text("Apply gradient background to app") },
+                leadingContent = { Icon(Icons.Rounded.ColorLens, contentDescription = null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                trailingContent = {
+                    Switch(
+                        checked = useGradientBackground,
+                        onCheckedChange = { settingsViewModel.setUseGradientBackground(it) }
+                    )
+                }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Text(
+                text = "System",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            ListItem(
+                headlineContent = { Text("Check for Updates") },
+                supportingContent = { 
+                    if (updateState is UpdateState.Checking) {
+                        Text("Checking...")
+                    } else {
+                        val currentVersion = context.packageManager
+                            .getPackageInfo(context.packageName, 0).versionName
+                        Text("Current version: $currentVersion")
+                    }
+                },
+                leadingContent = { Icon(Icons.Rounded.SystemUpdate, contentDescription = null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier.clickable(
+                    enabled = updateState !is UpdateState.Checking
+                ) { 
+                    settingsViewModel.checkForUpdates() 
+                },
+                trailingContent = {
+                    if (updateState is UpdateState.Checking) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
+                }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Text(
+                text = "About",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
             ListItem(
                 headlineContent = { Text("About Skreenup") },
                 leadingContent = { Icon(Icons.Rounded.Info, contentDescription = null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 modifier = Modifier.clickable(onClick = onNavigateToAbout)
             )
-            HorizontalDivider()
-            // Add more settings here if needed
         }
     }
+
+    if (updateState is UpdateState.UpdateAvailable) {
+        val release = (updateState as UpdateState.UpdateAvailable).release
+        AlertDialog(
+            onDismissRequest = { settingsViewModel.resetUpdateState() },
+            title = { Text("Update Available") },
+            text = { Text("A new version (${release.tag_name}) is available. Would you like to update?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(release.html_url))
+                    context.startActivity(intent)
+                    settingsViewModel.resetUpdateState()
+                }) {
+                    Text("Update")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { settingsViewModel.resetUpdateState() }) {
+                    Text("Later")
+                }
+            }
+        )
+    }
+
+
+    if (showThemeDialog) {
+        AlertDialog(
+            onDismissRequest = { showThemeDialog = false },
+            title = { Text("Choose Theme") },
+            text = {
+                Column {
+                    AppTheme.entries.forEach { themeOption ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    settingsViewModel.setTheme(themeOption)
+                                    showThemeDialog = false
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = theme == themeOption,
+                                onClick = null
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(when(themeOption) {
+                                AppTheme.LIGHT -> "Light"
+                                AppTheme.DARK -> "Dark"
+                                AppTheme.SYSTEM -> "System Default"
+                            })
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showThemeDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
+

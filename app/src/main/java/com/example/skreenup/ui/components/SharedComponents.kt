@@ -30,6 +30,84 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.skreenup.ui.screens.SettingsViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+
+@Composable
+fun GradientBackground() {
+    val color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.5f)
+                .background(
+                    Brush.verticalGradient(
+                        0f to color,
+                        1f to Color.Transparent
+                    )
+                )
+        )
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun AppScaffold(
+    title: String,
+    onBack: (() -> Unit)? = null,
+    actions: @Composable RowScope.() -> Unit = {},
+    settingsViewModel: SettingsViewModel = viewModel(),
+    content: @Composable (PaddingValues) -> Unit
+) {
+    val useGradient by settingsViewModel.useGradientBackground.collectAsState()
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (useGradient) {
+            GradientBackground()
+        }
+        
+        Scaffold(
+            containerColor = if (useGradient) Color.Transparent else MaterialTheme.colorScheme.surface,
+            topBar = {
+                TopAppBar(
+                    title = { Text(title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground) },
+                    navigationIcon = {
+                        if (onBack != null) {
+                            IconButton(onClick = onBack) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack, 
+                                    contentDescription = "Back",
+                                    tint = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
+                        }
+                    },
+                    actions = actions,
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    )
+                )
+            }
+        ) { padding ->
+            content(padding)
+        }
+    }
+}
+
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun TabHeader(

@@ -233,8 +233,8 @@ object MockupRenderer {
                 var currentHeadingSize = headingSize
                 var currentSubheadingSize = subheadingSize
 
-                // ── Automatic Text Scaling (Prevent cutting off) ──
-                val maxTextWidth = compWidth * 0.85f // Allow some padding
+                // ── Automatic Text Scaling & Position Guard (Prevent cutting off) ──
+                val horizontalPadding = 60f * resolutionScale
                 
                 fun getWidestLine(paint: android.graphics.Paint, lines: List<String>): Float {
                     return lines.maxOfOrNull { paint.measureText(it) } ?: 0f
@@ -246,17 +246,49 @@ object MockupRenderer {
                 var hPaint = createPaint(headingFont, currentHeadingSize, headingBold)
                 var sPaint = createPaint(subheadingFont, currentSubheadingSize, subheadingBold)
 
+                // Initial position calculation
+                var centerX = when (textAlignment) {
+                    TextAlignLabel.LEFT -> compLeft + horizontalPadding + (textOffsetX * resolutionScale)
+                    TextAlignLabel.CENTER -> compLeft + compWidth / 2 + (textOffsetX * resolutionScale)
+                    TextAlignLabel.RIGHT -> compLeft + compWidth - horizontalPadding + (textOffsetX * resolutionScale)
+                }
+
                 var widestH = getWidestLine(hPaint, headingLinesInitial)
                 var widestS = getWidestLine(sPaint, subheadingLinesInitial)
+                var maxW = maxOf(widestH, widestS)
 
-                // Scale down if too wide
-                while ((widestH > maxTextWidth || widestS > maxTextWidth) && currentHeadingSize > 10f) {
+                // 1. Position Guard: Ensure the text start/end doesn't go off canvas
+                when (textAlignment) {
+                    TextAlignLabel.LEFT -> {
+                        if (centerX < compLeft + 20f * resolutionScale) {
+                            centerX = compLeft + 20f * resolutionScale
+                        }
+                    }
+                    TextAlignLabel.RIGHT -> {
+                        if (centerX > compLeft + compWidth - 20f * resolutionScale) {
+                            centerX = compLeft + compWidth - 20f * resolutionScale
+                        }
+                    }
+                    TextAlignLabel.CENTER -> {
+                        // Center is already handled by initial calculation
+                    }
+                }
+
+                // 2. Scale Guard: Shrink text if it still exceeds available width from its position
+                val availableWidth = when (textAlignment) {
+                    TextAlignLabel.LEFT -> (compLeft + compWidth - 20f * resolutionScale) - centerX
+                    TextAlignLabel.CENTER -> compWidth - 40f * resolutionScale
+                    TextAlignLabel.RIGHT -> centerX - (compLeft + 20f * resolutionScale)
+                }
+
+                while (maxW > availableWidth && currentHeadingSize > 12f) {
                     currentHeadingSize *= 0.95f
                     currentSubheadingSize *= 0.95f
                     hPaint = createPaint(headingFont, currentHeadingSize, headingBold)
                     sPaint = createPaint(subheadingFont, currentSubheadingSize, subheadingBold)
                     widestH = getWidestLine(hPaint, headingLinesInitial)
                     widestS = getWidestLine(sPaint, subheadingLinesInitial)
+                    maxW = maxOf(widestH, widestS)
                 }
 
                 val hMetrics = hPaint.fontMetrics
@@ -275,12 +307,6 @@ object MockupRenderer {
                 } else 0f
 
                 val totalTextHeight = headingBlockHeight + (if (hText.isNotEmpty() && sText.isNotEmpty()) gap else 0f) + subheadingBlockHeight
-
-                val centerX = when (textAlignment) {
-                    TextAlignLabel.LEFT -> compLeft + 60f * resolutionScale + (textOffsetX * resolutionScale)
-                    TextAlignLabel.CENTER -> compLeft + compWidth / 2 + (textOffsetX * resolutionScale)
-                    TextAlignLabel.RIGHT -> compLeft + compWidth - 60f * resolutionScale + (textOffsetX * resolutionScale)
-                }
 
                 val blockTop = compTop + compHeight / 2 + (textOffsetY * resolutionScale) - (totalTextHeight / 2)
 

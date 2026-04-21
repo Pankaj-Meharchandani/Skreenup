@@ -253,30 +253,37 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setImageScale(value: Float) {
         _imageScale.value = value
+        _isSaved.value = false
     }
 
     fun setScreenshotRotation(value: Float) {
         _screenshotRotation.value = value
+        _isSaved.value = false
     }
 
     fun setAspectRatio(ratio: CompositionAspectRatio) {
         _aspectRatio.value = ratio
+        _isSaved.value = false
     }
 
     fun setFrameOffsetX(value: Float) {
         _frameOffsetX.value = value
+        _isSaved.value = false
     }
 
     fun setFrameOffsetY(value: Float) {
         _frameOffsetY.value = value
+        _isSaved.value = false
     }
 
     fun setScreenshotOffsetX(value: Float) {
         _screenshotOffsetX.value = value
+        _isSaved.value = false
     }
 
     fun setScreenshotOffsetY(value: Float) {
         _screenshotOffsetY.value = value
+        _isSaved.value = false
     }
 
     // Rotation with snap
@@ -325,27 +332,62 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
     fun setHeadingFont(value: TextFont) { _headingFont.value = value }
     fun setSubheadingFont(value: TextFont) { _subheadingFont.value = value }
-    fun setHeadingSize(value: Float) { _headingSize.value = value }
-    fun setSubheadingSize(value: Float) { _subheadingSize.value = value }
-    fun setTextGap(value: Float) { _textGap.value = value }
+    fun setHeadingSize(value: Float) { 
+        _headingSize.value = value 
+        _isSaved.value = false
+    }
+    fun setSubheadingSize(value: Float) { 
+        _subheadingSize.value = value 
+        _isSaved.value = false
+    }
+    fun setTextGap(value: Float) { 
+        _textGap.value = value 
+        _isSaved.value = false
+    }
     fun setTextOffsetX(value: Float) {
         _textOffsetX.value = value
+        _isSaved.value = false
     }
     fun setTextOffsetY(value: Float) {
         _textOffsetY.value = value
+        _isSaved.value = false
     }
-    fun setTextColor(color: Color) { _textColor.value = color }
-    fun setTextAlign(value: TextAlignLabel) { _textAlign.value = value }
-    fun setHeadingBold(value: Boolean) { _headingBold.value = value }
-    fun setSubheadingBold(value: Boolean) { _subheadingBold.value = value }
+    fun setTextColor(color: Color) { 
+        _textColor.value = color 
+        _isSaved.value = false
+    }
+    fun setTextAlign(value: TextAlignLabel) { 
+        _textAlign.value = value 
+        _isSaved.value = false
+    }
+    fun setHeadingBold(value: Boolean) { 
+        _headingBold.value = value 
+        _isSaved.value = false
+    }
+    fun setSubheadingBold(value: Boolean) { 
+        _subheadingBold.value = value 
+        _isSaved.value = false
+    }
 
-    fun setShowReflection(value: Boolean) { _showReflection.value = value }
+    fun setShowReflection(value: Boolean) { 
+        _showReflection.value = value 
+        _isSaved.value = false
+    }
 
-    fun setShadowIntensity(value: Float) { _shadowIntensity.value = value }
+    fun setShadowIntensity(value: Float) { 
+        _shadowIntensity.value = value 
+        _isSaved.value = false
+    }
 
-    fun setShadowSoftness(value: Float) { _shadowSoftness.value = value }
+    fun setShadowSoftness(value: Float) { 
+        _shadowSoftness.value = value 
+        _isSaved.value = false
+    }
 
-    fun setTextShadow(value: Boolean) { _textShadow.value = value }
+    fun setTextShadow(value: Boolean) { 
+        _textShadow.value = value 
+        _isSaved.value = false
+    }
 
     fun setTextZIndex(value: Int) { 
         _textZIndex.value = value 

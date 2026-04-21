@@ -19,6 +19,9 @@ object History : SkreenupNavKey
 object YourTemplates : SkreenupNavKey
 
 @Serializable
+object Settings : SkreenupNavKey
+
+@Serializable
 object Editor : SkreenupNavKey
 
 @Serializable

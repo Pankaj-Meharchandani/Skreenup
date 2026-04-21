@@ -19,6 +19,8 @@ import com.example.skreenup.ui.models.DeviceModels
 import com.example.skreenup.ui.models.TextFont
 import com.example.skreenup.ui.models.TextAlignLabel
 import kotlinx.coroutines.Dispatchers
+import com.example.skreenup.data.Preset
+import com.example.skreenup.data.SkreenupDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +28,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
+    private val db = SkreenupDatabase.getDatabase(application)
+    private val presetDao = db.presetDao()
+
     private val _selectedDevice = MutableStateFlow(DeviceModels.first())
     val selectedDevice: StateFlow<DeviceModel> = _selectedDevice.asStateFlow()
 
@@ -363,6 +368,24 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         resetBackgroundTab()
         resetAdjustTab()
         resetTextTab()
+    }
+
+    fun saveTemplate(name: String = "My Template") {
+        viewModelScope.launch {
+            val preset = Preset(
+                name = name,
+                frameType = _selectedDevice.value.name,
+                backgroundType = _backgroundType.value.name,
+                backgroundValue = when (_backgroundType.value) {
+                    BackgroundType.SOLID -> _hexColorSolid.value
+                    BackgroundType.GRADIENT -> "${_hexColorGradientStart.value},${_hexColorGradientEnd.value}"
+                    else -> ""
+                },
+                scale = _scale.value,
+                aspectRatio = _aspectRatio.value.name
+            )
+            presetDao.insertPreset(preset)
+        }
     }
 
     private fun parseHexColor(hex: String): Color? {

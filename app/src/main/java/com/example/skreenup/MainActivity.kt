@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
@@ -70,11 +71,13 @@ import com.example.skreenup.navigation.FrameTab
 import com.example.skreenup.navigation.History
 import com.example.skreenup.navigation.Home
 import com.example.skreenup.navigation.Presets
+import com.example.skreenup.navigation.Settings
 import com.example.skreenup.navigation.TextTab
 import com.example.skreenup.navigation.YourTemplates
 import com.example.skreenup.ui.screens.AboutScreen
 import com.example.skreenup.ui.screens.HomeScreen
 import com.example.skreenup.ui.screens.HomeViewModel
+import com.example.skreenup.ui.screens.SettingsScreen
 import com.example.skreenup.ui.screens.tabs.AdjustTabScreen
 import com.example.skreenup.ui.screens.tabs.BackgroundTabScreen
 import com.example.skreenup.ui.screens.tabs.FrameTabScreen
@@ -166,7 +169,18 @@ fun SkreenupApp() {
                     onNavigateToEditor = { mainBackStack.add(Editor) },
                     onNavigateToPresets = { mainBackStack.add(Presets) },
                     onNavigateToYourTemplates = { mainBackStack.add(YourTemplates) },
-                    onNavigateToHistory = { mainBackStack.add(History) }
+                    onNavigateToHistory = { mainBackStack.add(History) },
+                    onNavigateToSettings = { mainBackStack.add(Settings) }
+                )
+            }
+            entry<Settings> {
+                SettingsScreen(
+                    onNavigateToAbout = { mainBackStack.add(About) },
+                    onBack = { 
+                        if (mainBackStack.size > 1) {
+                            mainBackStack.removeAt(mainBackStack.size - 1)
+                        }
+                    }
                 )
             }
             entry<Presets> {
@@ -267,11 +281,14 @@ fun EditorScreen(
             TopAppBar(
                 title = { Text("Skreenup") },
                 actions = {
+                    IconButton(onClick = { 
+                        editorViewModel.saveTemplate()
+                        Toast.makeText(context, "Template Saved!", Toast.LENGTH_SHORT).show()
+                    }) {
+                        Icon(Icons.Rounded.Bookmark, contentDescription = "Save Template")
+                    }
                     IconButton(onClick = { editorViewModel.resetAll() }) {
                         Icon(Icons.Rounded.Refresh, contentDescription = "Reset All")
-                    }
-                    IconButton(onClick = onNavigateToAbout) {
-                        Icon(Icons.Rounded.Info, contentDescription = "About")
                     }
                     IconButton(onClick = { 
                         scope.launch {

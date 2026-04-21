@@ -59,10 +59,13 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.example.skreenup.navigation.SkreenupNavKey
 import com.example.skreenup.navigation.About
 import com.example.skreenup.navigation.AdjustTab
 import com.example.skreenup.navigation.BackgroundTab
@@ -95,6 +98,7 @@ import com.example.skreenup.update.UpdateChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.io.OutputStream
 
 class MainActivity : ComponentActivity() {
@@ -149,14 +153,15 @@ fun SkreenupApp() {
         intent?.getBooleanExtra("START_WITH_PRESET", false) ?: false
     }
 
-    val startDestination = if (startWithPreset) Editor else Home
-    val mainBackStack = rememberNavBackStack(startDestination)
+    val startDestination: NavKey = if (startWithPreset) Editor() else Home
+    val mainBackStack: NavBackStack<NavKey> = rememberNavBackStack(startDestination)
+    val mainBackStackList: MutableList<NavKey> = mainBackStack
 
     NavDisplay(
         backStack = mainBackStack,
         onBack = { 
-            if (mainBackStack.size > 1) {
-                mainBackStack.removeAt(mainBackStack.size - 1)
+            if (mainBackStackList.size > 1) {
+                mainBackStackList.removeAt(mainBackStackList.size - 1)
             }
         },
         entryDecorators = listOf(
@@ -166,19 +171,21 @@ fun SkreenupApp() {
         entryProvider = entryProvider {
             entry<Home> {
                 HomeScreen(
-                    onNavigateToEditor = { mainBackStack.add(Editor) },
-                    onNavigateToPresets = { mainBackStack.add(Presets) },
-                    onNavigateToYourTemplates = { mainBackStack.add(YourTemplates) },
-                    onNavigateToHistory = { mainBackStack.add(History) },
-                    onNavigateToSettings = { mainBackStack.add(Settings) }
+                    onNavigateToEditor = { presetId, projectId -> 
+                        mainBackStackList.add(Editor(presetId = presetId, projectId = projectId))
+                    },
+                    onNavigateToPresets = { /* mainBackStackList.add(Presets) */ },
+                    onNavigateToYourTemplates = { /* mainBackStackList.add(YourTemplates) */ },
+                    onNavigateToHistory = { /* mainBackStackList.add(History) */ },
+                    onNavigateToSettings = { mainBackStackList.add(Settings) }
                 )
             }
             entry<Settings> {
                 SettingsScreen(
-                    onNavigateToAbout = { mainBackStack.add(About) },
+                    onNavigateToAbout = { mainBackStackList.add(About) },
                     onBack = { 
-                        if (mainBackStack.size > 1) {
-                            mainBackStack.removeAt(mainBackStack.size - 1)
+                        if (mainBackStackList.size > 1) {
+                            mainBackStackList.removeAt(mainBackStackList.size - 1)
                         }
                     }
                 )
@@ -201,16 +208,18 @@ fun SkreenupApp() {
                     Text("Your Templates Screen (Coming Soon)")
                 }
             }
-            entry<Editor> {
+            entry<Editor> { key ->
                 EditorScreen(
-                    onNavigateToAbout = { mainBackStack.add(About) }
+                    onNavigateToAbout = { mainBackStackList.add(About) },
+                    presetId = key.presetId,
+                    projectId = key.projectId
                 )
             }
             entry<About> {
                 AboutScreen(
                     onBack = { 
-                        if (mainBackStack.size > 1) {
-                            mainBackStack.removeAt(mainBackStack.size - 1)
+                        if (mainBackStackList.size > 1) {
+                            mainBackStackList.removeAt(mainBackStackList.size - 1)
                         }
                     }
                 )
@@ -223,12 +232,22 @@ fun SkreenupApp() {
 @Composable
 fun EditorScreen(
     onNavigateToAbout: () -> Unit,
+    presetId: Long? = null,
+    projectId: Long? = null,
     editorViewModel: EditorViewModel = viewModel()
 ) {
-    val tabBackStack = rememberNavBackStack(FrameTab)
+    val tabBackStack: NavBackStack<NavKey> = rememberNavBackStack(FrameTab as NavKey)
+    val tabBackStackList: MutableList<NavKey> = tabBackStack
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     
+    LaunchedEffect(presetId, projectId) {
+        if (presetId != null) {
+            editorViewModel.loadPreset(presetId)
+        } else if (projectId != null) {
+            editorViewModel.loadProject(projectId)
+        }
+    }
     val isKeyboardVisible = WindowInsets.isImeVisible
     val previewWeight = if (isKeyboardVisible) 0.5f else 1f
 
@@ -282,8 +301,51 @@ fun EditorScreen(
                 title = { Text("Skreenup") },
                 actions = {
                     IconButton(onClick = { 
-                        editorViewModel.saveTemplate()
-                        Toast.makeText(context, "Template Saved!", Toast.LENGTH_SHORT).show()
+                        scope.launch {
+                            val bitmap = captureToBitmap(
+                                density = Density(context),
+                                screenshot = screenshot,
+                                deviceModel = selectedDevice,
+                                backgroundType = backgroundType,
+                                backgroundColor = backgroundColor,
+                                gradientColors = gradientColors,
+                                backgroundImage = backgroundImage,
+                                backgroundImageOffsetX = backgroundImageOffsetX,
+                                backgroundImageOffsetY = backgroundImageOffsetY,
+                                backgroundImageScale = backgroundImageScale,
+                                backgroundImageBlur = backgroundImageBlur,
+                                scale = scale,
+                                imageScale = imageScale,
+                                frameOffsetX = frameOffsetX,
+                                frameOffsetY = frameOffsetY,
+                                screenshotOffsetX = screenshotOffsetX,
+                                screenshotOffsetY = screenshotOffsetY,
+                                aspectRatio = aspectRatio,
+                                rotationDegrees = rotation,
+                                screenshotRotation = screenshotRotation,
+                                screenBackgroundColor = screenBackgroundColor,
+                                heading = heading,
+                                subheading = subheading,
+                                headingFont = headingFont,
+                                subheadingFont = subheadingFont,
+                                headingSize = headingSize,
+                                subheadingSize = subheadingSize,
+                                textGap = textGap,
+                                textColor = textColor,
+                                textOffsetX = textOffsetX,
+                                textOffsetY = textOffsetY,
+                                textAlignment = textAlign,
+                                headingBold = headingBold,
+                                subheadingBold = subheadingBold,
+                                showReflection = showReflection,
+                                showTextShadow = textShadow,
+                                shadowIntensity = editorViewModel.shadowIntensity.value,
+                                shadowSoftness = editorViewModel.shadowSoftness.value
+                            )
+                            val path = savePreviewToInternal(context, bitmap)
+                            editorViewModel.saveTemplate(previewUri = path)
+                            Toast.makeText(context, "Template Saved!", Toast.LENGTH_SHORT).show()
+                        }
                     }) {
                         Icon(Icons.Rounded.Bookmark, contentDescription = "Save Template")
                     }
@@ -347,14 +409,14 @@ fun EditorScreen(
         },
         bottomBar = {
             NavigationBar {
-                val currentTab = tabBackStack.lastOrNull()
+                val currentTab = tabBackStackList.lastOrNull()
 
                 NavigationBarItem(
                     selected = currentTab == FrameTab,
                     onClick = { 
                         if (currentTab != FrameTab) {
-                            tabBackStack.clear()
-                            tabBackStack.add(FrameTab)
+                            tabBackStackList.clear()
+                            tabBackStackList.add(FrameTab)
                         }
                     },
                     icon = { Icon(Icons.Rounded.Smartphone, contentDescription = "Frame") },
@@ -364,8 +426,8 @@ fun EditorScreen(
                     selected = currentTab == BackgroundTab,
                     onClick = { 
                         if (currentTab != BackgroundTab) {
-                            tabBackStack.clear()
-                            tabBackStack.add(BackgroundTab)
+                            tabBackStackList.clear()
+                            tabBackStackList.add(BackgroundTab)
                         }
                     },
                     icon = { Icon(Icons.Rounded.Palette, contentDescription = "Background") },
@@ -375,8 +437,8 @@ fun EditorScreen(
                     selected = currentTab == AdjustTab,
                     onClick = { 
                         if (currentTab != AdjustTab) {
-                            tabBackStack.clear()
-                            tabBackStack.add(AdjustTab)
+                            tabBackStackList.clear()
+                            tabBackStackList.add(AdjustTab)
                         }
                     },
                     icon = { Icon(Icons.Rounded.Tune, contentDescription = "Adjust") },
@@ -386,8 +448,8 @@ fun EditorScreen(
                     selected = currentTab == TextTab,
                     onClick = { 
                         if (currentTab != TextTab) {
-                            tabBackStack.clear()
-                            tabBackStack.add(TextTab)
+                            tabBackStackList.clear()
+                            tabBackStackList.add(TextTab)
                         }
                     },
                     icon = { Icon(Icons.Rounded.TextFields, contentDescription = "Text") },
@@ -472,8 +534,8 @@ fun EditorScreen(
             NavDisplay(
                 backStack = tabBackStack,
                 onBack = { 
-                    if (tabBackStack.size > 1) {
-                        tabBackStack.removeAt(tabBackStack.size - 1)
+                    if (tabBackStackList.size > 1) {
+                        tabBackStackList.removeAt(tabBackStackList.size - 1)
                     }
                 },
                 entryDecorators = listOf(
@@ -600,6 +662,17 @@ suspend fun captureToBitmap(
         }
 
         bitmap
+    }
+}
+
+suspend fun savePreviewToInternal(context: android.content.Context, bitmap: Bitmap): String {
+    return withContext(Dispatchers.IO) {
+        val filename = "preview_${System.currentTimeMillis()}.png"
+        val file = File(context.filesDir, filename)
+        file.outputStream().use {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 50, it)
+        }
+        file.absolutePath
     }
 }
 

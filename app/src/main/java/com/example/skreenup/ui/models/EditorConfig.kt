@@ -1,0 +1,44 @@
+package com.example.skreenup.ui.models
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class EditorConfig(
+    val selectedDeviceName: String,
+    val screenshotUri: String? = null,
+    val backgroundType: String,
+    val backgroundColor: Int,
+    val gradientColors: List<Int>,
+    val backgroundImageUri: String? = null,
+    val backgroundImageOffsetX: Float = 0f,
+    val backgroundImageOffsetY: Float = 0f,
+    val backgroundImageScale: Float = 1.0f,
+    val backgroundImageBlur: Float = 0f,
+    val screenBackgroundColor: Int,
+    val heading: String = "",
+    val subheading: String = "",
+    val headingFont: String,
+    val subheadingFont: String,
+    val headingSize: Float = 60f,
+    val subheadingSize: Float = 40f,
+    val textGap: Float = 20f,
+    val textOffsetX: Float = 0f,
+    val textOffsetY: Float = 0f,
+    val textColor: Int,
+    val textAlign: String,
+    val headingBold: Boolean = true,
+    val subheadingBold: Boolean = false,
+    val scale: Float = 0.8f,
+    val imageScale: Float = 1.0f,
+    val screenshotRotation: Float = 0f,
+    val aspectRatio: String,
+    val frameOffsetX: Float = 0f,
+    val frameOffsetY: Float = 0f,
+    val screenshotOffsetX: Float = 0f,
+    val screenshotOffsetY: Float = 0f,
+    val rotation: Float = 0f,
+    val showReflection: Boolean = true,
+    val shadowIntensity: Float = 0.3f,
+    val shadowSoftness: Float = 1.0f,
+    val textShadow: Boolean = true
+)

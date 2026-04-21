@@ -8,14 +8,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Smartphone
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import coil.compose.AsyncImage
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -29,10 +35,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
-    onNavigateToEditor: () -> Unit,
+    onNavigateToEditor: (Long?, Long?) -> Unit,
     onNavigateToPresets: () -> Unit,
     onNavigateToYourTemplates: () -> Unit,
     onNavigateToHistory: () -> Unit,
@@ -41,6 +47,31 @@ fun HomeScreen(
 ) {
     val projects by viewModel.projects.collectAsState()
     val savedPresets by viewModel.presets.collectAsState()
+    var presetToDelete by remember { mutableStateOf<com.example.skreenup.data.Preset?>(null) }
+
+    if (presetToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { presetToDelete = null },
+            title = { Text("Delete Template") },
+            text = { Text("Are you sure you want to delete '${presetToDelete?.name}'?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        presetToDelete?.let { viewModel.deletePreset(it) }
+                        presetToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { presetToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -67,48 +98,42 @@ fun HomeScreen(
                     title = "Create New",
                     subtitle = "Start from scratch",
                     icon = Icons.Rounded.Add,
-                    onClick = onNavigateToEditor
+                    onClick = { onNavigateToEditor(null, null) }
                 )
             }
 
-            // 2. Preset Templates with horizontal scroll
+            // 2. Preset Templates
             item {
-                SectionHeader(title = "Preset Templates", onSeeAll = onNavigateToPresets)
+                SectionHeader(title = "Preset Templates")
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
-                    // Using some hardcoded preview logic or a list from VM
                     items(8) { index ->
                         PresetPreviewCard(
-                            onClick = onNavigateToEditor, // In a real app, this would load the preset
+                            onClick = { onNavigateToEditor(null, null) },
                             label = "Template ${index + 1}"
                         )
                     }
                 }
             }
 
-            // 3. Saved Templates with horizontal scroll
-            item {
-                SectionHeader(title = "Saved Templates", onSeeAll = onNavigateToYourTemplates)
-                Spacer(modifier = Modifier.height(8.dp))
-                if (savedPresets.isEmpty()) {
-                    Text(
-                        "No saved templates yet",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                } else {
+            // 3. Saved Templates
+            if (savedPresets.isNotEmpty()) {
+                item {
+                    SectionHeader(title = "Saved Templates")
+                    Spacer(modifier = Modifier.height(8.dp))
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(horizontal = 4.dp)
                     ) {
-                        items(savedPresets) { preset ->
+                        items(savedPresets, key = { it.id }) { preset ->
                             PresetPreviewCard(
-                                onClick = onNavigateToEditor,
+                                onClick = { onNavigateToEditor(preset.id, null) },
+                                onLongClick = { presetToDelete = preset },
                                 label = preset.name,
+                                previewUri = preset.previewUri,
                                 icon = Icons.Rounded.Bookmark
                             )
                         }
@@ -135,11 +160,14 @@ fun HomeScreen(
                     )
                 }
             } else {
-                items(projects) { project ->
+                items(projects, key = { it.id }) { project ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { /* TODO: Load project */ },
+                            .combinedClickable(
+                                onClick = { onNavigateToEditor(null, project.id) },
+                                onLongClick = { /* TODO: Delete project */ }
+                            ),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         )
@@ -148,7 +176,15 @@ fun HomeScreen(
                             headlineContent = { Text(project.name) },
                             supportingContent = { Text("Modified: ${project.createdAt}") },
                             leadingContent = {
-                                Icon(Icons.Rounded.Smartphone, contentDescription = null)
+                                if (project.previewUri != null) {
+                                    AsyncImage(
+                                        model = project.previewUri,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(40.dp)
+                                    )
+                                } else {
+                                    Icon(Icons.Rounded.Smartphone, contentDescription = null)
+                                }
                             },
                             trailingContent = {
                                 Icon(Icons.Rounded.ChevronRight, contentDescription = null)
@@ -162,57 +198,63 @@ fun HomeScreen(
 }
 
 @Composable
-fun SectionHeader(title: String, onSeeAll: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        TextButton(onClick = onSeeAll) {
-            Text("See All")
-        }
-    }
+fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold
+    )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PresetPreviewCard(
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     label: String,
+    previewUri: String? = null,
     icon: ImageVector = Icons.Rounded.Layers
 ) {
     Card(
         modifier = Modifier
             .size(140.dp, 180.dp)
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = icon,
+            if (previewUri != null) {
+                AsyncImage(
+                    model = previewUri,
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Medium
-                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }

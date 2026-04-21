@@ -19,13 +19,19 @@ import com.example.skreenup.ui.models.DeviceModels
 import com.example.skreenup.ui.models.TextFont
 import com.example.skreenup.ui.models.TextAlignLabel
 import kotlinx.coroutines.Dispatchers
+import com.example.skreenup.data.Project
 import com.example.skreenup.data.Preset
 import com.example.skreenup.data.SkreenupDatabase
+import com.example.skreenup.ui.models.EditorConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.io.File
 
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
     private val db = SkreenupDatabase.getDatabase(application)
@@ -36,6 +42,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _screenshot = MutableStateFlow<ImageBitmap?>(null)
     val screenshot: StateFlow<ImageBitmap?> = _screenshot.asStateFlow()
+
+    private val _screenshotUri = MutableStateFlow<String?>(null)
+    val screenshotUri: StateFlow<String?> = _screenshotUri.asStateFlow()
 
     // Background State
     private val _backgroundType = MutableStateFlow(BackgroundType.GRADIENT)
@@ -49,6 +58,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _backgroundImage = MutableStateFlow<ImageBitmap?>(null)
     val backgroundImage: StateFlow<ImageBitmap?> = _backgroundImage.asStateFlow()
+
+    private val _backgroundImageUri = MutableStateFlow<String?>(null)
+    val backgroundImageUri: StateFlow<String?> = _backgroundImageUri.asStateFlow()
 
     private val _backgroundImageOffsetX = MutableStateFlow(0f)
     val backgroundImageOffsetX: StateFlow<Float> = _backgroundImageOffsetX.asStateFlow()
@@ -163,6 +175,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setScreenshot(uri: Uri) {
+        _screenshotUri.value = uri.toString()
         viewModelScope.launch {
             val bitmap = loadBitmapFromUri(getApplication(), uri)
             _screenshot.value = bitmap?.asImageBitmap()
@@ -192,9 +205,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setBackgroundImage(uri: Uri) {
+        _backgroundImageUri.value = uri.toString()
         viewModelScope.launch {
             val bitmap = loadBitmapFromUri(getApplication(), uri)
             _backgroundImage.value = bitmap?.asImageBitmap()
+            _backgroundType.value = BackgroundType.IMAGE
         }
     }
 
@@ -215,6 +230,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setPresetBackgroundImage(url: String) {
+        _backgroundImageUri.value = url
         viewModelScope.launch {
             val bitmap = loadBitmapFromUrl(getApplication(), url)
             _backgroundImage.value = bitmap?.asImageBitmap()
@@ -317,6 +333,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun resetFrameTab() {
         _selectedDevice.value = DeviceModels.first()
+        _screenshot.value = null
+        _screenshotUri.value = null
         _showReflection.value = true
         setScreenBackgroundColor(Color(0xFF2C2C2C))
     }
@@ -326,6 +344,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         setBackgroundColor(Color(0xFF3F51B5))
         setGradientColors(listOf(Color(0xFF3F51B5), Color(0xFF006A6A)))
         _backgroundImage.value = null
+        _backgroundImageUri.value = null
         _backgroundImageOffsetX.value = 0f
         _backgroundImageOffsetY.value = 0f
         _backgroundImageScale.value = 1.0f
@@ -370,19 +389,125 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         resetTextTab()
     }
 
-    fun saveTemplate(name: String = "My Template") {
+    private val projectDao = db.projectDao()
+
+    fun loadPreset(id: Long) {
         viewModelScope.launch {
+            presetDao.getAllPresets().first().find { it.id == id }?.let { p ->
+                applyConfig(Json.decodeFromString(p.configJson))
+            }
+        }
+    }
+
+    // Better to use a direct query for single item
+    fun loadProject(id: Long) {
+        viewModelScope.launch {
+            projectDao.getProjectById(id)?.let { p ->
+                applyConfig(Json.decodeFromString(p.configJson))
+            }
+        }
+    }
+
+    fun applyConfig(config: EditorConfig) {
+        _selectedDevice.value = DeviceModels.find { it.name == config.selectedDeviceName } ?: DeviceModels.first()
+        _backgroundType.value = BackgroundType.valueOf(config.backgroundType)
+        _backgroundColor.value = Color(config.backgroundColor)
+        _gradientColors.value = config.gradientColors.map { Color(it) }
+        
+        _screenshotUri.value = config.screenshotUri
+        config.screenshotUri?.let { uriStr ->
+            viewModelScope.launch {
+                val bitmap = loadBitmapFromUri(getApplication(), Uri.parse(uriStr))
+                _screenshot.value = bitmap?.asImageBitmap()
+            }
+        }
+
+        _backgroundImageUri.value = config.backgroundImageUri
+        config.backgroundImageUri?.let { uriStr ->
+            viewModelScope.launch {
+                val bitmap = if (uriStr.startsWith("http")) {
+                    loadBitmapFromUrl(getApplication(), uriStr)
+                } else {
+                    loadBitmapFromUri(getApplication(), Uri.parse(uriStr))
+                }
+                _backgroundImage.value = bitmap?.asImageBitmap()
+            }
+        }
+
+        _backgroundImageOffsetX.value = config.backgroundImageOffsetX
+        _backgroundImageOffsetY.value = config.backgroundImageOffsetY
+        _backgroundImageScale.value = config.backgroundImageScale
+        _backgroundImageBlur.value = config.backgroundImageBlur
+        _screenBackgroundColor.value = Color(config.screenBackgroundColor)
+        _heading.value = config.heading
+        _subheading.value = config.subheading
+        _headingFont.value = TextFont.valueOf(config.headingFont)
+        _subheadingFont.value = TextFont.valueOf(config.subheadingFont)
+        _headingSize.value = config.headingSize
+        _subheadingSize.value = config.subheadingSize
+        _textGap.value = config.textGap
+        _textOffsetX.value = config.textOffsetX
+        _textOffsetY.value = config.textOffsetY
+        _textColor.value = Color(config.textColor)
+        _textAlign.value = TextAlignLabel.valueOf(config.textAlign)
+        _headingBold.value = config.headingBold
+        _subheadingBold.value = config.subheadingBold
+        _scale.value = config.scale
+        _imageScale.value = config.imageScale
+        _screenshotRotation.value = config.screenshotRotation
+        _aspectRatio.value = CompositionAspectRatio.valueOf(config.aspectRatio)
+        _frameOffsetX.value = config.frameOffsetX
+        _frameOffsetY.value = config.frameOffsetY
+        _screenshotOffsetX.value = config.screenshotOffsetX
+        _screenshotOffsetY.value = config.screenshotOffsetY
+        _rotation.value = config.rotation
+        _showReflection.value = config.showReflection
+        _shadowIntensity.value = config.shadowIntensity
+        _shadowSoftness.value = config.shadowSoftness
+        _textShadow.value = config.textShadow
+    }
+
+    fun saveTemplate(name: String = "My Template", previewUri: String? = null) {
+        viewModelScope.launch {
+            val config = EditorConfig(
+                selectedDeviceName = _selectedDevice.value.name,
+                screenshotUri = _screenshotUri.value,
+                backgroundType = _backgroundType.value.name,
+                backgroundColor = _backgroundColor.value.toArgb(),
+                gradientColors = _gradientColors.value.map { it.toArgb() },
+                backgroundImageUri = _backgroundImageUri.value,
+                screenBackgroundColor = _screenBackgroundColor.value.toArgb(),
+                heading = _heading.value,
+                subheading = _subheading.value,
+                headingFont = _headingFont.value.name,
+                subheadingFont = _subheadingFont.value.name,
+                headingSize = _headingSize.value,
+                subheadingSize = _subheadingSize.value,
+                textGap = _textGap.value,
+                textOffsetX = _textOffsetX.value,
+                textOffsetY = _textOffsetY.value,
+                textColor = _textColor.value.toArgb(),
+                textAlign = _textAlign.value.name,
+                headingBold = _headingBold.value,
+                subheadingBold = _subheadingBold.value,
+                scale = _scale.value,
+                imageScale = _imageScale.value,
+                screenshotRotation = _screenshotRotation.value,
+                aspectRatio = _aspectRatio.value.name,
+                frameOffsetX = _frameOffsetX.value,
+                frameOffsetY = _frameOffsetY.value,
+                screenshotOffsetX = _screenshotOffsetX.value,
+                screenshotOffsetY = _screenshotOffsetY.value,
+                rotation = _rotation.value,
+                showReflection = _showReflection.value,
+                shadowIntensity = _shadowIntensity.value,
+                shadowSoftness = _shadowSoftness.value,
+                textShadow = _textShadow.value
+            )
             val preset = Preset(
                 name = name,
-                frameType = _selectedDevice.value.name,
-                backgroundType = _backgroundType.value.name,
-                backgroundValue = when (_backgroundType.value) {
-                    BackgroundType.SOLID -> _hexColorSolid.value
-                    BackgroundType.GRADIENT -> "${_hexColorGradientStart.value},${_hexColorGradientEnd.value}"
-                    else -> ""
-                },
-                scale = _scale.value,
-                aspectRatio = _aspectRatio.value.name
+                configJson = Json.encodeToString(config),
+                previewUri = previewUri
             )
             presetDao.insertPreset(preset)
         }

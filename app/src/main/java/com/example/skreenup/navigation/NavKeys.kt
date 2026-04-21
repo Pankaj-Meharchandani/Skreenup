@@ -22,7 +22,7 @@ object YourTemplates : SkreenupNavKey
 object Settings : SkreenupNavKey
 
 @Serializable
-object Editor : SkreenupNavKey
+data class Editor(val presetId: Long? = null, val projectId: Long? = null) : SkreenupNavKey
 
 @Serializable
 object About : SkreenupNavKey

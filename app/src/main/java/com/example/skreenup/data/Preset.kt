@@ -7,13 +7,7 @@ import androidx.room.PrimaryKey
 data class Preset(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
-    val frameType: String,
-    val backgroundType: String,
-    val backgroundValue: String,
-    val scale: Float = 0.8f,
-    val positionX: Float = 0.5f,
-    val positionY: Float = 0.5f,
-    val showWatermark: Boolean = false,
-    val watermarkText: String = "Created with Skreenup",
-    val aspectRatio: String = "SQUARE"
+    val configJson: String, // Store all editor state as JSON
+    val previewUri: String? = null,
+    val createdAt: Long = System.currentTimeMillis()
 )

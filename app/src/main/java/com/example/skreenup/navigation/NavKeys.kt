@@ -7,6 +7,18 @@ import kotlinx.serialization.Serializable
 sealed interface SkreenupNavKey : NavKey
 
 @Serializable
+object Home : SkreenupNavKey
+
+@Serializable
+object Presets : SkreenupNavKey
+
+@Serializable
+object History : SkreenupNavKey
+
+@Serializable
+object YourTemplates : SkreenupNavKey
+
+@Serializable
 object Editor : SkreenupNavKey
 
 @Serializable

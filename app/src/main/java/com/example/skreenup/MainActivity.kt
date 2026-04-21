@@ -67,8 +67,14 @@ import com.example.skreenup.navigation.AdjustTab
 import com.example.skreenup.navigation.BackgroundTab
 import com.example.skreenup.navigation.Editor
 import com.example.skreenup.navigation.FrameTab
+import com.example.skreenup.navigation.History
+import com.example.skreenup.navigation.Home
+import com.example.skreenup.navigation.Presets
 import com.example.skreenup.navigation.TextTab
+import com.example.skreenup.navigation.YourTemplates
 import com.example.skreenup.ui.screens.AboutScreen
+import com.example.skreenup.ui.screens.HomeScreen
+import com.example.skreenup.ui.screens.HomeViewModel
 import com.example.skreenup.ui.screens.tabs.AdjustTabScreen
 import com.example.skreenup.ui.screens.tabs.BackgroundTabScreen
 import com.example.skreenup.ui.screens.tabs.FrameTabScreen
@@ -134,7 +140,14 @@ fun SkreenupApp() {
         )
     }
 
-    val mainBackStack = rememberNavBackStack(Editor)
+    // Check if we should start with a preset directly
+    val startWithPreset = remember { 
+        val intent = (context as? ComponentActivity)?.intent
+        intent?.getBooleanExtra("START_WITH_PRESET", false) ?: false
+    }
+
+    val startDestination = if (startWithPreset) Editor else Home
+    val mainBackStack = rememberNavBackStack(startDestination)
 
     NavDisplay(
         backStack = mainBackStack,
@@ -148,6 +161,32 @@ fun SkreenupApp() {
             rememberViewModelStoreNavEntryDecorator()
         ),
         entryProvider = entryProvider {
+            entry<Home> {
+                HomeScreen(
+                    onNavigateToEditor = { mainBackStack.add(Editor) },
+                    onNavigateToPresets = { mainBackStack.add(Presets) },
+                    onNavigateToYourTemplates = { mainBackStack.add(YourTemplates) },
+                    onNavigateToHistory = { mainBackStack.add(History) }
+                )
+            }
+            entry<Presets> {
+                // TODO: Implement PresetsScreen
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Presets Screen (Coming Soon)")
+                }
+            }
+            entry<History> {
+                // TODO: Implement HistoryScreen
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("History Screen (Coming Soon)")
+                }
+            }
+            entry<YourTemplates> {
+                // TODO: Implement YourTemplatesScreen
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Your Templates Screen (Coming Soon)")
+                }
+            }
             entry<Editor> {
                 EditorScreen(
                     onNavigateToAbout = { mainBackStack.add(About) }

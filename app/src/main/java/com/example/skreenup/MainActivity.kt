@@ -124,7 +124,7 @@ fun SkreenupApp() {
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             PRESET_TEMPLATES.forEach { template ->
-                val file = File(context.filesDir, "preset_${template.id}.png")
+                val file = File(context.filesDir, "preset_v2_${template.id}.png")
                 if (!file.exists()) {
                     val device = DeviceModels.find { it.name == template.config.selectedDeviceName } ?: DeviceModels.first()
                     val bitmap = captureToBitmap(

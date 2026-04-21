@@ -108,7 +108,7 @@ fun HomeScreen(
                     items(PRESET_TEMPLATES) { template ->
                         val context = androidx.compose.ui.platform.LocalContext.current
                         val previewFile = remember(template.id) { 
-                            java.io.File(context.filesDir, "preset_${template.id}.png") 
+                            java.io.File(context.filesDir, "preset_v2_${template.id}.png")
                         }
                         PresetPreviewCard(
                             onClick = { onNavigateToEditor(null, null, template.id) },

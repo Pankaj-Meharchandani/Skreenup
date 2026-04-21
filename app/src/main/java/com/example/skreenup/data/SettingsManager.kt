@@ -73,6 +73,14 @@ class SettingsManager private constructor(context: Context) {
         return prefs.getString("last_editor_config", null)
     }
 
+    fun setLastVisitedScreen(screen: String) {
+        prefs.edit().putString("last_visited_screen", screen).apply()
+    }
+
+    fun getLastVisitedScreen(): String? {
+        return prefs.getString("last_visited_screen", null)
+    }
+
     companion object {
         @Volatile
         private var INSTANCE: SettingsManager? = null

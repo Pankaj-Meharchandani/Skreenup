@@ -97,7 +97,8 @@ fun DeviceFrame(
     onTextOffsetChange: (Float, Float) -> Unit = { _, _ -> },
     onHeadingSizeChange: (Float) -> Unit = {},
     onSubheadingSizeChange: (Float) -> Unit = {},
-    onTextZIndexChange: (Int) -> Unit = {}
+    onTextZIndexChange: (Int) -> Unit = {},
+    onAddScreenshot: () -> Unit = {}
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     var activeTarget by remember { mutableStateOf<Target>(Target.NONE) }
@@ -171,6 +172,7 @@ fun DeviceFrame(
             .onSizeChanged { canvasSize = it }
             .pointerInput(canvasSize) {
                 detectTapGestures(
+                    onTap = { onAddScreenshot() },
                     onLongPress = { offset ->
                         val target = hitTest(
                             point = offset,

@@ -14,8 +14,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -25,6 +23,7 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
@@ -227,18 +226,32 @@ fun SkreenupApp() {
     val continueLastProject by settingsViewModel.continueLastProject.collectAsState()
     val settingsManager = com.example.skreenup.data.SettingsManager.getInstance(context)
     val hasLastProject = remember { settingsManager.getLastEditorConfig() != null }
+    val lastScreen = remember { settingsManager.getLastVisitedScreen() }
 
-    val startDestination: NavKey = remember {
+    val mainBackStack: NavBackStack<NavKey> = rememberNavBackStack(Home)
+    val mainBackStackList: MutableList<NavKey> = mainBackStack
+
+    LaunchedEffect(Unit) {
         if (startWithPreset) {
-            Editor()
-        } else if (continueLastProject && hasLastProject) {
-            Editor(isLastProject = true)
-        } else {
-            Home
+            mainBackStackList.add(Editor())
+        } else if (continueLastProject && hasLastProject && lastScreen == "Editor") {
+            mainBackStackList.add(Editor(isLastProject = true))
         }
     }
-    val mainBackStack: NavBackStack<NavKey> = rememberNavBackStack(startDestination)
-    val mainBackStackList: MutableList<NavKey> = mainBackStack
+
+    // Save current screen to settings
+    LaunchedEffect(mainBackStackList.lastOrNull()) {
+        val currentKey = mainBackStackList.lastOrNull()
+        if (currentKey != null) {
+            val screenName = when (currentKey) {
+                is Editor -> "Editor"
+                is Home, is Settings, is About, is com.example.skreenup.navigation.Presets, 
+                is com.example.skreenup.navigation.History, is com.example.skreenup.navigation.YourTemplates -> "Other"
+                else -> null
+            }
+            screenName?.let { settingsManager.setLastVisitedScreen(it) }
+        }
+    }
 
     NavDisplay(
         backStack = mainBackStack,
@@ -294,6 +307,11 @@ fun SkreenupApp() {
             entry<Editor> { key ->
                 EditorScreen(
                     onNavigateToAbout = { mainBackStackList.add(About) },
+                    onBack = {
+                        if (mainBackStackList.size > 1) {
+                            mainBackStackList.removeAt(mainBackStackList.size - 1)
+                        }
+                    },
                     presetId = key.presetId,
                     projectId = key.projectId,
                     staticTemplateId = key.staticTemplateId,
@@ -317,6 +335,7 @@ fun SkreenupApp() {
 @Composable
 fun EditorScreen(
     onNavigateToAbout: () -> Unit,
+    onBack: () -> Unit,
     presetId: Long? = null,
     projectId: Long? = null,
     staticTemplateId: String? = null,
@@ -406,6 +425,15 @@ fun EditorScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Skreenup", color = MaterialTheme.colorScheme.onBackground) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                },
                 actions = {
                     val isSaved by editorViewModel.isSaved.collectAsState()
                     IconButton(onClick = { 
@@ -585,16 +613,7 @@ fun EditorScreen(
             Box(
                 modifier = Modifier
                     .weight(previewWeight)
-                    .fillMaxWidth()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {
-                            photoPickerLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        }
-                    ),
+                    .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 DeviceFrame(
@@ -648,7 +667,12 @@ fun EditorScreen(
                     },
                     onHeadingSizeChange = { editorViewModel.setHeadingSize(it) },
                     onSubheadingSizeChange = { editorViewModel.setSubheadingSize(it) },
-                    onTextZIndexChange = { editorViewModel.setTextZIndex(it) }
+                    onTextZIndexChange = { editorViewModel.setTextZIndex(it) },
+                    onAddScreenshot = {
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }
                 )
             }
 

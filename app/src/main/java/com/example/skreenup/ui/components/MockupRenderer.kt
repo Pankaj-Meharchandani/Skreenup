@@ -228,65 +228,21 @@ object MockupRenderer {
                     }
                 }
 
-                var currentHeadingSize = headingSize
-                var currentSubheadingSize = subheadingSize
-
-                // ── Automatic Text Scaling & Position Guard (Prevent cutting off) ──
+                val currentHeadingSize = headingSize
+                val currentSubheadingSize = subheadingSize
                 val horizontalPadding = 60f * resolutionScale
-                
-                fun getWidestLine(paint: android.graphics.Paint, lines: List<String>): Float {
-                    return lines.maxOfOrNull { paint.measureText(it) } ?: 0f
-                }
 
                 val headingLinesInitial = hText.split("\n")
                 val subheadingLinesInitial = sText.split("\n")
 
-                var hPaint = createPaint(headingFont, currentHeadingSize, headingBold)
-                var sPaint = createPaint(subheadingFont, currentSubheadingSize, subheadingBold)
+                val hPaint = createPaint(headingFont, currentHeadingSize, headingBold)
+                val sPaint = createPaint(subheadingFont, currentSubheadingSize, subheadingBold)
 
-                // Initial position calculation
-                var centerX = when (textAlignment) {
+                // Position calculation without guards
+                val centerX = when (textAlignment) {
                     TextAlignLabel.LEFT -> compLeft + horizontalPadding + (textOffsetX * resolutionScale)
                     TextAlignLabel.CENTER -> compLeft + compWidth / 2 + (textOffsetX * resolutionScale)
                     TextAlignLabel.RIGHT -> compLeft + compWidth - horizontalPadding + (textOffsetX * resolutionScale)
-                }
-
-                var widestH = getWidestLine(hPaint, headingLinesInitial)
-                var widestS = getWidestLine(sPaint, subheadingLinesInitial)
-                var maxW = maxOf(widestH, widestS)
-
-                // 1. Position Guard: Ensure the text start/end doesn't go off canvas
-                when (textAlignment) {
-                    TextAlignLabel.LEFT -> {
-                        if (centerX < compLeft + 20f * resolutionScale) {
-                            centerX = compLeft + 20f * resolutionScale
-                        }
-                    }
-                    TextAlignLabel.RIGHT -> {
-                        if (centerX > compLeft + compWidth - 20f * resolutionScale) {
-                            centerX = compLeft + compWidth - 20f * resolutionScale
-                        }
-                    }
-                    TextAlignLabel.CENTER -> {
-                        // Center is already handled by initial calculation
-                    }
-                }
-
-                // 2. Scale Guard: Shrink text if it still exceeds available width from its position
-                val availableWidth = when (textAlignment) {
-                    TextAlignLabel.LEFT -> (compLeft + compWidth - 20f * resolutionScale) - centerX
-                    TextAlignLabel.CENTER -> compWidth - 40f * resolutionScale
-                    TextAlignLabel.RIGHT -> centerX - (compLeft + 20f * resolutionScale)
-                }
-
-                while (maxW > availableWidth && currentHeadingSize > 12f) {
-                    currentHeadingSize *= 0.95f
-                    currentSubheadingSize *= 0.95f
-                    hPaint = createPaint(headingFont, currentHeadingSize, headingBold)
-                    sPaint = createPaint(subheadingFont, currentSubheadingSize, subheadingBold)
-                    widestH = getWidestLine(hPaint, headingLinesInitial)
-                    widestS = getWidestLine(sPaint, subheadingLinesInitial)
-                    maxW = maxOf(widestH, widestS)
                 }
 
                 val hMetrics = hPaint.fontMetrics
@@ -341,7 +297,9 @@ object MockupRenderer {
 
         // ── 4. Draw Content based on Z-Index ──
         if (textZIndex < 0) {
-            drawTextContent()
+            clipPath(Path().apply { addRect(compRect) }) {
+                drawTextContent()
+            }
         }
 
         // Wrap all device drawing in a rotation transform
@@ -371,7 +329,9 @@ object MockupRenderer {
         }
 
         if (textZIndex >= 0) {
-            drawTextContent()
+            clipPath(Path().apply { addRect(compRect) }) {
+                drawTextContent()
+            }
         }
     }
 

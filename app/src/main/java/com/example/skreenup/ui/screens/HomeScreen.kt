@@ -43,6 +43,7 @@ fun HomeScreen(
     val projects by viewModel.projects.collectAsState()
     val savedPresets by viewModel.presets.collectAsState()
     var presetToDelete by remember { mutableStateOf<com.example.skreenup.data.Preset?>(null) }
+    var projectToDelete by remember { mutableStateOf<com.example.skreenup.data.Project?>(null) }
 
     if (presetToDelete != null) {
         AlertDialog(
@@ -62,6 +63,30 @@ fun HomeScreen(
             },
             dismissButton = {
                 TextButton(onClick = { presetToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (projectToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { projectToDelete = null },
+            title = { Text("Delete History Item") },
+            text = { Text("Are you sure you want to delete this project from your history?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        projectToDelete?.let { viewModel.deleteProject(it) }
+                        projectToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { projectToDelete = null }) {
                     Text("Cancel")
                 }
             }
@@ -166,7 +191,7 @@ fun HomeScreen(
                             .fillMaxWidth()
                             .combinedClickable(
                                 onClick = { onNavigateToEditor(null, project.id, null) },
-                                onLongClick = { /* TODO: Delete project */ }
+                                onLongClick = { projectToDelete = project }
                             ),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface

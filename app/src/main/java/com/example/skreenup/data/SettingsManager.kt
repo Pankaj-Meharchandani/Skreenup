@@ -18,6 +18,12 @@ class SettingsManager private constructor(context: Context) {
     private val _useGradientBackground = MutableStateFlow(loadUseGradientBackground())
     val useGradientBackground: StateFlow<Boolean> = _useGradientBackground
 
+    private val _continueLastProject = MutableStateFlow(loadContinueLastProject())
+    val continueLastProject: StateFlow<Boolean> = _continueLastProject
+
+    private val _useHaptics = MutableStateFlow(loadUseHaptics())
+    val useHaptics: StateFlow<Boolean> = _useHaptics
+
     fun setTheme(theme: AppTheme) {
         prefs.edit().putString("app_theme", theme.name).apply()
         _theme.value = theme
@@ -39,6 +45,32 @@ class SettingsManager private constructor(context: Context) {
 
     private fun loadUseGradientBackground(): Boolean {
         return prefs.getBoolean("use_gradient_bg", true)
+    }
+
+    fun setContinueLastProject(continueLast: Boolean) {
+        prefs.edit().putBoolean("continue_last_project", continueLast).apply()
+        _continueLastProject.value = continueLast
+    }
+
+    private fun loadContinueLastProject(): Boolean {
+        return prefs.getBoolean("continue_last_project", false)
+    }
+
+    fun setUseHaptics(use: Boolean) {
+        prefs.edit().putBoolean("use_haptics", use).apply()
+        _useHaptics.value = use
+    }
+
+    private fun loadUseHaptics(): Boolean {
+        return prefs.getBoolean("use_haptics", true)
+    }
+
+    fun saveLastEditorConfig(json: String) {
+        prefs.edit().putString("last_editor_config", json).apply()
+    }
+
+    fun getLastEditorConfig(): String? {
+        return prefs.getString("last_editor_config", null)
     }
 
     companion object {

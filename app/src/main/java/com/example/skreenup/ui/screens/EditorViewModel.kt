@@ -31,10 +31,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
+import com.example.skreenup.data.SettingsManager
+import kotlinx.serialization.encodeToString
+
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
     private val db = SkreenupDatabase.getDatabase(application)
     private val presetDao = db.presetDao()
     private val projectDao = db.projectDao()
+    private val settingsManager = SettingsManager.getInstance(application)
 
     private var initialConfig: EditorConfig? = null
 
@@ -537,6 +541,68 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 _isSaved.value = true
             }
         }
+    }
+
+    fun loadLastProject() {
+        settingsManager.getLastEditorConfig()?.let { json ->
+            try {
+                val config = Json.decodeFromString<EditorConfig>(json)
+                applyConfig(config)
+                _isSaved.value = false // Last unsaved state
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun saveStateToPrefs() {
+        if (settingsManager.continueLastProject.value) {
+            val config = getCurrentConfig()
+            settingsManager.saveLastEditorConfig(Json.encodeToString(config))
+        }
+    }
+
+    private fun getCurrentConfig(): EditorConfig {
+        return EditorConfig(
+            selectedDeviceName = _selectedDevice.value.name,
+            screenshotUri = _screenshotUri.value,
+            backgroundType = _backgroundType.value.name,
+            backgroundColor = _backgroundColor.value.toArgb(),
+            gradientColors = _gradientColors.value.map { it.toArgb() },
+            backgroundImageUri = _backgroundImageUri.value,
+            backgroundImageOffsetX = _backgroundImageOffsetX.value,
+            backgroundImageOffsetY = _backgroundImageOffsetY.value,
+            backgroundImageScale = _backgroundImageScale.value,
+            backgroundImageBlur = _backgroundImageBlur.value,
+            screenBackgroundColor = _screenBackgroundColor.value.toArgb(),
+            heading = _heading.value,
+            subheading = _subheading.value,
+            headingFont = _headingFont.value.name,
+            subheadingFont = _subheadingFont.value.name,
+            headingSize = _headingSize.value,
+            subheadingSize = _subheadingSize.value,
+            textGap = _textGap.value,
+            textOffsetX = _textOffsetX.value,
+            textOffsetY = _textOffsetY.value,
+            textColor = _textColor.value.toArgb(),
+            textAlign = _textAlign.value.name,
+            headingBold = _headingBold.value,
+            subheadingBold = _subheadingBold.value,
+            scale = _scale.value,
+            imageScale = _imageScale.value,
+            screenshotRotation = _screenshotRotation.value,
+            aspectRatio = _aspectRatio.value.name,
+            frameOffsetX = _frameOffsetX.value,
+            frameOffsetY = _frameOffsetY.value,
+            screenshotOffsetX = _screenshotOffsetX.value,
+            screenshotOffsetY = _screenshotOffsetY.value,
+            rotation = _rotation.value,
+            showReflection = _showReflection.value,
+            shadowIntensity = _shadowIntensity.value,
+            shadowSoftness = _shadowSoftness.value,
+            textShadow = _textShadow.value,
+            textZIndex = _textZIndex.value
+        )
     }
 
     fun applyConfig(config: EditorConfig) {

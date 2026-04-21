@@ -65,6 +65,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import androidx.compose.material3.MaterialTheme
 import com.example.skreenup.data.PRESET_TEMPLATES
 import com.example.skreenup.ui.models.DeviceModels
 import com.example.skreenup.ui.models.TextFont
@@ -222,7 +223,20 @@ fun SkreenupApp() {
         intent?.getBooleanExtra("START_WITH_PRESET", false) ?: false
     }
 
-    val startDestination: NavKey = if (startWithPreset) Editor() else Home
+    val settingsViewModel: SettingsViewModel = viewModel()
+    val continueLastProject by settingsViewModel.continueLastProject.collectAsState()
+    val settingsManager = com.example.skreenup.data.SettingsManager.getInstance(context)
+    val hasLastProject = remember { settingsManager.getLastEditorConfig() != null }
+
+    val startDestination: NavKey = remember {
+        if (startWithPreset) {
+            Editor()
+        } else if (continueLastProject && hasLastProject) {
+            Editor(isLastProject = true)
+        } else {
+            Home
+        }
+    }
     val mainBackStack: NavBackStack<NavKey> = rememberNavBackStack(startDestination)
     val mainBackStackList: MutableList<NavKey> = mainBackStack
 
@@ -282,7 +296,8 @@ fun SkreenupApp() {
                     onNavigateToAbout = { mainBackStackList.add(About) },
                     presetId = key.presetId,
                     projectId = key.projectId,
-                    staticTemplateId = key.staticTemplateId
+                    staticTemplateId = key.staticTemplateId,
+                    isLastProject = key.isLastProject
                 )
             }
             entry<About> {
@@ -305,6 +320,7 @@ fun EditorScreen(
     presetId: Long? = null,
     projectId: Long? = null,
     staticTemplateId: String? = null,
+    isLastProject: Boolean = false,
     editorViewModel: EditorViewModel = viewModel()
 ) {
     val tabBackStack: NavBackStack<NavKey> = rememberNavBackStack(FrameTab as NavKey)
@@ -312,8 +328,10 @@ fun EditorScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     
-    LaunchedEffect(presetId, projectId, staticTemplateId) {
-        if (presetId != null) {
+    LaunchedEffect(presetId, projectId, staticTemplateId, isLastProject) {
+        if (isLastProject) {
+            editorViewModel.loadLastProject()
+        } else if (presetId != null) {
             editorViewModel.loadPreset(presetId)
         } else if (projectId != null) {
             editorViewModel.loadProject(projectId)
@@ -365,6 +383,19 @@ fun EditorScreen(
     val showReflection by editorViewModel.showReflection.collectAsState()
     val textShadow by editorViewModel.textShadow.collectAsState()
 
+    // Save state whenever any of these change
+    LaunchedEffect(
+        selectedDevice, screenshot, backgroundType, backgroundColor, gradientColors,
+        backgroundImage, backgroundImageOffsetX, backgroundImageOffsetY, backgroundImageScale, backgroundImageBlur,
+        screenBackgroundColor, scale, imageScale, aspectRatio, frameOffsetX, frameOffsetY,
+        screenshotOffsetX, screenshotOffsetY, screenshotRotation, rotation,
+        heading, subheading, headingFont, subheadingFont, headingSize, subheadingSize,
+        textGap, textOffsetX, textOffsetY, textColor, textAlign, headingBold, subheadingBold,
+        showReflection, textShadow
+    ) {
+        editorViewModel.saveStateToPrefs()
+    }
+
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
@@ -374,7 +405,7 @@ fun EditorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Skreenup") },
+                title = { Text("Skreenup", color = MaterialTheme.colorScheme.onBackground) },
                 actions = {
                     val isSaved by editorViewModel.isSaved.collectAsState()
                     IconButton(onClick = { 
@@ -428,11 +459,12 @@ fun EditorScreen(
                     }) {
                         Icon(
                             if (isSaved) Icons.Rounded.Bookmark else Icons.Outlined.BookmarkBorder,
-                            contentDescription = "Save Template"
+                            contentDescription = "Save Template",
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
                     IconButton(onClick = { editorViewModel.resetAll() }) {
-                        Icon(Icons.Rounded.Refresh, contentDescription = "Reset All")
+                        Icon(Icons.Rounded.Refresh, contentDescription = "Reset All", tint = MaterialTheme.colorScheme.onBackground)
                     }
                     IconButton(onClick = { 
                         scope.launch {
@@ -488,7 +520,7 @@ fun EditorScreen(
                             }
                         }
                     }) {
-                        Icon(Icons.Rounded.Save, contentDescription = "Save")
+                        Icon(Icons.Rounded.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.onBackground)
                     }
                 }
             )
@@ -727,8 +759,6 @@ suspend fun captureToBitmap(
                 screenshotOffsetX = screenshotOffsetX,
                 screenshotOffsetY = screenshotOffsetY,
                 aspectRatio = aspectRatio,
-                showWatermark = false,
-                watermarkText = "",
                 isExport = true,
                 rotationDegrees = rotationDegrees,
                 screenshotRotation = screenshotRotation,

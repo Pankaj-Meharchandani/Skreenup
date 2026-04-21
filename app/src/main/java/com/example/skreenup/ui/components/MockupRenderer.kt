@@ -52,8 +52,6 @@ object MockupRenderer {
         screenshotOffsetX: Float,
         screenshotOffsetY: Float,
         aspectRatio: CompositionAspectRatio,
-        showWatermark: Boolean,
-        watermarkText: String,
         screenBackgroundColor: Color = Color(0xFF2C2C2C),
         isExport: Boolean = false,
         rotationDegrees: Float = 0f,
@@ -374,22 +372,6 @@ object MockupRenderer {
 
         if (textZIndex >= 0) {
             drawTextContent()
-        }
-
-        // 7. Draw Watermark (outside rotation)
-        if (showWatermark && watermarkText.isNotEmpty()) {
-            val paint = android.graphics.Paint().apply {
-                color = Color.White.copy(alpha = 0.7f).toArgb()
-                textSize = 16 * if (isExport) (compWidth / 400f) else density
-                textAlign = android.graphics.Paint.Align.RIGHT
-                isAntiAlias = true
-            }
-            drawContext.canvas.nativeCanvas.drawText(
-                watermarkText,
-                compLeft + compWidth - (if (isExport) 40f else 16.dp.toPx()),
-                compTop + compHeight - (if (isExport) 40f else 16.dp.toPx()),
-                paint
-            )
         }
     }
 

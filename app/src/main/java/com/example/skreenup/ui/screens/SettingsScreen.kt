@@ -17,7 +17,10 @@ import com.example.skreenup.data.AppTheme
 import com.example.skreenup.ui.components.AppScaffold
 import com.example.skreenup.ui.screens.UpdateState
 
+import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.SystemUpdate
+import androidx.compose.material.icons.rounded.Vibration
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -33,6 +36,8 @@ fun SettingsScreen(
     val context = LocalContext.current
     val theme by settingsViewModel.theme.collectAsState()
     val useGradientBackground by settingsViewModel.useGradientBackground.collectAsState()
+    val continueLastProject by settingsViewModel.continueLastProject.collectAsState()
+    val useHaptics by settingsViewModel.useHaptics.collectAsState()
     val updateState by settingsViewModel.updateState.collectAsState()
 
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -95,6 +100,32 @@ fun SettingsScreen(
                 }
             )
 
+            ListItem(
+                headlineContent = { Text("Continue Last Project") },
+                supportingContent = { Text("Open editor from where you left off") },
+                leadingContent = { Icon(Icons.Rounded.History, contentDescription = null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                trailingContent = {
+                    Switch(
+                        checked = continueLastProject,
+                        onCheckedChange = { settingsViewModel.setContinueLastProject(it) }
+                    )
+                }
+            )
+
+            ListItem(
+                headlineContent = { Text("Haptic Feedback") },
+                supportingContent = { Text("Vibrate on snapping and interactions") },
+                leadingContent = { Icon(Icons.Rounded.Vibration, contentDescription = null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                trailingContent = {
+                    Switch(
+                        checked = useHaptics,
+                        onCheckedChange = { settingsViewModel.setUseHaptics(it) }
+                    )
+                }
+            )
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             Text(
@@ -127,6 +158,14 @@ fun SettingsScreen(
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     }
                 }
+            )
+
+            ListItem(
+                headlineContent = { Text("Clear History") },
+                supportingContent = { Text("Delete all recent projects") },
+                leadingContent = { Icon(Icons.Rounded.DeleteSweep, contentDescription = null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier.clickable { settingsViewModel.clearHistory() }
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -170,7 +209,6 @@ fun SettingsScreen(
         )
     }
 
-
     if (showThemeDialog) {
         AlertDialog(
             onDismissRequest = { showThemeDialog = false },
@@ -210,4 +248,3 @@ fun SettingsScreen(
         )
     }
 }
-

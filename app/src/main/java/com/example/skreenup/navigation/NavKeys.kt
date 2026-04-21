@@ -25,7 +25,8 @@ object Settings : SkreenupNavKey
 data class Editor(
     val presetId: Long? = null,
     val projectId: Long? = null,
-    val staticTemplateId: String? = null
+    val staticTemplateId: String? = null,
+    val isLastProject: Boolean = false
 ) : SkreenupNavKey
 
 @Serializable

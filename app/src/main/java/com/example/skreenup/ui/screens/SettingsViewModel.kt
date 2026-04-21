@@ -19,6 +19,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     val theme: StateFlow<AppTheme> = settingsManager.theme
     val useGradientBackground: StateFlow<Boolean> = settingsManager.useGradientBackground
+    val continueLastProject: StateFlow<Boolean> = settingsManager.continueLastProject
+    val useHaptics: StateFlow<Boolean> = settingsManager.useHaptics
 
     private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
@@ -29,6 +31,21 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setUseGradientBackground(use: Boolean) {
         settingsManager.setUseGradientBackground(use)
+    }
+
+    fun setContinueLastProject(continueLast: Boolean) {
+        settingsManager.setContinueLastProject(continueLast)
+    }
+
+    fun setUseHaptics(use: Boolean) {
+        settingsManager.setUseHaptics(use)
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            val db = com.example.skreenup.data.SkreenupDatabase.getDatabase(getApplication())
+            db.projectDao().deleteAllProjects()
+        }
     }
 
     fun checkForUpdates() {
@@ -62,4 +79,3 @@ sealed class UpdateState {
     object UpToDate : UpdateState()
     object Error : UpdateState()
 }
-

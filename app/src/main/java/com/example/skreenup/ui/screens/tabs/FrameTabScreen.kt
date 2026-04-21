@@ -202,8 +202,6 @@ fun DeviceFrameItem(
                     screenshotOffsetX = 0f,
                     screenshotOffsetY = 0f,
                     aspectRatio = CompositionAspectRatio.SQUARE,
-                    showWatermark = false,
-                    watermarkText = "",
                     isExport = false,
                     rotationDegrees = 0f,
                     shadowIntensity = 0.5f,

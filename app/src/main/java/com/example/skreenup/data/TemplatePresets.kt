@@ -33,9 +33,9 @@ val PRESET_TEMPLATES = listOf(
             aspectRatio = CompositionAspectRatio.LANDSCAPE.name,
             scale = 0.85f,
             rotation = 8f,
-            frameOffsetX = 220f,
+            frameOffsetX = 260f,
             frameOffsetY = 20f,
-            textOffsetX = -220f,
+            textOffsetX = 80f,
             textOffsetY = 0f,
             textZIndex = -1
         )
@@ -60,9 +60,9 @@ val PRESET_TEMPLATES = listOf(
             aspectRatio = CompositionAspectRatio.LANDSCAPE.name,
             scale = 0.9f,
             rotation = -5f,
-            frameOffsetX = 250f,
+            frameOffsetX = 280f,
             frameOffsetY = 0f,
-            textOffsetX = -240f,
+            textOffsetX = 100f,
             textOffsetY = 50f
         )
     ),
@@ -86,9 +86,9 @@ val PRESET_TEMPLATES = listOf(
             aspectRatio = CompositionAspectRatio.LANDSCAPE.name,
             scale = 0.85f,
             rotation = 0f,
-            frameOffsetX = 240f,
+            frameOffsetX = 260f,
             frameOffsetY = 0f,
-            textOffsetX = -220f,
+            textOffsetX = 80f,
             textOffsetY = 0f
         )
     ),
@@ -116,7 +116,7 @@ val PRESET_TEMPLATES = listOf(
             rotation = 0f,
             frameOffsetX = 280f,
             frameOffsetY = 0f,
-            textOffsetX = -200f,
+            textOffsetX = 80f,
             textOffsetY = 0f
         )
     ),
@@ -140,9 +140,9 @@ val PRESET_TEMPLATES = listOf(
             aspectRatio = CompositionAspectRatio.LANDSCAPE.name,
             scale = 0.75f,
             rotation = 0f,
-            frameOffsetX = 180f,
+            frameOffsetX = 240f,
             frameOffsetY = 0f,
-            textOffsetX = -250f,
+            textOffsetX = 80f,
             textOffsetY = 0f
         )
     ),
@@ -168,9 +168,9 @@ val PRESET_TEMPLATES = listOf(
             aspectRatio = CompositionAspectRatio.LANDSCAPE.name,
             scale = 0.75f,
             rotation = 0f,
-            frameOffsetX = -220f,
+            frameOffsetX = -280f,
             frameOffsetY = 0f,
-            textOffsetX = 220f,
+            textOffsetX = -80f,
             textOffsetY = 0f
         )
     ),
@@ -195,9 +195,9 @@ val PRESET_TEMPLATES = listOf(
             scale = 1.1f,
             rotation = 0f,
             frameOffsetX = 0f,
-            frameOffsetY = 220f,
+            frameOffsetY = 200f,
             textOffsetX = 0f,
-            textOffsetY = -300f
+            textOffsetY = -240f
         )
     ),
     StaticTemplate(
@@ -220,10 +220,10 @@ val PRESET_TEMPLATES = listOf(
             aspectRatio = CompositionAspectRatio.LANDSCAPE.name,
             scale = 0.9f,
             rotation = 0f,
-            frameOffsetX = 80f,
+            frameOffsetX = 260f,
             frameOffsetY = 200f,
-            textOffsetX = -250f,
-            textOffsetY = -200f,
+            textOffsetX = 80f,
+            textOffsetY = -240f,
             textZIndex = -1
         )
     )

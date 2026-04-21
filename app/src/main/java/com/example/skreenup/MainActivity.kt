@@ -14,6 +14,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -22,8 +23,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
@@ -31,27 +32,14 @@ import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Density
@@ -64,37 +52,24 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import androidx.compose.material3.MaterialTheme
+import com.example.skreenup.data.AppTheme
 import com.example.skreenup.data.PRESET_TEMPLATES
-import com.example.skreenup.ui.models.DeviceModels
-import com.example.skreenup.ui.models.TextFont
-import com.example.skreenup.ui.models.TextAlignLabel
-import com.example.skreenup.navigation.About
-import com.example.skreenup.navigation.AdjustTab
-import com.example.skreenup.navigation.BackgroundTab
-import com.example.skreenup.navigation.Editor
-import com.example.skreenup.navigation.FrameTab
-import com.example.skreenup.navigation.History
-import com.example.skreenup.navigation.Home
-import com.example.skreenup.navigation.Presets
-import com.example.skreenup.navigation.Settings
-import com.example.skreenup.navigation.TextTab
-import com.example.skreenup.navigation.YourTemplates
-import com.example.skreenup.ui.screens.AboutScreen
-import com.example.skreenup.ui.screens.HomeScreen
-import com.example.skreenup.ui.screens.SettingsScreen
-import com.example.skreenup.ui.screens.tabs.AdjustTabScreen
-import com.example.skreenup.ui.screens.tabs.BackgroundTabScreen
-import com.example.skreenup.ui.screens.tabs.FrameTabScreen
-import com.example.skreenup.ui.screens.tabs.TextTabScreen
-import com.example.skreenup.ui.theme.SkreenupTheme
+import com.example.skreenup.navigation.*
 import com.example.skreenup.ui.components.DeviceFrame
 import com.example.skreenup.ui.components.MockupRenderer.drawMockup
 import com.example.skreenup.ui.components.UpdateDialog
 import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.models.CompositionAspectRatio
 import com.example.skreenup.ui.models.DeviceModel
-import com.example.skreenup.ui.screens.EditorViewModel
+import com.example.skreenup.ui.models.DeviceModels
+import com.example.skreenup.ui.models.TextAlignLabel
+import com.example.skreenup.ui.models.TextFont
+import com.example.skreenup.ui.screens.*
+import com.example.skreenup.ui.screens.tabs.AdjustTabScreen
+import com.example.skreenup.ui.screens.tabs.BackgroundTabScreen
+import com.example.skreenup.ui.screens.tabs.FrameTabScreen
+import com.example.skreenup.ui.screens.tabs.TextTabScreen
+import com.example.skreenup.ui.theme.SkreenupTheme
 import com.example.skreenup.update.GitHubRelease
 import com.example.skreenup.update.UpdateChecker
 import kotlinx.coroutines.Dispatchers
@@ -102,10 +77,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.OutputStream
-
-import androidx.compose.foundation.isSystemInDarkTheme
-import com.example.skreenup.data.AppTheme
-import com.example.skreenup.ui.screens.SettingsViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -128,19 +99,29 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
 @Composable
 fun SkreenupApp() {
     val context = LocalContext.current
     var showUpdateDialog by remember { mutableStateOf<GitHubRelease?>(null) }
     
     // Generate previews for preset templates if they don't exist
+    // V9 forces regeneration with fixed image loading and alignment
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             PRESET_TEMPLATES.forEach { template ->
-                val file = File(context.filesDir, "preset_v5_${template.id}.png")
+                val file = File(context.filesDir, "preset_v9_${template.id}.png")
                 if (!file.exists()) {
                     val device = DeviceModels.find { it.name == template.config.selectedDeviceName } ?: DeviceModels.first()
+                    
+                    // Load background image with specific size to speed up rendering
+                    val bgImage = template.config.backgroundImageUri?.let { uri ->
+                        if (uri.startsWith("http")) {
+                            ImageLoaderHelper.loadBitmapFromUrl(context, uri)
+                        } else {
+                            ImageLoaderHelper.loadBitmapFromUri(context, Uri.parse(uri))
+                        }
+                    }?.asImageBitmap()
+
                     val bitmap = captureToBitmap(
                         density = Density(context),
                         screenshot = null,
@@ -148,7 +129,11 @@ fun SkreenupApp() {
                         backgroundType = BackgroundType.valueOf(template.config.backgroundType),
                         backgroundColor = Color(template.config.backgroundColor),
                         gradientColors = template.config.gradientColors.map { Color(it) },
-                        backgroundImage = null,
+                        backgroundImage = bgImage,
+                        backgroundImageOffsetX = template.config.backgroundImageOffsetX,
+                        backgroundImageOffsetY = template.config.backgroundImageOffsetY,
+                        backgroundImageScale = template.config.backgroundImageScale,
+                        backgroundImageBlur = template.config.backgroundImageBlur,
                         scale = template.config.scale,
                         imageScale = template.config.imageScale,
                         frameOffsetX = template.config.frameOffsetX,
@@ -180,7 +165,7 @@ fun SkreenupApp() {
                         ignoreScreenshot = true
                     )
                     file.outputStream().use {
-                        bitmap.compress(Bitmap.CompressFormat.PNG, 50, it)
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 85, it)
                     }
                 }
             }
@@ -344,7 +329,7 @@ fun EditorScreen(
 ) {
     val tabBackStack: NavBackStack<NavKey> = rememberNavBackStack(FrameTab as NavKey)
     val tabBackStackList: MutableList<NavKey> = tabBackStack
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     
     LaunchedEffect(presetId, projectId, staticTemplateId, isLastProject) {

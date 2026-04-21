@@ -30,9 +30,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
-import kotlinx.serialization.json.Json
 import com.example.skreenup.data.SettingsManager
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
     private val db = SkreenupDatabase.getDatabase(application)
@@ -186,7 +186,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun setScreenshot(uri: Uri) {
         _screenshotUri.value = uri.toString()
         viewModelScope.launch {
-            val bitmap = loadBitmapFromUri(getApplication(), uri)
+            val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), uri)
             _screenshot.value = bitmap?.asImageBitmap()
         }
     }
@@ -219,7 +219,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun setBackgroundImage(uri: Uri) {
         _backgroundImageUri.value = uri.toString()
         viewModelScope.launch {
-            val bitmap = loadBitmapFromUri(getApplication(), uri)
+            val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), uri)
             _backgroundImage.value = bitmap?.asImageBitmap()
             _backgroundType.value = BackgroundType.IMAGE
         }
@@ -244,7 +244,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun setPresetBackgroundImage(url: String) {
         _backgroundImageUri.value = url
         viewModelScope.launch {
-            val bitmap = loadBitmapFromUrl(getApplication(), url)
+            val bitmap = ImageLoaderHelper.loadBitmapFromUrl(getApplication(), url)
             _backgroundImage.value = bitmap?.asImageBitmap()
             _backgroundType.value = BackgroundType.IMAGE
         }
@@ -614,7 +614,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _screenshotUri.value = config.screenshotUri
         config.screenshotUri?.let { uriStr ->
             viewModelScope.launch {
-                val bitmap = loadBitmapFromUri(getApplication(), Uri.parse(uriStr))
+                val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), Uri.parse(uriStr))
                 _screenshot.value = bitmap?.asImageBitmap()
             }
         }
@@ -623,9 +623,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         config.backgroundImageUri?.let { uriStr ->
             viewModelScope.launch {
                 val bitmap = if (uriStr.startsWith("http")) {
-                    loadBitmapFromUrl(getApplication(), uriStr)
+                    ImageLoaderHelper.loadBitmapFromUrl(getApplication(), uriStr)
                 } else {
-                    loadBitmapFromUri(getApplication(), Uri.parse(uriStr))
+                    ImageLoaderHelper.loadBitmapFromUri(getApplication(), Uri.parse(uriStr))
                 }
                 _backgroundImage.value = bitmap?.asImageBitmap()
             }
@@ -667,56 +667,23 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun saveTemplate(name: String = "My Template", previewUri: String? = null) {
         viewModelScope.launch {
-            val config = EditorConfig(
-                selectedDeviceName = _selectedDevice.value.name,
-                screenshotUri = _screenshotUri.value,
-                backgroundType = _backgroundType.value.name,
-                backgroundColor = _backgroundColor.value.toArgb(),
-                gradientColors = _gradientColors.value.map { it.toArgb() },
-                backgroundImageUri = _backgroundImageUri.value,
-                screenBackgroundColor = _screenBackgroundColor.value.toArgb(),
-                heading = _heading.value,
-                subheading = _subheading.value,
-                headingFont = _headingFont.value.name,
-                subheadingFont = _subheadingFont.value.name,
-                headingSize = _headingSize.value,
-                subheadingSize = _subheadingSize.value,
-                textGap = _textGap.value,
-                textOffsetX = _textOffsetX.value,
-                textOffsetY = _textOffsetY.value,
-                textColor = _textColor.value.toArgb(),
-                textAlign = _textAlign.value.name,
-                headingBold = _headingBold.value,
-                subheadingBold = _subheadingBold.value,
-                scale = _scale.value,
-                imageScale = _imageScale.value,
-                screenshotRotation = _screenshotRotation.value,
-                aspectRatio = _aspectRatio.value.name,
-                frameOffsetX = _frameOffsetX.value,
-                frameOffsetY = _frameOffsetY.value,
-                screenshotOffsetX = _screenshotOffsetX.value,
-                screenshotOffsetY = _screenshotOffsetY.value,
-                rotation = _rotation.value,
-                showReflection = _showReflection.value,
-                shadowIntensity = _shadowIntensity.value,
-                shadowSoftness = _shadowSoftness.value,
-                textShadow = _textShadow.value,
-                textZIndex = _textZIndex.value
-            )
-            val configJson = Json.encodeToString(config)
+            val currentConfig = getCurrentConfig()
+            val templateConfig = currentConfig.copy(screenshotUri = null)
+            val templateConfigJson = Json.encodeToString(templateConfig)
+            val historyConfigJson = Json.encodeToString(currentConfig)
             
-            // Save to Presets
+            // Save to Presets (Templates) without screenshot
             val preset = Preset(
                 name = name,
-                configJson = configJson,
+                configJson = templateConfigJson,
                 previewUri = previewUri
             )
             presetDao.insertPreset(preset)
 
-            // Also Save to History (Projects)
+            // Also Save to History (Projects) with screenshot
             val project = Project(
                 name = name,
-                configJson = configJson,
+                configJson = historyConfigJson,
                 previewUri = previewUri
             )
             projectDao.insertProject(project)
@@ -727,42 +694,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun saveToHistory(previewUri: String? = null) {
         viewModelScope.launch {
-            val config = EditorConfig(
-                selectedDeviceName = _selectedDevice.value.name,
-                screenshotUri = _screenshotUri.value,
-                backgroundType = _backgroundType.value.name,
-                backgroundColor = _backgroundColor.value.toArgb(),
-                gradientColors = _gradientColors.value.map { it.toArgb() },
-                backgroundImageUri = _backgroundImageUri.value,
-                screenBackgroundColor = _screenBackgroundColor.value.toArgb(),
-                heading = _heading.value,
-                subheading = _subheading.value,
-                headingFont = _headingFont.value.name,
-                subheadingFont = _subheadingFont.value.name,
-                headingSize = _headingSize.value,
-                subheadingSize = _subheadingSize.value,
-                textGap = _textGap.value,
-                textOffsetX = _textOffsetX.value,
-                textOffsetY = _textOffsetY.value,
-                textColor = _textColor.value.toArgb(),
-                textAlign = _textAlign.value.name,
-                headingBold = _headingBold.value,
-                subheadingBold = _subheadingBold.value,
-                scale = _scale.value,
-                imageScale = _imageScale.value,
-                screenshotRotation = _screenshotRotation.value,
-                aspectRatio = _aspectRatio.value.name,
-                frameOffsetX = _frameOffsetX.value,
-                frameOffsetY = _frameOffsetY.value,
-                screenshotOffsetX = _screenshotOffsetX.value,
-                screenshotOffsetY = _screenshotOffsetY.value,
-                rotation = _rotation.value,
-                showReflection = _showReflection.value,
-                shadowIntensity = _shadowIntensity.value,
-                shadowSoftness = _shadowSoftness.value,
-                textShadow = _textShadow.value,
-                textZIndex = _textZIndex.value
-            )
+            val config = getCurrentConfig()
             val project = Project(
                 name = "Recent Project ${System.currentTimeMillis()}",
                 configJson = Json.encodeToString(config),
@@ -780,13 +712,25 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             null
         }
     }
+}
 
-    private suspend fun loadBitmapFromUri(context: android.content.Context, uri: Uri): Bitmap? {
+object ImageLoaderHelper {
+    private var singletonLoader: ImageLoader? = null
+
+    private fun getLoader(context: android.content.Context): ImageLoader {
+        return singletonLoader ?: synchronized(this) {
+            singletonLoader ?: ImageLoader.Builder(context.applicationContext)
+                .crossfade(true)
+                .allowHardware(false)
+                .build().also { singletonLoader = it }
+        }
+    }
+
+    suspend fun loadBitmapFromUri(context: android.content.Context, uri: Uri): android.graphics.Bitmap? {
         return withContext(Dispatchers.IO) {
-            val loader = ImageLoader(context)
+            val loader = getLoader(context)
             val request = ImageRequest.Builder(context)
                 .data(uri)
-                .allowHardware(false)
                 .build()
 
             val result = loader.execute(request)
@@ -798,12 +742,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private suspend fun loadBitmapFromUrl(context: android.content.Context, url: String): Bitmap? {
+    suspend fun loadBitmapFromUrl(context: android.content.Context, url: String): android.graphics.Bitmap? {
         return withContext(Dispatchers.IO) {
-            val loader = ImageLoader(context)
+            val loader = getLoader(context)
             val request = ImageRequest.Builder(context)
                 .data(url)
-                .allowHardware(false)
+                .size(1024, 1024) // Optimized size for backgrounds
                 .build()
 
             val result = loader.execute(request)

@@ -230,7 +230,6 @@ object MockupRenderer {
 
                 val currentHeadingSize = headingSize
                 val currentSubheadingSize = subheadingSize
-                val horizontalPadding = 60f * resolutionScale
 
                 val headingLinesInitial = hText.split("\n")
                 val subheadingLinesInitial = sText.split("\n")
@@ -238,11 +237,11 @@ object MockupRenderer {
                 val hPaint = createPaint(headingFont, currentHeadingSize, headingBold)
                 val sPaint = createPaint(subheadingFont, currentSubheadingSize, subheadingBold)
 
-                // Position calculation without guards
+                // Position calculation: Removed hardcoded horizontalPadding
                 val centerX = when (textAlignment) {
-                    TextAlignLabel.LEFT -> compLeft + horizontalPadding + (textOffsetX * resolutionScale)
+                    TextAlignLabel.LEFT -> compLeft + (textOffsetX * resolutionScale)
                     TextAlignLabel.CENTER -> compLeft + compWidth / 2 + (textOffsetX * resolutionScale)
-                    TextAlignLabel.RIGHT -> compLeft + compWidth - horizontalPadding + (textOffsetX * resolutionScale)
+                    TextAlignLabel.RIGHT -> compLeft + compWidth + (textOffsetX * resolutionScale)
                 }
 
                 val hMetrics = hPaint.fontMetrics

@@ -71,7 +71,8 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                     placeholder = { Text("Heading text...") },
                     modifier = Modifier.weight(1f),
                     shape = MaterialTheme.shapes.medium,
-                    singleLine = true
+                    singleLine = false,
+                    maxLines = 5
                 )
                 IconToggleButton(checked = headingBold, onCheckedChange = { viewModel.setHeadingBold(it) }) {
                     Icon(Icons.Rounded.FormatBold, contentDescription = null, tint = if (headingBold) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
@@ -90,7 +91,8 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                     placeholder = { Text("Subheading text...") },
                     modifier = Modifier.weight(1f),
                     shape = MaterialTheme.shapes.medium,
-                    maxLines = 2
+                    minLines = 1,
+                    maxLines = 5
                 )
                 IconToggleButton(checked = subheadingBold, onCheckedChange = { viewModel.setSubheadingBold(it) }) {
                     Icon(Icons.Rounded.FormatBold, contentDescription = null, tint = if (subheadingBold) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)

@@ -124,7 +124,7 @@ fun SkreenupApp() {
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             PRESET_TEMPLATES.forEach { template ->
-                val file = File(context.filesDir, "preset_v2_${template.id}.png")
+                val file = File(context.filesDir, "preset_v3_${template.id}.png")
                 if (!file.exists()) {
                     val device = DeviceModels.find { it.name == template.config.selectedDeviceName } ?: DeviceModels.first()
                     val bitmap = captureToBitmap(
@@ -162,6 +162,7 @@ fun SkreenupApp() {
                         showTextShadow = template.config.textShadow,
                         shadowIntensity = template.config.shadowIntensity,
                         shadowSoftness = template.config.shadowSoftness,
+                        textZIndex = template.config.textZIndex,
                         ignoreScreenshot = true
                     )
                     file.outputStream().use {
@@ -304,6 +305,9 @@ fun EditorScreen(
             editorViewModel.loadProject(projectId)
         } else if (staticTemplateId != null) {
             editorViewModel.loadStaticTemplate(staticTemplateId)
+        } else {
+            editorViewModel.clearInitialConfig()
+            editorViewModel.resetAll()
         }
     }
     val isKeyboardVisible = WindowInsets.isImeVisible
@@ -400,6 +404,7 @@ fun EditorScreen(
                                 showTextShadow = textShadow,
                                 shadowIntensity = editorViewModel.shadowIntensity.value,
                                 shadowSoftness = editorViewModel.shadowSoftness.value,
+                                textZIndex = editorViewModel.textZIndex.value,
                                 ignoreScreenshot = true
                             )
                             val path = savePreviewToInternal(context, bitmap)
@@ -456,6 +461,7 @@ fun EditorScreen(
                                 showTextShadow = textShadow,
                                 shadowIntensity = editorViewModel.shadowIntensity.value,
                                 shadowSoftness = editorViewModel.shadowSoftness.value,
+                                textZIndex = editorViewModel.textZIndex.value,
                                 ignoreScreenshot = false
                             )
                             val path = savePreviewToInternal(context, bitmap)
@@ -583,6 +589,7 @@ fun EditorScreen(
                     showTextShadow = textShadow,
                     shadowIntensity = editorViewModel.shadowIntensity.collectAsState().value,
                     shadowSoftness = editorViewModel.shadowSoftness.collectAsState().value,
+                    textZIndex = editorViewModel.textZIndex.collectAsState().value,
                     onScaleChange = { editorViewModel.setScale(it) },
                     onRotationChange = { editorViewModel.setRotation(it) },
                     onFrameOffsetChange = { x, y ->
@@ -592,7 +599,10 @@ fun EditorScreen(
                     onTextOffsetChange = { x, y ->
                         editorViewModel.setTextOffsetX(x)
                         editorViewModel.setTextOffsetY(y)
-                    }
+                    },
+                    onHeadingSizeChange = { editorViewModel.setHeadingSize(it) },
+                    onSubheadingSizeChange = { editorViewModel.setSubheadingSize(it) },
+                    onTextZIndexChange = { editorViewModel.setTextZIndex(it) }
                 )
             }
 
@@ -669,6 +679,7 @@ suspend fun captureToBitmap(
     showTextShadow: Boolean = true,
     shadowIntensity: Float = 0.3f,
     shadowSoftness: Float = 1.0f,
+    textZIndex: Int = 1,
     ignoreScreenshot: Boolean = false
 ): Bitmap {
     return withContext(Dispatchers.Default) {
@@ -724,7 +735,8 @@ suspend fun captureToBitmap(
                 showReflection = showReflection,
                 showTextShadow = showTextShadow,
                 shadowIntensity = shadowIntensity,
-                shadowSoftness = shadowSoftness
+                shadowSoftness = shadowSoftness,
+                textZIndex = textZIndex
             )
         }
 

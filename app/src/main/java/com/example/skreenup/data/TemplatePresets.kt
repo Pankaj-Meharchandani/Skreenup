@@ -39,7 +39,8 @@ val PRESET_TEMPLATES = listOf(
             textOffsetY = -150f,
             textGap = 10f,
             headingBold = true,
-            subheadingBold = false
+            subheadingBold = false,
+            textZIndex = -1
         )
     ),
     StaticTemplate(
@@ -119,7 +120,8 @@ val PRESET_TEMPLATES = listOf(
             frameOffsetX = 150f,
             frameOffsetY = 0f,
             textOffsetX = -250f,
-            textOffsetY = 0f
+            textOffsetY = 0f,
+            textZIndex = -1
         )
     ),
     StaticTemplate(

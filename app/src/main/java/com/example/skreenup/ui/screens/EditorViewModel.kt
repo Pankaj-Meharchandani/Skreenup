@@ -34,6 +34,9 @@ import kotlinx.serialization.json.Json
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
     private val db = SkreenupDatabase.getDatabase(application)
     private val presetDao = db.presetDao()
+    private val projectDao = db.projectDao()
+
+    private var initialConfig: EditorConfig? = null
 
     private val _selectedDevice = MutableStateFlow(DeviceModels.first())
     val selectedDevice: StateFlow<DeviceModel> = _selectedDevice.asStateFlow()
@@ -155,6 +158,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _textShadow = MutableStateFlow(true)
     val textShadow: StateFlow<Boolean> = _textShadow.asStateFlow()
+
+    private val _textZIndex = MutableStateFlow(1)
+    val textZIndex: StateFlow<Int> = _textZIndex.asStateFlow()
 
     private val _hexColorSolid = MutableStateFlow("#3F51B5")
     val hexColorSolid: StateFlow<String> = _hexColorSolid.asStateFlow()
@@ -341,55 +347,109 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setTextShadow(value: Boolean) { _textShadow.value = value }
 
+    fun setTextZIndex(value: Int) { 
+        _textZIndex.value = value 
+        _isSaved.value = false
+    }
+
     fun resetFrameTab() {
-        _selectedDevice.value = DeviceModels.first()
+        initialConfig?.let { config ->
+            _selectedDevice.value = DeviceModels.find { it.name == config.selectedDeviceName } ?: DeviceModels.first()
+            _showReflection.value = config.showReflection
+            setScreenBackgroundColor(Color(config.screenBackgroundColor))
+        } ?: run {
+            _selectedDevice.value = DeviceModels.first()
+            _showReflection.value = true
+            setScreenBackgroundColor(Color(0xFF2C2C2C))
+        }
         _screenshot.value = null
         _screenshotUri.value = null
-        _showReflection.value = true
-        setScreenBackgroundColor(Color(0xFF2C2C2C))
     }
 
     fun resetBackgroundTab() {
-        _backgroundType.value = BackgroundType.GRADIENT
-        setBackgroundColor(Color(0xFF3F51B5))
-        setGradientColors(listOf(Color(0xFF3F51B5), Color(0xFF006A6A)))
+        initialConfig?.let { config ->
+            _backgroundType.value = BackgroundType.valueOf(config.backgroundType)
+            setBackgroundColor(Color(config.backgroundColor))
+            setGradientColors(config.gradientColors.map { Color(it) })
+            _backgroundImageOffsetX.value = config.backgroundImageOffsetX
+            _backgroundImageOffsetY.value = config.backgroundImageOffsetY
+            _backgroundImageScale.value = config.backgroundImageScale
+            _backgroundImageBlur.value = config.backgroundImageBlur
+        } ?: run {
+            _backgroundType.value = BackgroundType.GRADIENT
+            setBackgroundColor(Color(0xFF3F51B5))
+            setGradientColors(listOf(Color(0xFF3F51B5), Color(0xFF006A6A)))
+            _backgroundImageOffsetX.value = 0f
+            _backgroundImageOffsetY.value = 0f
+            _backgroundImageScale.value = 1.0f
+            _backgroundImageBlur.value = 0f
+        }
         _backgroundImage.value = null
         _backgroundImageUri.value = null
-        _backgroundImageOffsetX.value = 0f
-        _backgroundImageOffsetY.value = 0f
-        _backgroundImageScale.value = 1.0f
-        _backgroundImageBlur.value = 0f
     }
 
     fun resetAdjustTab() {
-        _scale.value = 0.8f
-        _imageScale.value = 1.0f
-        _screenshotRotation.value = 0f
-        _aspectRatio.value = CompositionAspectRatio.SQUARE
-        _frameOffsetX.value = 0f
-        _frameOffsetY.value = 0f
-        _screenshotOffsetX.value = 0f
-        _screenshotOffsetY.value = 0f
-        _rotation.value = 0f
-        _shadowIntensity.value = 0.3f
-        _shadowSoftness.value = 1.0f
+        initialConfig?.let { config ->
+            _scale.value = config.scale
+            _imageScale.value = config.imageScale
+            _screenshotRotation.value = config.screenshotRotation
+            _aspectRatio.value = CompositionAspectRatio.valueOf(config.aspectRatio)
+            _frameOffsetX.value = config.frameOffsetX
+            _frameOffsetY.value = config.frameOffsetY
+            _screenshotOffsetX.value = config.screenshotOffsetX
+            _screenshotOffsetY.value = config.screenshotOffsetY
+            _rotation.value = config.rotation
+            _shadowIntensity.value = config.shadowIntensity
+            _shadowSoftness.value = config.shadowSoftness
+        } ?: run {
+            _scale.value = 0.8f
+            _imageScale.value = 1.0f
+            _screenshotRotation.value = 0f
+            _aspectRatio.value = CompositionAspectRatio.SQUARE
+            _frameOffsetX.value = 0f
+            _frameOffsetY.value = 0f
+            _screenshotOffsetX.value = 0f
+            _screenshotOffsetY.value = 0f
+            _rotation.value = 0f
+            _shadowIntensity.value = 0.3f
+            _shadowSoftness.value = 1.0f
+        }
     }
 
     fun resetTextTab() {
-        _heading.value = ""
-        _subheading.value = ""
-        _headingSize.value = 60f
-        _subheadingSize.value = 40f
-        _textGap.value = 20f
-        _textOffsetX.value = 0f
-        _textOffsetY.value = 0f
-        _textColor.value = Color.White
-        _textAlign.value = TextAlignLabel.CENTER
-        _textShadow.value = true
-        _headingFont.value = TextFont.POPPINS
-        _subheadingFont.value = TextFont.POPPINS
-        _headingBold.value = true
-        _subheadingBold.value = false
+        initialConfig?.let { config ->
+            _heading.value = config.heading
+            _subheading.value = config.subheading
+            _headingSize.value = config.headingSize
+            _subheadingSize.value = config.subheadingSize
+            _textGap.value = config.textGap
+            _textOffsetX.value = config.textOffsetX
+            _textOffsetY.value = config.textOffsetY
+            _textColor.value = Color(config.textColor)
+            _textAlign.value = TextAlignLabel.valueOf(config.textAlign)
+            _textShadow.value = config.textShadow
+            _headingFont.value = TextFont.valueOf(config.headingFont)
+            _subheadingFont.value = TextFont.valueOf(config.subheadingFont)
+            _headingBold.value = config.headingBold
+            _subheadingBold.value = config.subheadingBold
+            _textZIndex.value = config.textZIndex
+        } ?: run {
+            _heading.value = ""
+            _subheading.value = ""
+            _headingSize.value = 60f
+            _subheadingSize.value = 40f
+            _textGap.value = 20f
+            _textOffsetX.value = 0f
+            _textOffsetY.value = 0f
+            _textColor.value = Color.White
+            _textAlign.value = TextAlignLabel.CENTER
+            _textShadow.value = true
+            _headingFont.value = TextFont.POPPINS
+            _subheadingFont.value = TextFont.POPPINS
+            _headingBold.value = true
+            _subheadingBold.value = false
+            _textZIndex.value = 1
+        }
     }
 
     fun resetAll() {
@@ -399,7 +459,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         resetTextTab()
     }
 
-    private val projectDao = db.projectDao()
+    fun clearInitialConfig() {
+        initialConfig = null
+    }
 
     private val _isSaved = MutableStateFlow(true)
     val isSaved: StateFlow<Boolean> = _isSaved.asStateFlow()
@@ -407,7 +469,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun loadPreset(id: Long) {
         viewModelScope.launch {
             presetDao.getAllPresets().first().find { it.id == id }?.let { p ->
-                applyConfig(Json.decodeFromString(p.configJson))
+                val config = Json.decodeFromString<EditorConfig>(p.configJson)
+                initialConfig = config
+                applyConfig(config)
                 _isSaved.value = true
             }
         }
@@ -415,6 +479,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun loadStaticTemplate(id: String) {
         PRESET_TEMPLATES.find { it.id == id }?.let { template ->
+            initialConfig = template.config
             applyConfig(template.config)
             _isSaved.value = true
         }
@@ -424,7 +489,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun loadProject(id: Long) {
         viewModelScope.launch {
             projectDao.getProjectById(id)?.let { p ->
-                applyConfig(Json.decodeFromString(p.configJson))
+                val config = Json.decodeFromString<EditorConfig>(p.configJson)
+                initialConfig = config
+                applyConfig(config)
                 _isSaved.value = true
             }
         }
@@ -487,6 +554,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _shadowIntensity.value = config.shadowIntensity
         _shadowSoftness.value = config.shadowSoftness
         _textShadow.value = config.textShadow
+        _textZIndex.value = config.textZIndex
     }
 
     fun saveTemplate(name: String = "My Template", previewUri: String? = null) {
@@ -524,7 +592,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 showReflection = _showReflection.value,
                 shadowIntensity = _shadowIntensity.value,
                 shadowSoftness = _shadowSoftness.value,
-                textShadow = _textShadow.value
+                textShadow = _textShadow.value,
+                textZIndex = _textZIndex.value
             )
             val configJson = Json.encodeToString(config)
             
@@ -583,7 +652,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 showReflection = _showReflection.value,
                 shadowIntensity = _shadowIntensity.value,
                 shadowSoftness = _shadowSoftness.value,
-                textShadow = _textShadow.value
+                textShadow = _textShadow.value,
+                textZIndex = _textZIndex.value
             )
             val project = Project(
                 name = "Recent Project ${System.currentTimeMillis()}",

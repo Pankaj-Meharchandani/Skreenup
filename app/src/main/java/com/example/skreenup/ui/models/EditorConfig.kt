@@ -40,5 +40,6 @@ data class EditorConfig(
     val showReflection: Boolean = true,
     val shadowIntensity: Float = 0.3f,
     val shadowSoftness: Float = 1.0f,
-    val textShadow: Boolean = true
+    val textShadow: Boolean = true,
+    val textZIndex: Int = 1 // 1 for Front, -1 for Back
 )

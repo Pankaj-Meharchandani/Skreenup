@@ -23,6 +23,7 @@ import com.example.skreenup.data.Project
 import com.example.skreenup.data.Preset
 import com.example.skreenup.data.SkreenupDatabase
 import com.example.skreenup.ui.models.EditorConfig
+import com.example.skreenup.data.PRESET_TEMPLATES
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -172,6 +173,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun selectDevice(device: DeviceModel) {
         _selectedDevice.value = device
+        _isSaved.value = false
     }
 
     fun setScreenshot(uri: Uri) {
@@ -184,17 +186,20 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setBackgroundType(type: BackgroundType) {
         _backgroundType.value = type
+        _isSaved.value = false
     }
 
     fun setBackgroundColor(color: Color) {
         _backgroundColor.value = color
         _hexColorSolid.value = "#" + Integer.toHexString(color.toArgb()).uppercase().substring(2)
+        _isSaved.value = false
     }
 
     fun setGradientColors(colors: List<Color>) {
         _gradientColors.value = colors
         _hexColorGradientStart.value = "#" + Integer.toHexString(colors[0].toArgb()).uppercase().substring(2)
         _hexColorGradientEnd.value = "#" + Integer.toHexString(colors[1].toArgb()).uppercase().substring(2)
+        _isSaved.value = false
     }
 
     fun swapGradientColors() {
@@ -240,6 +245,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setScale(value: Float) {
         _scale.value = value
+        _isSaved.value = false
     }
 
     fun setImageScale(value: Float) {
@@ -273,6 +279,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     // Rotation with snap
     fun setRotation(degrees: Float) {
         _rotation.value = degrees
+        _isSaved.value = false
     }
 
     fun setHexColorSolid(value: String) {
@@ -305,8 +312,14 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     // Text Setters
-    fun setHeading(value: String) { _heading.value = value }
-    fun setSubheading(value: String) { _subheading.value = value }
+    fun setHeading(value: String) { 
+        _heading.value = value 
+        _isSaved.value = false
+    }
+    fun setSubheading(value: String) { 
+        _subheading.value = value 
+        _isSaved.value = false
+    }
     fun setHeadingFont(value: TextFont) { _headingFont.value = value }
     fun setSubheadingFont(value: TextFont) { _subheadingFont.value = value }
     fun setHeadingSize(value: Float) { _headingSize.value = value }
@@ -391,11 +404,22 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val projectDao = db.projectDao()
 
+    private val _isSaved = MutableStateFlow(true)
+    val isSaved: StateFlow<Boolean> = _isSaved.asStateFlow()
+
     fun loadPreset(id: Long) {
         viewModelScope.launch {
             presetDao.getAllPresets().first().find { it.id == id }?.let { p ->
                 applyConfig(Json.decodeFromString(p.configJson))
+                _isSaved.value = true
             }
+        }
+    }
+
+    fun loadStaticTemplate(id: String) {
+        PRESET_TEMPLATES.find { it.id == id }?.let { template ->
+            applyConfig(template.config)
+            _isSaved.value = true
         }
     }
 
@@ -404,6 +428,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             projectDao.getProjectById(id)?.let { p ->
                 applyConfig(Json.decodeFromString(p.configJson))
+                _isSaved.value = true
             }
         }
     }
@@ -510,6 +535,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 previewUri = previewUri
             )
             presetDao.insertPreset(preset)
+            _isSaved.value = true
         }
     }
 

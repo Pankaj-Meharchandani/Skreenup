@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.History
+import com.example.skreenup.data.PRESET_TEMPLATES
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.lazy.LazyRow
@@ -38,7 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
-    onNavigateToEditor: (Long?, Long?) -> Unit,
+    onNavigateToEditor: (Long?, Long?, String?) -> Unit,
     onNavigateToPresets: () -> Unit,
     onNavigateToYourTemplates: () -> Unit,
     onNavigateToHistory: () -> Unit,
@@ -98,7 +99,7 @@ fun HomeScreen(
                     title = "Create New",
                     subtitle = "Start from scratch",
                     icon = Icons.Rounded.Add,
-                    onClick = { onNavigateToEditor(null, null) }
+                    onClick = { onNavigateToEditor(null, null, null) }
                 )
             }
 
@@ -110,10 +111,10 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
-                    items(8) { index ->
+                    items(PRESET_TEMPLATES) { template ->
                         PresetPreviewCard(
-                            onClick = { onNavigateToEditor(null, null) },
-                            label = "Template ${index + 1}"
+                            onClick = { onNavigateToEditor(null, null, template.id) },
+                            label = template.name
                         )
                     }
                 }
@@ -130,7 +131,7 @@ fun HomeScreen(
                     ) {
                         items(savedPresets, key = { it.id }) { preset ->
                             PresetPreviewCard(
-                                onClick = { onNavigateToEditor(preset.id, null) },
+                                onClick = { onNavigateToEditor(preset.id, null, null) },
                                 onLongClick = { presetToDelete = preset },
                                 label = preset.name,
                                 previewUri = preset.previewUri,
@@ -165,7 +166,7 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .combinedClickable(
-                                onClick = { onNavigateToEditor(null, project.id) },
+                                onClick = { onNavigateToEditor(null, project.id, null) },
                                 onLongClick = { /* TODO: Delete project */ }
                             ),
                         colors = CardDefaults.cardColors(

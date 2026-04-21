@@ -22,7 +22,11 @@ object YourTemplates : SkreenupNavKey
 object Settings : SkreenupNavKey
 
 @Serializable
-data class Editor(val presetId: Long? = null, val projectId: Long? = null) : SkreenupNavKey
+data class Editor(
+    val presetId: Long? = null,
+    val projectId: Long? = null,
+    val staticTemplateId: String? = null
+) : SkreenupNavKey
 
 @Serializable
 object About : SkreenupNavKey

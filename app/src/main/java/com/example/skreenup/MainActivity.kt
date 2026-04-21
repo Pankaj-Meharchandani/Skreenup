@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Palette
@@ -171,8 +172,8 @@ fun SkreenupApp() {
         entryProvider = entryProvider {
             entry<Home> {
                 HomeScreen(
-                    onNavigateToEditor = { presetId, projectId -> 
-                        mainBackStackList.add(Editor(presetId = presetId, projectId = projectId))
+                    onNavigateToEditor = { presetId, projectId, staticTemplateId -> 
+                        mainBackStackList.add(Editor(presetId = presetId, projectId = projectId, staticTemplateId = staticTemplateId))
                     },
                     onNavigateToPresets = { /* mainBackStackList.add(Presets) */ },
                     onNavigateToYourTemplates = { /* mainBackStackList.add(YourTemplates) */ },
@@ -212,7 +213,8 @@ fun SkreenupApp() {
                 EditorScreen(
                     onNavigateToAbout = { mainBackStackList.add(About) },
                     presetId = key.presetId,
-                    projectId = key.projectId
+                    projectId = key.projectId,
+                    staticTemplateId = key.staticTemplateId
                 )
             }
             entry<About> {
@@ -234,6 +236,7 @@ fun EditorScreen(
     onNavigateToAbout: () -> Unit,
     presetId: Long? = null,
     projectId: Long? = null,
+    staticTemplateId: String? = null,
     editorViewModel: EditorViewModel = viewModel()
 ) {
     val tabBackStack: NavBackStack<NavKey> = rememberNavBackStack(FrameTab as NavKey)
@@ -241,11 +244,13 @@ fun EditorScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     
-    LaunchedEffect(presetId, projectId) {
+    LaunchedEffect(presetId, projectId, staticTemplateId) {
         if (presetId != null) {
             editorViewModel.loadPreset(presetId)
         } else if (projectId != null) {
             editorViewModel.loadProject(projectId)
+        } else if (staticTemplateId != null) {
+            editorViewModel.loadStaticTemplate(staticTemplateId)
         }
     }
     val isKeyboardVisible = WindowInsets.isImeVisible
@@ -300,6 +305,7 @@ fun EditorScreen(
             TopAppBar(
                 title = { Text("Skreenup") },
                 actions = {
+                    val isSaved by editorViewModel.isSaved.collectAsState()
                     IconButton(onClick = { 
                         scope.launch {
                             val bitmap = captureToBitmap(
@@ -347,7 +353,10 @@ fun EditorScreen(
                             Toast.makeText(context, "Template Saved!", Toast.LENGTH_SHORT).show()
                         }
                     }) {
-                        Icon(Icons.Rounded.Bookmark, contentDescription = "Save Template")
+                        Icon(
+                            if (isSaved) Icons.Rounded.Bookmark else Icons.Outlined.BookmarkBorder,
+                            contentDescription = "Save Template"
+                        )
                     }
                     IconButton(onClick = { editorViewModel.resetAll() }) {
                         Icon(Icons.Rounded.Refresh, contentDescription = "Reset All")

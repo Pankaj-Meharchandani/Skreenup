@@ -4,6 +4,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.IOException
 
 @Serializable
@@ -18,18 +20,18 @@ class UpdateChecker {
     private val json = Json { ignoreUnknownKeys = true }
     private val releaseUrl = "https://api.github.com/repos/Pankaj-Meharchandani/Skreenup/releases/latest"
 
-    suspend fun checkForUpdate(): GitHubRelease? {
+    suspend fun checkForUpdate(): GitHubRelease? = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url(releaseUrl)
             .build()
 
-        return try {
+        try {
             client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return null
-                val body = response.body?.string() ?: return null
+                if (!response.isSuccessful) return@withContext null
+                val body = response.body?.string() ?: return@withContext null
                 json.decodeFromString<GitHubRelease>(body)
             }
-        } catch (e: IOException) {
+        } catch (e: Exception) {
             null
         }
     }

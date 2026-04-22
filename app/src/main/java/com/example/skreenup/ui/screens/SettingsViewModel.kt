@@ -56,17 +56,21 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun checkForUpdates() {
         viewModelScope.launch {
             _updateState.value = UpdateState.Checking
-            val release = updateChecker.checkForUpdate()
-            if (release != null) {
-                val currentVersion = getApplication<Application>().packageManager
-                    .getPackageInfo(getApplication<Application>().packageName, 0).versionName
-                
-                if (release.tag_name != currentVersion) {
-                    _updateState.value = UpdateState.UpdateAvailable(release)
+            try {
+                val release = updateChecker.checkForUpdate()
+                if (release != null) {
+                    val currentVersion = getApplication<Application>().packageManager
+                        .getPackageInfo(getApplication<Application>().packageName, 0).versionName
+
+                    if (release.tag_name != currentVersion) {
+                        _updateState.value = UpdateState.UpdateAvailable(release)
+                    } else {
+                        _updateState.value = UpdateState.UpToDate
+                    }
                 } else {
-                    _updateState.value = UpdateState.UpToDate
+                    _updateState.value = UpdateState.Error
                 }
-            } else {
+            } catch (e: Exception) {
                 _updateState.value = UpdateState.Error
             }
         }

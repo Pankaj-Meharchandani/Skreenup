@@ -14,15 +14,21 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.BookmarkBorder
@@ -343,8 +349,7 @@ fun EditorScreen(
     val scope = rememberCoroutineScope()
 
     val defaultExportAction by settingsViewModel.defaultExportAction.collectAsState()
-    var showExportSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState()
+    var showExportDialog by remember { mutableStateOf(false) }
     
     LaunchedEffect(presetId, projectId, staticTemplateId, isLastProject) {
         if (isLastProject) {
@@ -558,7 +563,7 @@ fun EditorScreen(
                             }
 
                             when (defaultExportAction) {
-                                ExportAction.ASK -> showExportSheet = true
+                                ExportAction.ASK -> showExportDialog = true
                                 ExportAction.SAVE -> performSave()
                                 ExportAction.SHARE -> performShare()
                                 ExportAction.CLIPBOARD -> performCopy()
@@ -726,188 +731,320 @@ fun EditorScreen(
         }
     }
 
-    if (showExportSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showExportSheet = false },
-            sheetState = sheetState,
-            dragHandle = { BottomSheetDefaults.DragHandle() }
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp, start = 16.dp, end = 16.dp)
-            ) {
-                Text(
-                    text = "Export Image",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                
-                ListItem(
-                    headlineContent = { Text("Save to Gallery") },
-                    leadingContent = { Icon(Icons.Rounded.Save, contentDescription = null) },
-                    modifier = Modifier.clickable {
-                        scope.launch {
-                            val bitmap = captureToBitmap(
-                                density = Density(context),
-                                screenshot = screenshot,
-                                deviceModel = selectedDevice,
-                                backgroundType = backgroundType,
-                                backgroundColor = backgroundColor,
-                                gradientColors = gradientColors,
-                                backgroundImage = backgroundImage,
-                                backgroundImageOffsetX = backgroundImageOffsetX,
-                                backgroundImageOffsetY = backgroundImageOffsetY,
-                                backgroundImageScale = backgroundImageScale,
-                                backgroundImageBlur = backgroundImageBlur,
-                                scale = scale,
-                                imageScale = imageScale,
-                                frameOffsetX = frameOffsetX,
-                                frameOffsetY = frameOffsetY,
-                                screenshotOffsetX = screenshotOffsetX,
-                                screenshotOffsetY = screenshotOffsetY,
-                                aspectRatio = aspectRatio,
-                                rotationDegrees = rotation,
-                                screenshotRotation = screenshotRotation,
-                                screenBackgroundColor = screenBackgroundColor,
-                                heading = heading,
-                                subheading = subheading,
-                                headingFont = headingFont,
-                                subheadingFont = subheadingFont,
-                                headingSize = headingSize,
-                                subheadingSize = subheadingSize,
-                                textGap = textGap,
-                                textColor = textColor,
-                                textOffsetX = textOffsetX,
-                                textOffsetY = textOffsetY,
-                                textAlignment = textAlign,
-                                headingBold = headingBold,
-                                subheadingBold = subheadingBold,
-                                showReflection = showReflection,
-                                showTextShadow = textShadow,
-                                shadowIntensity = editorViewModel.shadowIntensity.value,
-                                shadowSoftness = editorViewModel.shadowSoftness.value,
-                                textZIndex = editorViewModel.textZIndex.value,
-                                ignoreScreenshot = false
-                            )
-                            val path = savePreviewToInternal(context, bitmap)
-                            val success = saveBitmapToGallery(context, bitmap)
-                            if (success) {
-                                editorViewModel.saveToHistory(previewUri = path)
-                                Toast.makeText(context, "Export Saved!", Toast.LENGTH_SHORT).show()
+    if (showExportDialog) {
+        AlertDialog(
+            onDismissRequest = { showExportDialog = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+            content = {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .padding(16.dp),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 6.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.align(Alignment.CenterStart)) {
+                                Text(
+                                    text = "Export Mockup",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Choose how to save or share your art.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
-                            showExportSheet = false
+                            
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        val bitmap = captureToBitmap(
+                                            density = Density(context),
+                                            screenshot = screenshot,
+                                            deviceModel = selectedDevice,
+                                            backgroundType = backgroundType,
+                                            backgroundColor = backgroundColor,
+                                            gradientColors = gradientColors,
+                                            backgroundImage = backgroundImage,
+                                            backgroundImageOffsetX = backgroundImageOffsetX,
+                                            backgroundImageOffsetY = backgroundImageOffsetY,
+                                            backgroundImageScale = backgroundImageScale,
+                                            backgroundImageBlur = backgroundImageBlur,
+                                            scale = scale,
+                                            imageScale = imageScale,
+                                            frameOffsetX = frameOffsetX,
+                                            frameOffsetY = frameOffsetY,
+                                            screenshotOffsetX = screenshotOffsetX,
+                                            screenshotOffsetY = screenshotOffsetY,
+                                            aspectRatio = aspectRatio,
+                                            rotationDegrees = rotation,
+                                            screenshotRotation = screenshotRotation,
+                                            screenBackgroundColor = screenBackgroundColor,
+                                            heading = heading,
+                                            subheading = subheading,
+                                            headingFont = headingFont,
+                                            subheadingFont = subheadingFont,
+                                            headingSize = headingSize,
+                                            subheadingSize = subheadingSize,
+                                            textGap = textGap,
+                                            textColor = textColor,
+                                            textOffsetX = textOffsetX,
+                                            textOffsetY = textOffsetY,
+                                            textAlignment = textAlign,
+                                            headingBold = headingBold,
+                                            subheadingBold = subheadingBold,
+                                            showReflection = showReflection,
+                                            showTextShadow = textShadow,
+                                            shadowIntensity = editorViewModel.shadowIntensity.value,
+                                            shadowSoftness = editorViewModel.shadowSoftness.value,
+                                            textZIndex = editorViewModel.textZIndex.value,
+                                            ignoreScreenshot = false
+                                        )
+                                        shareImage(context, bitmap)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(48.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        androidx.compose.foundation.shape.CircleShape
+                                    )
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Share,
+                                    contentDescription = "Quick Share",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                    }
-                )
 
-                ListItem(
-                    headlineContent = { Text("Share Image") },
-                    leadingContent = { Icon(Icons.Rounded.Share, contentDescription = null) },
-                    modifier = Modifier.clickable {
-                        scope.launch {
-                            val bitmap = captureToBitmap(
-                                density = Density(context),
-                                screenshot = screenshot,
-                                deviceModel = selectedDevice,
-                                backgroundType = backgroundType,
-                                backgroundColor = backgroundColor,
-                                gradientColors = gradientColors,
-                                backgroundImage = backgroundImage,
-                                backgroundImageOffsetX = backgroundImageOffsetX,
-                                backgroundImageOffsetY = backgroundImageOffsetY,
-                                backgroundImageScale = backgroundImageScale,
-                                backgroundImageBlur = backgroundImageBlur,
-                                scale = scale,
-                                imageScale = imageScale,
-                                frameOffsetX = frameOffsetX,
-                                frameOffsetY = frameOffsetY,
-                                screenshotOffsetX = screenshotOffsetX,
-                                screenshotOffsetY = screenshotOffsetY,
-                                aspectRatio = aspectRatio,
-                                rotationDegrees = rotation,
-                                screenshotRotation = screenshotRotation,
-                                screenBackgroundColor = screenBackgroundColor,
-                                heading = heading,
-                                subheading = subheading,
-                                headingFont = headingFont,
-                                subheadingFont = subheadingFont,
-                                headingSize = headingSize,
-                                subheadingSize = subheadingSize,
-                                textGap = textGap,
-                                textColor = textColor,
-                                textOffsetX = textOffsetX,
-                                textOffsetY = textOffsetY,
-                                textAlignment = textAlign,
-                                headingBold = headingBold,
-                                subheadingBold = subheadingBold,
-                                showReflection = showReflection,
-                                showTextShadow = textShadow,
-                                shadowIntensity = editorViewModel.shadowIntensity.value,
-                                shadowSoftness = editorViewModel.shadowSoftness.value,
-                                textZIndex = editorViewModel.textZIndex.value,
-                                ignoreScreenshot = false
-                            )
-                            shareImage(context, bitmap)
-                            showExportSheet = false
-                        }
-                    }
-                )
+                        Spacer(Modifier.height(24.dp))
 
-                ListItem(
-                    headlineContent = { Text("Copy to Clipboard") },
-                    leadingContent = { Icon(Icons.Rounded.ContentCopy, contentDescription = null) },
-                    modifier = Modifier.clickable {
-                        scope.launch {
-                            val bitmap = captureToBitmap(
-                                density = Density(context),
-                                screenshot = screenshot,
-                                deviceModel = selectedDevice,
-                                backgroundType = backgroundType,
-                                backgroundColor = backgroundColor,
-                                gradientColors = gradientColors,
-                                backgroundImage = backgroundImage,
-                                backgroundImageOffsetX = backgroundImageOffsetX,
-                                backgroundImageOffsetY = backgroundImageOffsetY,
-                                backgroundImageScale = backgroundImageScale,
-                                backgroundImageBlur = backgroundImageBlur,
-                                scale = scale,
-                                imageScale = imageScale,
-                                frameOffsetX = frameOffsetX,
-                                frameOffsetY = frameOffsetY,
-                                screenshotOffsetX = screenshotOffsetX,
-                                screenshotOffsetY = screenshotOffsetY,
-                                aspectRatio = aspectRatio,
-                                rotationDegrees = rotation,
-                                screenshotRotation = screenshotRotation,
-                                screenBackgroundColor = screenBackgroundColor,
-                                heading = heading,
-                                subheading = subheading,
-                                headingFont = headingFont,
-                                subheadingFont = subheadingFont,
-                                headingSize = headingSize,
-                                subheadingSize = subheadingSize,
-                                textGap = textGap,
-                                textColor = textColor,
-                                textOffsetX = textOffsetX,
-                                textOffsetY = textOffsetY,
-                                textAlignment = textAlign,
-                                headingBold = headingBold,
-                                subheadingBold = subheadingBold,
-                                showReflection = showReflection,
-                                showTextShadow = textShadow,
-                                shadowIntensity = editorViewModel.shadowIntensity.value,
-                                shadowSoftness = editorViewModel.shadowSoftness.value,
-                                textZIndex = editorViewModel.textZIndex.value,
-                                ignoreScreenshot = false
+                        // Save Button (Primary)
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    val bitmap = captureToBitmap(
+                                        density = Density(context),
+                                        screenshot = screenshot,
+                                        deviceModel = selectedDevice,
+                                        backgroundType = backgroundType,
+                                        backgroundColor = backgroundColor,
+                                        gradientColors = gradientColors,
+                                        backgroundImage = backgroundImage,
+                                        backgroundImageOffsetX = backgroundImageOffsetX,
+                                        backgroundImageOffsetY = backgroundImageOffsetY,
+                                        backgroundImageScale = backgroundImageScale,
+                                        backgroundImageBlur = backgroundImageBlur,
+                                        scale = scale,
+                                        imageScale = imageScale,
+                                        frameOffsetX = frameOffsetX,
+                                        frameOffsetY = frameOffsetY,
+                                        screenshotOffsetX = screenshotOffsetX,
+                                        screenshotOffsetY = screenshotOffsetY,
+                                        aspectRatio = aspectRatio,
+                                        rotationDegrees = rotation,
+                                        screenshotRotation = screenshotRotation,
+                                        screenBackgroundColor = screenBackgroundColor,
+                                        heading = heading,
+                                        subheading = subheading,
+                                        headingFont = headingFont,
+                                        subheadingFont = subheadingFont,
+                                        headingSize = headingSize,
+                                        subheadingSize = subheadingSize,
+                                        textGap = textGap,
+                                        textColor = textColor,
+                                        textOffsetX = textOffsetX,
+                                        textOffsetY = textOffsetY,
+                                        textAlignment = textAlign,
+                                        headingBold = headingBold,
+                                        subheadingBold = subheadingBold,
+                                        showReflection = showReflection,
+                                        showTextShadow = textShadow,
+                                        shadowIntensity = editorViewModel.shadowIntensity.value,
+                                        shadowSoftness = editorViewModel.shadowSoftness.value,
+                                        textZIndex = editorViewModel.textZIndex.value,
+                                        ignoreScreenshot = false
+                                    )
+                                    val path = savePreviewToInternal(context, bitmap)
+                                    val success = saveBitmapToGallery(context, bitmap)
+                                    if (success) {
+                                        editorViewModel.saveToHistory(previewUri = path)
+                                        Toast.makeText(context, "Export Saved!", Toast.LENGTH_SHORT).show()
+                                    }
+                                    showExportDialog = false
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                        ) {
+                            Icon(Icons.Rounded.Save, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text("Save to Gallery", style = MaterialTheme.typography.labelLarge)
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        // Share Button
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    val bitmap = captureToBitmap(
+                                        density = Density(context),
+                                        screenshot = screenshot,
+                                        deviceModel = selectedDevice,
+                                        backgroundType = backgroundType,
+                                        backgroundColor = backgroundColor,
+                                        gradientColors = gradientColors,
+                                        backgroundImage = backgroundImage,
+                                        backgroundImageOffsetX = backgroundImageOffsetX,
+                                        backgroundImageOffsetY = backgroundImageOffsetY,
+                                        backgroundImageScale = backgroundImageScale,
+                                        backgroundImageBlur = backgroundImageBlur,
+                                        scale = scale,
+                                        imageScale = imageScale,
+                                        frameOffsetX = frameOffsetX,
+                                        frameOffsetY = frameOffsetY,
+                                        screenshotOffsetX = screenshotOffsetX,
+                                        screenshotOffsetY = screenshotOffsetY,
+                                        aspectRatio = aspectRatio,
+                                        rotationDegrees = rotation,
+                                        screenshotRotation = screenshotRotation,
+                                        screenBackgroundColor = screenBackgroundColor,
+                                        heading = heading,
+                                        subheading = subheading,
+                                        headingFont = headingFont,
+                                        subheadingFont = subheadingFont,
+                                        headingSize = headingSize,
+                                        subheadingSize = subheadingSize,
+                                        textGap = textGap,
+                                        textColor = textColor,
+                                        textOffsetX = textOffsetX,
+                                        textOffsetY = textOffsetY,
+                                        textAlignment = textAlign,
+                                        headingBold = headingBold,
+                                        subheadingBold = subheadingBold,
+                                        showReflection = showReflection,
+                                        showTextShadow = textShadow,
+                                        shadowIntensity = editorViewModel.shadowIntensity.value,
+                                        shadowSoftness = editorViewModel.shadowSoftness.value,
+                                        textZIndex = editorViewModel.textZIndex.value,
+                                        ignoreScreenshot = false
+                                    )
+                                    shareImage(context, bitmap)
+                                    showExportDialog = false
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                        ) {
+                            Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text("Share as Image", style = MaterialTheme.typography.labelLarge)
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        // Copy Button
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    val bitmap = captureToBitmap(
+                                        density = Density(context),
+                                        screenshot = screenshot,
+                                        deviceModel = selectedDevice,
+                                        backgroundType = backgroundType,
+                                        backgroundColor = backgroundColor,
+                                        gradientColors = gradientColors,
+                                        backgroundImage = backgroundImage,
+                                        backgroundImageOffsetX = backgroundImageOffsetX,
+                                        backgroundImageOffsetY = backgroundImageOffsetY,
+                                        backgroundImageScale = backgroundImageScale,
+                                        backgroundImageBlur = backgroundImageBlur,
+                                        scale = scale,
+                                        imageScale = imageScale,
+                                        frameOffsetX = frameOffsetX,
+                                        frameOffsetY = frameOffsetY,
+                                        screenshotOffsetX = screenshotOffsetX,
+                                        screenshotOffsetY = screenshotOffsetY,
+                                        aspectRatio = aspectRatio,
+                                        rotationDegrees = rotation,
+                                        screenshotRotation = screenshotRotation,
+                                        screenBackgroundColor = screenBackgroundColor,
+                                        heading = heading,
+                                        subheading = subheading,
+                                        headingFont = headingFont,
+                                        subheadingFont = subheadingFont,
+                                        headingSize = headingSize,
+                                        subheadingSize = subheadingSize,
+                                        textGap = textGap,
+                                        textColor = textColor,
+                                        textOffsetX = textOffsetX,
+                                        textOffsetY = textOffsetY,
+                                        textAlignment = textAlign,
+                                        headingBold = headingBold,
+                                        subheadingBold = subheadingBold,
+                                        showReflection = showReflection,
+                                        showTextShadow = textShadow,
+                                        shadowIntensity = editorViewModel.shadowIntensity.value,
+                                        shadowSoftness = editorViewModel.shadowSoftness.value,
+                                        textZIndex = editorViewModel.textZIndex.value,
+                                        ignoreScreenshot = false
+                                    )
+                                    copyImageToClipboard(context, bitmap)
+                                    showExportDialog = false
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                        ) {
+                            Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text("Copy to Clipboard", style = MaterialTheme.typography.labelLarge)
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        TextButton(
+                            onClick = { showExportDialog = false }
+                        ) {
+                            Text(
+                                "Cancel",
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelLarge
                             )
-                            copyImageToClipboard(context, bitmap)
-                            showExportSheet = false
                         }
                     }
-                )
+                }
             }
-        }
+        )
     }
 }
 

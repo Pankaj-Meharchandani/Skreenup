@@ -35,7 +35,7 @@ val PRESET_TEMPLATES = listOf(
             rotation = 8f,
             frameOffsetX = 260f,
             frameOffsetY = 20f,
-            textOffsetX = 80f,
+            textOffsetX = 0f,
             textOffsetY = 0f,
             textZIndex = -1
         )
@@ -62,7 +62,7 @@ val PRESET_TEMPLATES = listOf(
             rotation = -5f,
             frameOffsetX = 280f,
             frameOffsetY = 0f,
-            textOffsetX = 100f,
+            textOffsetX = 0f,
             textOffsetY = 50f
         )
     ),
@@ -88,7 +88,7 @@ val PRESET_TEMPLATES = listOf(
             rotation = 0f,
             frameOffsetX = 260f,
             frameOffsetY = 0f,
-            textOffsetX = 80f,
+            textOffsetX = 0f,
             textOffsetY = 0f
         )
     ),
@@ -116,7 +116,7 @@ val PRESET_TEMPLATES = listOf(
             rotation = 0f,
             frameOffsetX = 280f,
             frameOffsetY = 0f,
-            textOffsetX = 80f,
+            textOffsetX = 0f,
             textOffsetY = 0f
         )
     ),
@@ -142,7 +142,7 @@ val PRESET_TEMPLATES = listOf(
             rotation = 0f,
             frameOffsetX = 240f,
             frameOffsetY = 0f,
-            textOffsetX = 80f,
+            textOffsetX = 0f,
             textOffsetY = 0f
         )
     ),
@@ -170,7 +170,7 @@ val PRESET_TEMPLATES = listOf(
             rotation = 0f,
             frameOffsetX = -280f,
             frameOffsetY = 0f,
-            textOffsetX = -80f,
+            textOffsetX = 0f,
             textOffsetY = 0f
         )
     ),
@@ -222,7 +222,7 @@ val PRESET_TEMPLATES = listOf(
             rotation = 0f,
             frameOffsetX = 260f,
             frameOffsetY = 200f,
-            textOffsetX = 80f,
+            textOffsetX = 0f,
             textOffsetY = -240f,
             textZIndex = -1
         )

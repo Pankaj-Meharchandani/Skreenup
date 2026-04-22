@@ -105,11 +105,11 @@ fun SkreenupApp() {
     var showUpdateDialog by remember { mutableStateOf<GitHubRelease?>(null) }
     
     // Generate previews for preset templates if they don't exist
-    // V9 forces regeneration with fixed image loading and alignment
+    // V11 forces regeneration with fixed image loading and alignment
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             PRESET_TEMPLATES.forEach { template ->
-                val file = File(context.filesDir, "preset_v9_${template.id}.png")
+                val file = File(context.filesDir, "preset_v11_${template.id}.png")
                 if (!file.exists()) {
                     val device = DeviceModels.find { it.name == template.config.selectedDeviceName } ?: DeviceModels.first()
                     

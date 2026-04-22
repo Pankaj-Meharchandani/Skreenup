@@ -237,11 +237,13 @@ object MockupRenderer {
                 val hPaint = createPaint(headingFont, currentHeadingSize, headingBold)
                 val sPaint = createPaint(subheadingFont, currentSubheadingSize, subheadingBold)
 
-                // Position calculation: Removed hardcoded horizontalPadding
+                // Standardized horizontal margin (6% of design space)
+                val horizontalMargin = 60f * resolutionScale
+                
                 val centerX = when (textAlignment) {
-                    TextAlignLabel.LEFT -> compLeft + (textOffsetX * resolutionScale)
+                    TextAlignLabel.LEFT -> compLeft + horizontalMargin + (textOffsetX * resolutionScale)
                     TextAlignLabel.CENTER -> compLeft + compWidth / 2 + (textOffsetX * resolutionScale)
-                    TextAlignLabel.RIGHT -> compLeft + compWidth + (textOffsetX * resolutionScale)
+                    TextAlignLabel.RIGHT -> compLeft + compWidth - horizontalMargin + (textOffsetX * resolutionScale)
                 }
 
                 val hMetrics = hPaint.fontMetrics

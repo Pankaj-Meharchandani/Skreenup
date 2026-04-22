@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.skreenup.data.AppTheme
+import com.example.skreenup.data.ExportAction
 import com.example.skreenup.ui.components.AppScaffold
 import com.example.skreenup.ui.screens.UpdateState
 
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Vibration
+import androidx.compose.material.icons.rounded.Save
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -38,9 +40,11 @@ fun SettingsScreen(
     val useGradientBackground by settingsViewModel.useGradientBackground.collectAsState()
     val continueLastProject by settingsViewModel.continueLastProject.collectAsState()
     val useHaptics by settingsViewModel.useHaptics.collectAsState()
+    val defaultExportAction by settingsViewModel.defaultExportAction.collectAsState()
     val updateState by settingsViewModel.updateState.collectAsState()
 
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showExportActionDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(updateState) {
         when (updateState) {
@@ -126,6 +130,21 @@ fun SettingsScreen(
                 }
             )
 
+            ListItem(
+                headlineContent = { Text("Default Export Action") },
+                supportingContent = {
+                    Text(when(defaultExportAction) {
+                        ExportAction.ASK -> "Ask every time"
+                        ExportAction.SAVE -> "Save to gallery"
+                        ExportAction.SHARE -> "Share as image"
+                        ExportAction.CLIPBOARD -> "Copy to clipboard"
+                    })
+                },
+                leadingContent = { Icon(Icons.Rounded.Save, contentDescription = null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier.clickable { showExportActionDialog = true }
+            )
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             Text(
@@ -204,6 +223,46 @@ fun SettingsScreen(
             dismissButton = {
                 TextButton(onClick = { settingsViewModel.resetUpdateState() }) {
                     Text("Later")
+                }
+            }
+        )
+    }
+
+    if (showExportActionDialog) {
+        AlertDialog(
+            onDismissRequest = { showExportActionDialog = false },
+            title = { Text("Default Export Action") },
+            text = {
+                Column {
+                    ExportAction.entries.forEach { actionOption ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    settingsViewModel.setDefaultExportAction(actionOption)
+                                    showExportActionDialog = false
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = defaultExportAction == actionOption,
+                                onClick = null
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(when(actionOption) {
+                                ExportAction.ASK -> "Ask every time"
+                                ExportAction.SAVE -> "Save to gallery"
+                                ExportAction.SHARE -> "Share as image"
+                                ExportAction.CLIPBOARD -> "Copy to clipboard"
+                            })
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showExportActionDialog = false }) {
+                    Text("Cancel")
                 }
             }
         )

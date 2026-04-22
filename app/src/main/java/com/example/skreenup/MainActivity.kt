@@ -14,6 +14,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,8 @@ import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.TextFields
@@ -44,6 +47,7 @@ import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
@@ -75,7 +79,12 @@ import com.example.skreenup.update.UpdateChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.content.ClipboardManager
+import android.content.ClipData
+import androidx.core.content.FileProvider
+import com.example.skreenup.data.ExportAction
 import java.io.File
+import java.io.FileOutputStream
 import java.io.OutputStream
 
 class MainActivity : ComponentActivity() {
@@ -325,12 +334,17 @@ fun EditorScreen(
     projectId: Long? = null,
     staticTemplateId: String? = null,
     isLastProject: Boolean = false,
-    editorViewModel: EditorViewModel = viewModel()
+    editorViewModel: EditorViewModel = viewModel(),
+    settingsViewModel: SettingsViewModel = viewModel()
 ) {
     val tabBackStack: NavBackStack<NavKey> = rememberNavBackStack(FrameTab as NavKey)
     val tabBackStackList: MutableList<NavKey> = tabBackStack
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    val defaultExportAction by settingsViewModel.defaultExportAction.collectAsState()
+    var showExportSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
     
     LaunchedEffect(presetId, projectId, staticTemplateId, isLastProject) {
         if (isLastProject) {
@@ -523,13 +537,31 @@ fun EditorScreen(
                                 textZIndex = editorViewModel.textZIndex.value,
                                 ignoreScreenshot = false
                             )
-                            val path = savePreviewToInternal(context, bitmap)
-                            val success = saveBitmapToGallery(context, bitmap)
-                            if (success) {
-                                editorViewModel.saveToHistory(previewUri = path)
-                                Toast.makeText(context, "Export Saved!", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(context, "Export failed.", Toast.LENGTH_SHORT).show()
+
+                            val performSave = suspend {
+                                val path = savePreviewToInternal(context, bitmap)
+                                val success = saveBitmapToGallery(context, bitmap)
+                                if (success) {
+                                    editorViewModel.saveToHistory(previewUri = path)
+                                    Toast.makeText(context, "Export Saved!", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "Export failed.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+
+                            val performShare = {
+                                shareImage(context, bitmap)
+                            }
+
+                            val performCopy = {
+                                copyImageToClipboard(context, bitmap)
+                            }
+
+                            when (defaultExportAction) {
+                                ExportAction.ASK -> showExportSheet = true
+                                ExportAction.SAVE -> performSave()
+                                ExportAction.SHARE -> performShare()
+                                ExportAction.CLIPBOARD -> performCopy()
                             }
                         }
                     }) {
@@ -693,6 +725,190 @@ fun EditorScreen(
             )
         }
     }
+
+    if (showExportSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showExportSheet = false },
+            sheetState = sheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp, start = 16.dp, end = 16.dp)
+            ) {
+                Text(
+                    text = "Export Image",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                ListItem(
+                    headlineContent = { Text("Save to Gallery") },
+                    leadingContent = { Icon(Icons.Rounded.Save, contentDescription = null) },
+                    modifier = Modifier.clickable {
+                        scope.launch {
+                            val bitmap = captureToBitmap(
+                                density = Density(context),
+                                screenshot = screenshot,
+                                deviceModel = selectedDevice,
+                                backgroundType = backgroundType,
+                                backgroundColor = backgroundColor,
+                                gradientColors = gradientColors,
+                                backgroundImage = backgroundImage,
+                                backgroundImageOffsetX = backgroundImageOffsetX,
+                                backgroundImageOffsetY = backgroundImageOffsetY,
+                                backgroundImageScale = backgroundImageScale,
+                                backgroundImageBlur = backgroundImageBlur,
+                                scale = scale,
+                                imageScale = imageScale,
+                                frameOffsetX = frameOffsetX,
+                                frameOffsetY = frameOffsetY,
+                                screenshotOffsetX = screenshotOffsetX,
+                                screenshotOffsetY = screenshotOffsetY,
+                                aspectRatio = aspectRatio,
+                                rotationDegrees = rotation,
+                                screenshotRotation = screenshotRotation,
+                                screenBackgroundColor = screenBackgroundColor,
+                                heading = heading,
+                                subheading = subheading,
+                                headingFont = headingFont,
+                                subheadingFont = subheadingFont,
+                                headingSize = headingSize,
+                                subheadingSize = subheadingSize,
+                                textGap = textGap,
+                                textColor = textColor,
+                                textOffsetX = textOffsetX,
+                                textOffsetY = textOffsetY,
+                                textAlignment = textAlign,
+                                headingBold = headingBold,
+                                subheadingBold = subheadingBold,
+                                showReflection = showReflection,
+                                showTextShadow = textShadow,
+                                shadowIntensity = editorViewModel.shadowIntensity.value,
+                                shadowSoftness = editorViewModel.shadowSoftness.value,
+                                textZIndex = editorViewModel.textZIndex.value,
+                                ignoreScreenshot = false
+                            )
+                            val path = savePreviewToInternal(context, bitmap)
+                            val success = saveBitmapToGallery(context, bitmap)
+                            if (success) {
+                                editorViewModel.saveToHistory(previewUri = path)
+                                Toast.makeText(context, "Export Saved!", Toast.LENGTH_SHORT).show()
+                            }
+                            showExportSheet = false
+                        }
+                    }
+                )
+
+                ListItem(
+                    headlineContent = { Text("Share Image") },
+                    leadingContent = { Icon(Icons.Rounded.Share, contentDescription = null) },
+                    modifier = Modifier.clickable {
+                        scope.launch {
+                            val bitmap = captureToBitmap(
+                                density = Density(context),
+                                screenshot = screenshot,
+                                deviceModel = selectedDevice,
+                                backgroundType = backgroundType,
+                                backgroundColor = backgroundColor,
+                                gradientColors = gradientColors,
+                                backgroundImage = backgroundImage,
+                                backgroundImageOffsetX = backgroundImageOffsetX,
+                                backgroundImageOffsetY = backgroundImageOffsetY,
+                                backgroundImageScale = backgroundImageScale,
+                                backgroundImageBlur = backgroundImageBlur,
+                                scale = scale,
+                                imageScale = imageScale,
+                                frameOffsetX = frameOffsetX,
+                                frameOffsetY = frameOffsetY,
+                                screenshotOffsetX = screenshotOffsetX,
+                                screenshotOffsetY = screenshotOffsetY,
+                                aspectRatio = aspectRatio,
+                                rotationDegrees = rotation,
+                                screenshotRotation = screenshotRotation,
+                                screenBackgroundColor = screenBackgroundColor,
+                                heading = heading,
+                                subheading = subheading,
+                                headingFont = headingFont,
+                                subheadingFont = subheadingFont,
+                                headingSize = headingSize,
+                                subheadingSize = subheadingSize,
+                                textGap = textGap,
+                                textColor = textColor,
+                                textOffsetX = textOffsetX,
+                                textOffsetY = textOffsetY,
+                                textAlignment = textAlign,
+                                headingBold = headingBold,
+                                subheadingBold = subheadingBold,
+                                showReflection = showReflection,
+                                showTextShadow = textShadow,
+                                shadowIntensity = editorViewModel.shadowIntensity.value,
+                                shadowSoftness = editorViewModel.shadowSoftness.value,
+                                textZIndex = editorViewModel.textZIndex.value,
+                                ignoreScreenshot = false
+                            )
+                            shareImage(context, bitmap)
+                            showExportSheet = false
+                        }
+                    }
+                )
+
+                ListItem(
+                    headlineContent = { Text("Copy to Clipboard") },
+                    leadingContent = { Icon(Icons.Rounded.ContentCopy, contentDescription = null) },
+                    modifier = Modifier.clickable {
+                        scope.launch {
+                            val bitmap = captureToBitmap(
+                                density = Density(context),
+                                screenshot = screenshot,
+                                deviceModel = selectedDevice,
+                                backgroundType = backgroundType,
+                                backgroundColor = backgroundColor,
+                                gradientColors = gradientColors,
+                                backgroundImage = backgroundImage,
+                                backgroundImageOffsetX = backgroundImageOffsetX,
+                                backgroundImageOffsetY = backgroundImageOffsetY,
+                                backgroundImageScale = backgroundImageScale,
+                                backgroundImageBlur = backgroundImageBlur,
+                                scale = scale,
+                                imageScale = imageScale,
+                                frameOffsetX = frameOffsetX,
+                                frameOffsetY = frameOffsetY,
+                                screenshotOffsetX = screenshotOffsetX,
+                                screenshotOffsetY = screenshotOffsetY,
+                                aspectRatio = aspectRatio,
+                                rotationDegrees = rotation,
+                                screenshotRotation = screenshotRotation,
+                                screenBackgroundColor = screenBackgroundColor,
+                                heading = heading,
+                                subheading = subheading,
+                                headingFont = headingFont,
+                                subheadingFont = subheadingFont,
+                                headingSize = headingSize,
+                                subheadingSize = subheadingSize,
+                                textGap = textGap,
+                                textColor = textColor,
+                                textOffsetX = textOffsetX,
+                                textOffsetY = textOffsetY,
+                                textAlignment = textAlign,
+                                headingBold = headingBold,
+                                subheadingBold = subheadingBold,
+                                showReflection = showReflection,
+                                showTextShadow = textShadow,
+                                shadowIntensity = editorViewModel.shadowIntensity.value,
+                                shadowSoftness = editorViewModel.shadowSoftness.value,
+                                textZIndex = editorViewModel.textZIndex.value,
+                                ignoreScreenshot = false
+                            )
+                            copyImageToClipboard(context, bitmap)
+                            showExportSheet = false
+                        }
+                    }
+                )
+            }
+        }
+    }
 }
 
 suspend fun captureToBitmap(
@@ -828,5 +1044,59 @@ suspend fun saveBitmapToGallery(context: android.content.Context, bitmap: Bitmap
             e.printStackTrace()
             false
         }
+    }
+}
+
+fun shareImage(context: android.content.Context, bitmap: Bitmap) {
+    try {
+        val cachePath = File(context.cacheDir, "shared_images")
+        cachePath.mkdirs()
+        val stream = FileOutputStream("$cachePath/image.png")
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        stream.close()
+
+        val imagePath = File(context.cacheDir, "shared_images")
+        val newFile = File(imagePath, "image.png")
+        val contentUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", newFile)
+
+        if (contentUri != null) {
+            val shareIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                setDataAndType(contentUri, context.contentResolver.getType(contentUri))
+                putExtra(Intent.EXTRA_STREAM, contentUri)
+                type = "image/png"
+            }
+            context.startActivity(Intent.createChooser(shareIntent, "Share Image"))
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
+fun copyImageToClipboard(context: android.content.Context, bitmap: Bitmap) {
+    try {
+        val cachePath = File(context.cacheDir, "shared_images")
+        cachePath.mkdirs()
+        val stream = FileOutputStream("$cachePath/copy_image.png")
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        stream.close()
+
+        val imagePath = File(context.cacheDir, "shared_images")
+        val newFile = File(imagePath, "copy_image.png")
+        val contentUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", newFile)
+
+        if (contentUri != null) {
+            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newUri(context.contentResolver, "Image", contentUri)
+            clipboard.setPrimaryClip(clip)
+            
+            // Android 13+ shows its own visual confirmation, but for older versions we might want a Toast
+            if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.S_V2) {
+                Toast.makeText(context, "Image copied to clipboard", Toast.LENGTH_SHORT).show()
+            }
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
 }

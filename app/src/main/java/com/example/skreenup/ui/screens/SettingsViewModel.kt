@@ -21,6 +21,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val useGradientBackground: StateFlow<Boolean> = settingsManager.useGradientBackground
     val continueLastProject: StateFlow<Boolean> = settingsManager.continueLastProject
     val useHaptics: StateFlow<Boolean> = settingsManager.useHaptics
+    val defaultExportAction: StateFlow<com.example.skreenup.data.ExportAction> = settingsManager.defaultExportAction
 
     private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
@@ -39,6 +40,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setUseHaptics(use: Boolean) {
         settingsManager.setUseHaptics(use)
+    }
+
+    fun setDefaultExportAction(action: com.example.skreenup.data.ExportAction) {
+        settingsManager.setDefaultExportAction(action)
     }
 
     fun clearHistory() {

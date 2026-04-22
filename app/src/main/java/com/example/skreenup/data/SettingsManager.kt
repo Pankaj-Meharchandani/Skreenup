@@ -9,6 +9,10 @@ enum class AppTheme {
     LIGHT, DARK, SYSTEM
 }
 
+enum class ExportAction {
+    ASK, SAVE, SHARE, CLIPBOARD
+}
+
 class SettingsManager private constructor(context: Context) {
     private val prefs: SharedPreferences = context.applicationContext.getSharedPreferences("skreenup_settings", Context.MODE_PRIVATE)
 
@@ -23,6 +27,9 @@ class SettingsManager private constructor(context: Context) {
 
     private val _useHaptics = MutableStateFlow(loadUseHaptics())
     val useHaptics: StateFlow<Boolean> = _useHaptics
+
+    private val _defaultExportAction = MutableStateFlow(loadDefaultExportAction())
+    val defaultExportAction: StateFlow<ExportAction> = _defaultExportAction
 
     fun setTheme(theme: AppTheme) {
         prefs.edit().putString("app_theme", theme.name).apply()
@@ -63,6 +70,20 @@ class SettingsManager private constructor(context: Context) {
 
     private fun loadUseHaptics(): Boolean {
         return prefs.getBoolean("use_haptics", true)
+    }
+
+    fun setDefaultExportAction(action: ExportAction) {
+        prefs.edit().putString("default_export_action", action.name).apply()
+        _defaultExportAction.value = action
+    }
+
+    private fun loadDefaultExportAction(): ExportAction {
+        val name = prefs.getString("default_export_action", ExportAction.ASK.name)
+        return try {
+            ExportAction.valueOf(name ?: ExportAction.ASK.name)
+        } catch (e: Exception) {
+            ExportAction.ASK
+        }
     }
 
     fun saveLastEditorConfig(json: String) {

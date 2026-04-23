@@ -166,6 +166,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _textZIndex = MutableStateFlow(1)
     val textZIndex: StateFlow<Int> = _textZIndex.asStateFlow()
 
+    private val _showWatermark = MutableStateFlow(true)
+    val showWatermark: StateFlow<Boolean> = _showWatermark.asStateFlow()
+
+    private val _watermarkText = MutableStateFlow("Made with Skreenup")
+    val watermarkText: StateFlow<String> = _watermarkText.asStateFlow()
+
     private val _hexColorSolid = MutableStateFlow("#3F51B5")
     val hexColorSolid: StateFlow<String> = _hexColorSolid.asStateFlow()
 
@@ -398,6 +404,16 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _isSaved.value = false
     }
 
+    fun setShowWatermark(value: Boolean) {
+        _showWatermark.value = value
+        _isSaved.value = false
+    }
+
+    fun setWatermarkText(value: String) {
+        _watermarkText.value = value
+        _isSaved.value = false
+    }
+
     fun resetFrameTab() {
         initialConfig?.let { config ->
             _selectedDevice.value = DeviceModels.find { it.name == config.selectedDeviceName } ?: DeviceModels.first()
@@ -479,6 +495,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _headingBold.value = config.headingBold
             _subheadingBold.value = config.subheadingBold
             _textZIndex.value = config.textZIndex
+            _showWatermark.value = config.showWatermark
+            _watermarkText.value = config.watermarkText
         } ?: run {
             _heading.value = ""
             _subheading.value = ""
@@ -495,6 +513,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _headingBold.value = true
             _subheadingBold.value = false
             _textZIndex.value = 1
+            _showWatermark.value = true
+            _watermarkText.value = "Made with Skreenup"
         }
     }
 
@@ -601,7 +621,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             shadowIntensity = _shadowIntensity.value,
             shadowSoftness = _shadowSoftness.value,
             textShadow = _textShadow.value,
-            textZIndex = _textZIndex.value
+            textZIndex = _textZIndex.value,
+            showWatermark = _showWatermark.value,
+            watermarkText = _watermarkText.value
         )
     }
 
@@ -663,6 +685,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _shadowSoftness.value = config.shadowSoftness
         _textShadow.value = config.textShadow
         _textZIndex.value = config.textZIndex
+        _showWatermark.value = config.showWatermark
+        _watermarkText.value = config.watermarkText
     }
 
     fun saveTemplate(name: String = "My Template", previewUri: String? = null) {

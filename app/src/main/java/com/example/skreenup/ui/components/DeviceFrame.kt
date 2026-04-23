@@ -91,6 +91,8 @@ fun DeviceFrame(
     shadowIntensity: Float = 0.3f,
     shadowSoftness: Float = 1.0f,
     textZIndex: Int = 1,
+    showWatermark: Boolean = true,
+    watermarkText: String = "Made with Skreenup",
     onScaleChange: (Float) -> Unit = {},
     onRotationChange: (Float) -> Unit = {},
     onFrameOffsetChange: (Float, Float) -> Unit = { _, _ -> },
@@ -365,7 +367,9 @@ fun DeviceFrame(
                 showTextShadow = showTextShadow,
                 shadowIntensity = shadowIntensity,
                 shadowSoftness = shadowSoftness,
-                textZIndex = textZIndex
+                textZIndex = textZIndex,
+                showWatermark = showWatermark,
+                watermarkText = watermarkText
             )
         }
 

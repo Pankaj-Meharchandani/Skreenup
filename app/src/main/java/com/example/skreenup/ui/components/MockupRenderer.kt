@@ -73,7 +73,9 @@ object MockupRenderer {
         showTextShadow: Boolean = true,
         shadowIntensity: Float = 0.3f,
         shadowSoftness: Float = 1.0f,
-        textZIndex: Int = 1
+        textZIndex: Int = 1,
+        showWatermark: Boolean = false,
+        watermarkText: String = ""
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height
@@ -333,6 +335,20 @@ object MockupRenderer {
             clipPath(Path().apply { addRect(compRect) }) {
                 drawTextContent()
             }
+        }
+
+        // 5. Draw Watermark
+        if (showWatermark && watermarkText.isNotEmpty()) {
+            val watermarkPaint = android.graphics.Paint().apply {
+                color = textColor.copy(alpha = 0.5f).toArgb()
+                typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+                textSize = 14f * resolutionScale
+                isAntiAlias = true
+                textAlign = android.graphics.Paint.Align.CENTER
+            }
+            val x = compLeft + compWidth / 2
+            val y = compTop + compHeight - (20f * resolutionScale)
+            drawContext.canvas.nativeCanvas.drawText(watermarkText, x, y, watermarkPaint)
         }
     }
 

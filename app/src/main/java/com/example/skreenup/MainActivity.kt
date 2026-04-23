@@ -177,6 +177,8 @@ fun SkreenupApp() {
                         shadowIntensity = template.config.shadowIntensity,
                         shadowSoftness = template.config.shadowSoftness,
                         textZIndex = template.config.textZIndex,
+                        showWatermark = template.config.showWatermark,
+                        watermarkText = template.config.watermarkText,
                         ignoreScreenshot = true
                     )
                     file.outputStream().use {
@@ -405,6 +407,8 @@ fun EditorScreen(
     val subheadingBold by editorViewModel.subheadingBold.collectAsState()
     val showReflection by editorViewModel.showReflection.collectAsState()
     val textShadow by editorViewModel.textShadow.collectAsState()
+    val showWatermark by editorViewModel.showWatermark.collectAsState()
+    val watermarkText by editorViewModel.watermarkText.collectAsState()
 
     // Save state whenever any of these change
     LaunchedEffect(
@@ -414,7 +418,7 @@ fun EditorScreen(
         screenshotOffsetX, screenshotOffsetY, screenshotRotation, rotation,
         heading, subheading, headingFont, subheadingFont, headingSize, subheadingSize,
         textGap, textOffsetX, textOffsetY, textColor, textAlign, headingBold, subheadingBold,
-        showReflection, textShadow
+        showReflection, textShadow, showWatermark, watermarkText
     ) {
         editorViewModel.saveStateToPrefs()
     }
@@ -482,6 +486,8 @@ fun EditorScreen(
                                 shadowIntensity = editorViewModel.shadowIntensity.value,
                                 shadowSoftness = editorViewModel.shadowSoftness.value,
                                 textZIndex = editorViewModel.textZIndex.value,
+                                showWatermark = showWatermark,
+                                watermarkText = watermarkText,
                                 ignoreScreenshot = true
                             )
                             val path = savePreviewToInternal(context, bitmap)
@@ -540,6 +546,8 @@ fun EditorScreen(
                                 shadowIntensity = editorViewModel.shadowIntensity.value,
                                 shadowSoftness = editorViewModel.shadowSoftness.value,
                                 textZIndex = editorViewModel.textZIndex.value,
+                                showWatermark = showWatermark,
+                                watermarkText = watermarkText,
                                 ignoreScreenshot = false
                             )
 
@@ -677,6 +685,8 @@ fun EditorScreen(
                     shadowIntensity = editorViewModel.shadowIntensity.collectAsState().value,
                     shadowSoftness = editorViewModel.shadowSoftness.collectAsState().value,
                     textZIndex = editorViewModel.textZIndex.collectAsState().value,
+                    showWatermark = showWatermark,
+                    watermarkText = watermarkText,
                     onScaleChange = { editorViewModel.setScale(it) },
                     onRotationChange = { editorViewModel.setRotation(it) },
                     onFrameOffsetChange = { x, y ->
@@ -805,6 +815,8 @@ fun EditorScreen(
                                             shadowIntensity = editorViewModel.shadowIntensity.value,
                                             shadowSoftness = editorViewModel.shadowSoftness.value,
                                             textZIndex = editorViewModel.textZIndex.value,
+                                            showWatermark = showWatermark,
+                                            watermarkText = watermarkText,
                                             ignoreScreenshot = false
                                         )
                                         shareImage(context, bitmap)
@@ -873,6 +885,8 @@ fun EditorScreen(
                                         shadowIntensity = editorViewModel.shadowIntensity.value,
                                         shadowSoftness = editorViewModel.shadowSoftness.value,
                                         textZIndex = editorViewModel.textZIndex.value,
+                                        showWatermark = showWatermark,
+                                        watermarkText = watermarkText,
                                         ignoreScreenshot = false
                                     )
                                     val path = savePreviewToInternal(context, bitmap)
@@ -944,6 +958,8 @@ fun EditorScreen(
                                         shadowIntensity = editorViewModel.shadowIntensity.value,
                                         shadowSoftness = editorViewModel.shadowSoftness.value,
                                         textZIndex = editorViewModel.textZIndex.value,
+                                        showWatermark = showWatermark,
+                                        watermarkText = watermarkText,
                                         ignoreScreenshot = false
                                     )
                                     shareImage(context, bitmap)
@@ -1010,6 +1026,8 @@ fun EditorScreen(
                                         shadowIntensity = editorViewModel.shadowIntensity.value,
                                         shadowSoftness = editorViewModel.shadowSoftness.value,
                                         textZIndex = editorViewModel.textZIndex.value,
+                                        showWatermark = showWatermark,
+                                        watermarkText = watermarkText,
                                         ignoreScreenshot = false
                                     )
                                     copyImageToClipboard(context, bitmap)
@@ -1088,6 +1106,8 @@ suspend fun captureToBitmap(
     shadowIntensity: Float = 0.3f,
     shadowSoftness: Float = 1.0f,
     textZIndex: Int = 1,
+    showWatermark: Boolean = true,
+    watermarkText: String = "Made with Skreenup",
     ignoreScreenshot: Boolean = false
 ): Bitmap {
     return withContext(Dispatchers.Default) {
@@ -1142,7 +1162,9 @@ suspend fun captureToBitmap(
                 showTextShadow = showTextShadow,
                 shadowIntensity = shadowIntensity,
                 shadowSoftness = shadowSoftness,
-                textZIndex = textZIndex
+                textZIndex = textZIndex,
+                showWatermark = showWatermark,
+                watermarkText = watermarkText
             )
         }
 

@@ -41,5 +41,7 @@ data class EditorConfig(
     val shadowIntensity: Float = 0.3f,
     val shadowSoftness: Float = 1.0f,
     val textShadow: Boolean = true,
-    val textZIndex: Int = 1 // 1 for Front, -1 for Back
+    val textZIndex: Int = 1, // 1 for Front, -1 for Back
+    val showWatermark: Boolean = true,
+    val watermarkText: String = "Made with Skreenup"
 )

@@ -339,13 +339,23 @@ object MockupRenderer {
 
         // 5. Draw Watermark
         if (showWatermark && watermarkText.isNotEmpty()) {
+            val bgColorAtBottom = when (backgroundType) {
+                BackgroundType.SOLID -> backgroundColor
+                BackgroundType.GRADIENT -> gradientColors.lastOrNull() ?: backgroundColor
+                else -> Color.Black // Default for images/transparent to show white text
+            }
+            
+            val isBgLight = bgColorAtBottom.red * 0.299 + bgColorAtBottom.green * 0.587 + bgColorAtBottom.blue * 0.114 > 0.5
+            val watermarkColor = if (isBgLight) Color.Black else Color.White
+            
             val watermarkPaint = android.graphics.Paint().apply {
-                color = textColor.copy(alpha = 0.5f).toArgb()
+                color = watermarkColor.copy(alpha = 0.35f).toArgb()
                 typeface = Typeface.create("sans-serif", Typeface.NORMAL)
                 textSize = 14f * resolutionScale
                 isAntiAlias = true
                 textAlign = android.graphics.Paint.Align.CENTER
             }
+            
             val x = compLeft + compWidth / 2
             val y = compTop + compHeight - (20f * resolutionScale)
             drawContext.canvas.nativeCanvas.drawText(watermarkText, x, y, watermarkPaint)

@@ -27,9 +27,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.skreenup.R
 
+import com.example.skreenup.ui.components.AppScaffold
+
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutScreen(onBack: () -> Unit) {
+fun AboutScreen(
+    onBack: () -> Unit,
+    settingsViewModel: SettingsViewModel = viewModel()
+) {
     val context = LocalContext.current
     val versionName = try {
         val packageInfo = if (Build.VERSION.SDK_INT >= 33) {
@@ -46,21 +53,10 @@ fun AboutScreen(onBack: () -> Unit) {
         "Unknown"
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
+    AppScaffold(
+        title = "About",
+        onBack = onBack,
+        settingsViewModel = settingsViewModel
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -70,7 +66,7 @@ fun AboutScreen(onBack: () -> Unit) {
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.height(24.dp))
 
             // Logo — squircle, no gimmicks
             Box(
@@ -175,7 +171,7 @@ fun AboutScreen(onBack: () -> Unit) {
                     FilledTonalIconButton(
                         onClick = {
                             context.startActivity(
-                                Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/pankaj-meharchandani"))
+                                Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pankaj-Meharchandani"))
                             )
                         },
                         shape = RoundedCornerShape(12.dp)
@@ -189,7 +185,90 @@ fun AboutScreen(onBack: () -> Unit) {
                 }
             }
 
+            Spacer(Modifier.height(24.dp))
+
+            Text(
+                text = "My Projects",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Start
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            AboutLinkItem(
+                title = "Skreenup",
+                subtitle = "The source code of this app",
+                icon = Icons.AutoMirrored.Rounded.OpenInNew,
+                onClick = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pankaj-Meharchandani/Skreenup")))
+                }
+            )
+
+            AboutLinkItem(
+                title = "Waller",
+                subtitle = "Custom gradient wallpaper generator",
+                icon = Icons.AutoMirrored.Rounded.OpenInNew,
+                onClick = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pankaj-Meharchandani/Waller")))
+                }
+            )
+
+            AboutLinkItem(
+                title = "Lectro",
+                subtitle = "All-in-one student study companion",
+                icon = Icons.AutoMirrored.Rounded.OpenInNew,
+                onClick = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pankaj-Meharchandani/Lectro")))
+                }
+            )
+
             Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+fun AboutLinkItem(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

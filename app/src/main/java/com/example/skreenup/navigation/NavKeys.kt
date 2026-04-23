@@ -7,7 +7,27 @@ import kotlinx.serialization.Serializable
 sealed interface SkreenupNavKey : NavKey
 
 @Serializable
-object Editor : SkreenupNavKey
+object Home : SkreenupNavKey
+
+@Serializable
+object Presets : SkreenupNavKey
+
+@Serializable
+object History : SkreenupNavKey
+
+@Serializable
+object YourTemplates : SkreenupNavKey
+
+@Serializable
+object Settings : SkreenupNavKey
+
+@Serializable
+data class Editor(
+    val presetId: Long? = null,
+    val projectId: Long? = null,
+    val staticTemplateId: String? = null,
+    val isLastProject: Boolean = false
+) : SkreenupNavKey
 
 @Serializable
 object About : SkreenupNavKey

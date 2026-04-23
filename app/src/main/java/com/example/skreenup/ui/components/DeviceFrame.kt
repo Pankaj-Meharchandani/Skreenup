@@ -18,6 +18,11 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,8 +70,6 @@ fun DeviceFrame(
     backgroundImageOffsetY: Float = 0f,
     backgroundImageScale: Float = 1.0f,
     backgroundImageBlur: Float = 0f,
-    showWatermark: Boolean = false,
-    watermarkText: String = "",
     rotationDegrees: Float = 0f,
     screenshotRotation: Float = 0f,
     screenBackgroundColor: Color = Color(0xFF2C2C2C),
@@ -87,13 +90,21 @@ fun DeviceFrame(
     showTextShadow: Boolean = true,
     shadowIntensity: Float = 0.3f,
     shadowSoftness: Float = 1.0f,
+    textZIndex: Int = 1,
+    showWatermark: Boolean = true,
+    watermarkText: String = "Made with Skreenup",
     onScaleChange: (Float) -> Unit = {},
     onRotationChange: (Float) -> Unit = {},
     onFrameOffsetChange: (Float, Float) -> Unit = { _, _ -> },
-    onTextOffsetChange: (Float, Float) -> Unit = { _, _ -> }
+    onTextOffsetChange: (Float, Float) -> Unit = { _, _ -> },
+    onHeadingSizeChange: (Float) -> Unit = {},
+    onSubheadingSizeChange: (Float) -> Unit = {},
+    onTextZIndexChange: (Int) -> Unit = {},
+    onAddScreenshot: () -> Unit = {}
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     var activeTarget by remember { mutableStateOf<Target>(Target.NONE) }
+    var showZIndexDialog by remember { mutableStateOf(false) }
     
     // Internal trackers to manage "breakable" snapping
     var sessionPanX by remember { mutableStateOf(0f) }
@@ -106,6 +117,8 @@ fun DeviceFrame(
 
     // Use rememberUpdatedState to avoid restarting pointerInput when values change
     val currentScale by rememberUpdatedState(scale)
+    val currentHeadingSize by rememberUpdatedState(headingSize)
+    val currentSubheadingSize by rememberUpdatedState(subheadingSize)
     val currentRotation by rememberUpdatedState(rotationDegrees)
     val currentFrameOffsetX by rememberUpdatedState(frameOffsetX)
     val currentFrameOffsetY by rememberUpdatedState(frameOffsetY)
@@ -160,6 +173,29 @@ fun DeviceFrame(
             .fillMaxSize()
             .onSizeChanged { canvasSize = it }
             .pointerInput(canvasSize) {
+                detectTapGestures(
+                    onTap = { onAddScreenshot() },
+                    onLongPress = { offset ->
+                        val target = hitTest(
+                            point = offset,
+                            canvasSize = canvasSize,
+                            aspectRatio = currentRatio,
+                            deviceModel = currentDevice,
+                            scale = currentScale,
+                            frameOffsetX = currentFrameOffsetX,
+                            frameOffsetY = currentFrameOffsetY,
+                            heading = currentHeading,
+                            subheading = currentSubheading,
+                            textOffsetX = currentTextOffsetX,
+                            textOffsetY = currentTextOffsetY
+                        )
+                        if (target == Target.TEXT) {
+                            showZIndexDialog = true
+                        }
+                    }
+                )
+            }
+            .pointerInput(canvasSize) {
                 detectTransformGestures { centroid, pan, zoom, rotationChange ->
                     // Determine target on first movement if not set
                     if (activeTarget == Target.NONE) {
@@ -198,7 +234,12 @@ fun DeviceFrame(
 
                     // 1. Handle Scale (Zoom)
                     if (zoom != 1f) {
-                        onScaleChange((currentScale * zoom).coerceIn(0.1f, 2.0f))
+                        if (activeTarget == Target.TEXT) {
+                            onHeadingSizeChange((currentHeadingSize * zoom).coerceIn(10f, 300f))
+                            onSubheadingSizeChange((currentSubheadingSize * zoom).coerceIn(8f, 200f))
+                        } else {
+                            onScaleChange((currentScale * zoom).coerceIn(0.1f, 2.0f))
+                        }
                     }
 
                     // 2. Handle Rotation (Two fingers)
@@ -305,8 +346,6 @@ fun DeviceFrame(
                 screenshotOffsetX = screenshotOffsetX,
                 screenshotOffsetY = screenshotOffsetY,
                 aspectRatio = aspectRatio,
-                showWatermark = showWatermark,
-                watermarkText = watermarkText,
                 screenBackgroundColor = screenBackgroundColor,
                 isExport = false,
                 rotationDegrees = rotationDegrees,
@@ -327,7 +366,34 @@ fun DeviceFrame(
                 showReflection = showReflection,
                 showTextShadow = showTextShadow,
                 shadowIntensity = shadowIntensity,
-                shadowSoftness = shadowSoftness
+                shadowSoftness = shadowSoftness,
+                textZIndex = textZIndex,
+                showWatermark = showWatermark,
+                watermarkText = watermarkText
+            )
+        }
+
+        if (showZIndexDialog) {
+            AlertDialog(
+                onDismissRequest = { showZIndexDialog = false },
+                title = { Text("Text Layering") },
+                text = { Text("Where do you want to place the text?") },
+                confirmButton = {
+                    TextButton(onClick = { 
+                        onTextZIndexChange(1)
+                        showZIndexDialog = false 
+                    }) {
+                        Text("Move to Front")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { 
+                        onTextZIndexChange(-1)
+                        showZIndexDialog = false 
+                    }) {
+                        Text("Move to Back")
+                    }
+                }
             )
         }
 

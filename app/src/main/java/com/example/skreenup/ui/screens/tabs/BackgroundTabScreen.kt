@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Collections
+import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.*
@@ -271,6 +272,28 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
                         Spacer(Modifier.size(12.dp))
                         Text("Import Gallery Image")
                     }
+
+                    var customUrl by remember { mutableStateOf("") }
+                    OutlinedTextField(
+                        value = customUrl,
+                        onValueChange = { customUrl = it },
+                        label = { Text("Custom Image URL (Unsplash, etc.)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { 
+                                    if (customUrl.isNotBlank()) {
+                                        viewModel.setPresetBackgroundImage(customUrl)
+                                    }
+                                },
+                                enabled = customUrl.isNotBlank()
+                            ) {
+                                Icon(Icons.Rounded.Link, contentDescription = "Load Image")
+                            }
+                        },
+                        shape = MaterialTheme.shapes.medium
+                    )
 
                     Column {
                         Row(

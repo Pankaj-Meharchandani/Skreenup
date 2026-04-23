@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +46,8 @@ fun TextTabScreen(viewModel: EditorViewModel) {
     val headingBold by viewModel.headingBold.collectAsState()
     val subheadingBold by viewModel.subheadingBold.collectAsState()
     val textShadow by viewModel.textShadow.collectAsState()
+    val showWatermark by viewModel.showWatermark.collectAsState()
+    val watermarkText by viewModel.watermarkText.collectAsState()
 
     val scrollState = rememberScrollState()
 
@@ -71,7 +74,8 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                     placeholder = { Text("Heading text...") },
                     modifier = Modifier.weight(1f),
                     shape = MaterialTheme.shapes.medium,
-                    singleLine = true
+                    singleLine = false,
+                    maxLines = 5
                 )
                 IconToggleButton(checked = headingBold, onCheckedChange = { viewModel.setHeadingBold(it) }) {
                     Icon(Icons.Rounded.FormatBold, contentDescription = null, tint = if (headingBold) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
@@ -90,7 +94,8 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                     placeholder = { Text("Subheading text...") },
                     modifier = Modifier.weight(1f),
                     shape = MaterialTheme.shapes.medium,
-                    maxLines = 2
+                    minLines = 1,
+                    maxLines = 5
                 )
                 IconToggleButton(checked = subheadingBold, onCheckedChange = { viewModel.setSubheadingBold(it) }) {
                     Icon(Icons.Rounded.FormatBold, contentDescription = null, tint = if (subheadingBold) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
@@ -172,6 +177,38 @@ fun TextTabScreen(viewModel: EditorViewModel) {
         }
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+        // Watermark Section
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "Watermark", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                Switch(
+                    checked = showWatermark,
+                    onCheckedChange = { viewModel.setShowWatermark(it) }
+                )
+            }
+            
+            if (showWatermark) {
+                OutlinedTextField(
+                    value = watermarkText,
+                    onValueChange = { viewModel.setWatermarkText(it) },
+                    placeholder = { Text("Watermark text...") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { focusState ->
+                            if (focusState.isFocused && watermarkText == "Made with Skreenup") {
+                                viewModel.setWatermarkText("")
+                            }
+                        },
+                    shape = MaterialTheme.shapes.medium,
+                    singleLine = true
+                )
+            }
+        }
 
         Spacer(Modifier.height(40.dp))
     }

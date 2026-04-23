@@ -52,8 +52,6 @@ object MockupRenderer {
         screenshotOffsetX: Float,
         screenshotOffsetY: Float,
         aspectRatio: CompositionAspectRatio,
-        showWatermark: Boolean,
-        watermarkText: String,
         screenBackgroundColor: Color = Color(0xFF2C2C2C),
         isExport: Boolean = false,
         rotationDegrees: Float = 0f,
@@ -74,7 +72,10 @@ object MockupRenderer {
         showReflection: Boolean = true,
         showTextShadow: Boolean = true,
         shadowIntensity: Float = 0.3f,
-        shadowSoftness: Float = 1.0f
+        shadowSoftness: Float = 1.0f,
+        textZIndex: Int = 1,
+        showWatermark: Boolean = false,
+        watermarkText: String = ""
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height
@@ -189,6 +190,121 @@ object MockupRenderer {
         val pivotX = frameLeft + frameWidth / 2
         val pivotY = frameTop + (frameHeight + chassisTotalHeight) / 2
 
+        // ── 3. Helper for Drawing Text ──
+        val drawTextContent = {
+            val hText = heading.trim()
+            val sText = subheading.trim()
+
+            if (hText.isNotEmpty() || sText.isNotEmpty()) {
+                val finalTextColor = textColor.toArgb()
+
+                fun createPaint(font: TextFont, size: Float, isBold: Boolean): android.graphics.Paint {
+                    val style = if (isBold) Typeface.BOLD else Typeface.NORMAL
+                    val tf = when (font) {
+                        TextFont.POPPINS -> Typeface.create("sans-serif", style)
+                        TextFont.INTER -> Typeface.create("sans-serif-medium", style)
+                        TextFont.MONTSERRAT -> Typeface.create("sans-serif-light", style)
+                        TextFont.BEBAS -> Typeface.create("sans-serif-black", style)
+                        TextFont.PACIFICO -> Typeface.create("cursive", style)
+                        TextFont.PLAYFAIR -> Typeface.create("serif-monospace", style)
+                        TextFont.TIMES -> Typeface.create("serif", style)
+                        TextFont.OSWALD -> Typeface.create("sans-serif-condensed", style)
+                        TextFont.RALEWAY -> Typeface.create("sans-serif-thin", style)
+                        TextFont.ANTON -> Typeface.create("sans-serif-black", style)
+                        TextFont.QUICKSAND -> Typeface.create("sans-serif-light", style)
+                        TextFont.LIBRE_BASKERVILLE -> Typeface.create("serif", style)
+                    }
+                    return android.graphics.Paint().apply {
+                        color = finalTextColor
+                        typeface = tf
+                        textSize = size * resolutionScale
+                        isAntiAlias = true
+                        this.textAlign = when (textAlignment) {
+                            TextAlignLabel.LEFT -> NativePaint.Align.LEFT
+                            TextAlignLabel.CENTER -> NativePaint.Align.CENTER
+                            TextAlignLabel.RIGHT -> NativePaint.Align.RIGHT
+                        }
+                        if (showTextShadow) {
+                            setShadowLayer(10f * resolutionScale, 2f * resolutionScale, 2f * resolutionScale, Color.Black.copy(alpha = 0.5f).toArgb())
+                        }
+                    }
+                }
+
+                val currentHeadingSize = headingSize
+                val currentSubheadingSize = subheadingSize
+
+                val headingLinesInitial = hText.split("\n")
+                val subheadingLinesInitial = sText.split("\n")
+
+                val hPaint = createPaint(headingFont, currentHeadingSize, headingBold)
+                val sPaint = createPaint(subheadingFont, currentSubheadingSize, subheadingBold)
+
+                // Standardized horizontal margin (6% of design space)
+                val horizontalMargin = 60f * resolutionScale
+                
+                val centerX = when (textAlignment) {
+                    TextAlignLabel.LEFT -> compLeft + horizontalMargin + (textOffsetX * resolutionScale)
+                    TextAlignLabel.CENTER -> compLeft + compWidth / 2 + (textOffsetX * resolutionScale)
+                    TextAlignLabel.RIGHT -> compLeft + compWidth - horizontalMargin + (textOffsetX * resolutionScale)
+                }
+
+                val hMetrics = hPaint.fontMetrics
+                val sMetrics = sPaint.fontMetrics
+
+                val headingLineHeight = hPaint.fontSpacing
+                val subheadingLineHeight = sPaint.fontSpacing
+                val gap = textGap * resolutionScale
+
+                val headingBlockHeight = if (hText.isNotEmpty()) {
+                    (headingLinesInitial.size - 1) * headingLineHeight + (hMetrics.descent - hMetrics.ascent)
+                } else 0f
+
+                val subheadingBlockHeight = if (sText.isNotEmpty()) {
+                    (subheadingLinesInitial.size - 1) * subheadingLineHeight + (sMetrics.descent - sMetrics.ascent)
+                } else 0f
+
+                val totalTextHeight = headingBlockHeight + (if (hText.isNotEmpty() && sText.isNotEmpty()) gap else 0f) + subheadingBlockHeight
+
+                val blockTop = compTop + compHeight / 2 + (textOffsetY * resolutionScale) - (totalTextHeight / 2)
+
+                if (hText.isNotEmpty()) {
+                    val firstBaseline = blockTop - hMetrics.ascent
+                    headingLinesInitial.forEachIndexed { index, line ->
+                        drawContext.canvas.nativeCanvas.drawText(
+                            line,
+                            centerX,
+                            firstBaseline + (index * headingLineHeight),
+                            hPaint
+                        )
+                    }
+                }
+
+                if (sText.isNotEmpty()) {
+                    val subBlockTop = if (hText.isNotEmpty()) {
+                        blockTop + headingBlockHeight + gap
+                    } else {
+                        blockTop
+                    }
+                    val firstSubBaseline = subBlockTop - sMetrics.ascent
+                    subheadingLinesInitial.forEachIndexed { index, line ->
+                        drawContext.canvas.nativeCanvas.drawText(
+                            line,
+                            centerX,
+                            firstSubBaseline + (index * subheadingLineHeight),
+                            sPaint
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── 4. Draw Content based on Z-Index ──
+        if (textZIndex < 0) {
+            clipPath(Path().apply { addRect(compRect) }) {
+                drawTextContent()
+            }
+        }
+
         // Wrap all device drawing in a rotation transform
         clipPath(Path().apply { addRect(compRect) }) {
             withTransform({
@@ -215,124 +331,34 @@ object MockupRenderer {
             }
         }
 
-        // 6.5 Draw Heading & Subheading
-        val hText = heading.trim()
-        val sText = subheading.trim()
-
-        if (hText.isNotEmpty() || sText.isNotEmpty()) {
-            val finalTextColor = textColor.toArgb()
-
-            fun createPaint(font: TextFont, size: Float, isBold: Boolean): android.graphics.Paint {
-                val style = if (isBold) Typeface.BOLD else Typeface.NORMAL
-                val tf = when (font) {
-                    TextFont.POPPINS -> Typeface.create("sans-serif", style)
-                    TextFont.INTER -> Typeface.create("sans-serif-medium", style)
-                    TextFont.MONTSERRAT -> Typeface.create("sans-serif-light", style)
-                    TextFont.BEBAS -> Typeface.create("sans-serif-black", style)
-                    TextFont.PACIFICO -> Typeface.create("cursive", style)
-                    TextFont.PLAYFAIR -> Typeface.create("serif-monospace", style)
-                    TextFont.TIMES -> Typeface.create("serif", style)
-                    TextFont.OSWALD -> Typeface.create("sans-serif-condensed", style)
-                    TextFont.RALEWAY -> Typeface.create("sans-serif-thin", style)
-                    TextFont.ANTON -> Typeface.create("sans-serif-black", style)
-                    TextFont.QUICKSAND -> Typeface.create("sans-serif-light", style)
-                    TextFont.LIBRE_BASKERVILLE -> Typeface.create("serif", style)
-                }
-                return android.graphics.Paint().apply {
-                    color = finalTextColor
-                    typeface = tf
-                    textSize = size * resolutionScale
-                    isAntiAlias = true
-                    this.textAlign = when (textAlignment) {
-                        TextAlignLabel.LEFT -> NativePaint.Align.LEFT
-                        TextAlignLabel.CENTER -> NativePaint.Align.CENTER
-                        TextAlignLabel.RIGHT -> NativePaint.Align.RIGHT
-                    }
-                    if (showTextShadow) {
-                        setShadowLayer(10f * resolutionScale, 2f * resolutionScale, 2f * resolutionScale, Color.Black.copy(alpha = 0.5f).toArgb())
-                    }
-                }
-            }
-
-            val headingPaint = createPaint(headingFont, headingSize, headingBold)
-            val subheadingPaint = createPaint(subheadingFont, subheadingSize, subheadingBold)
-
-            val hMetrics = headingPaint.fontMetrics
-            val sMetrics = subheadingPaint.fontMetrics
-
-            val headingLines = if (hText.isNotEmpty()) hText.split("\n") else emptyList()
-            val subheadingLines = if (sText.isNotEmpty()) sText.split("\n") else emptyList()
-
-            val headingLineHeight = headingPaint.fontSpacing
-            val subheadingLineHeight = subheadingPaint.fontSpacing
-            val gap = textGap * resolutionScale
-
-            // Precise block heights (Top of first line to bottom of last line)
-            val headingBlockHeight = if (hText.isNotEmpty()) {
-                (headingLines.size - 1) * headingLineHeight + (hMetrics.descent - hMetrics.ascent)
-            } else 0f
-
-            val subheadingBlockHeight = if (sText.isNotEmpty()) {
-                (subheadingLines.size - 1) * subheadingLineHeight + (sMetrics.descent - sMetrics.ascent)
-            } else 0f
-
-            val totalTextHeight = headingBlockHeight + (if (hText.isNotEmpty() && sText.isNotEmpty()) gap else 0f) + subheadingBlockHeight
-
-            val centerX = when (textAlignment) {
-                TextAlignLabel.LEFT -> compLeft + 60f * resolutionScale + (textOffsetX * resolutionScale)
-                TextAlignLabel.CENTER -> compLeft + compWidth / 2 + (textOffsetX * resolutionScale)
-                TextAlignLabel.RIGHT -> compLeft + compWidth - 60f * resolutionScale + (textOffsetX * resolutionScale)
-            }
-
-            // Top of the entire text block, centered vertically
-            val blockTop = compTop + compHeight / 2 + (textOffsetY * resolutionScale) - (totalTextHeight / 2)
-
-            if (hText.isNotEmpty()) {
-                // First baseline is at blockTop + the distance from font top to baseline (which is -hMetrics.ascent)
-                val firstBaseline = blockTop - hMetrics.ascent
-                headingLines.forEachIndexed { index, line ->
-                    drawContext.canvas.nativeCanvas.drawText(
-                        line,
-                        centerX,
-                        firstBaseline + (index * headingLineHeight),
-                        headingPaint
-                    )
-                }
-            }
-
-            if (sText.isNotEmpty()) {
-                val subBlockTop = if (hText.isNotEmpty()) {
-                    blockTop + headingBlockHeight + gap
-                } else {
-                    blockTop
-                }
-                // First baseline of subheading
-                val firstSubBaseline = subBlockTop - sMetrics.ascent
-                subheadingLines.forEachIndexed { index, line ->
-                    drawContext.canvas.nativeCanvas.drawText(
-                        line,
-                        centerX,
-                        firstSubBaseline + (index * subheadingLineHeight),
-                        subheadingPaint
-                    )
-                }
+        if (textZIndex >= 0) {
+            clipPath(Path().apply { addRect(compRect) }) {
+                drawTextContent()
             }
         }
 
-        // 7. Draw Watermark (outside rotation)
+        // 5. Draw Watermark
         if (showWatermark && watermarkText.isNotEmpty()) {
-            val paint = android.graphics.Paint().apply {
-                color = Color.White.copy(alpha = 0.7f).toArgb()
-                textSize = 16 * if (isExport) (compWidth / 400f) else density
-                textAlign = android.graphics.Paint.Align.RIGHT
-                isAntiAlias = true
+            val bgColorAtBottom = when (backgroundType) {
+                BackgroundType.SOLID -> backgroundColor
+                BackgroundType.GRADIENT -> gradientColors.lastOrNull() ?: backgroundColor
+                else -> Color.Black // Default for images/transparent to show white text
             }
-            drawContext.canvas.nativeCanvas.drawText(
-                watermarkText,
-                compLeft + compWidth - (if (isExport) 40f else 16.dp.toPx()),
-                compTop + compHeight - (if (isExport) 40f else 16.dp.toPx()),
-                paint
-            )
+            
+            val isBgLight = bgColorAtBottom.red * 0.299 + bgColorAtBottom.green * 0.587 + bgColorAtBottom.blue * 0.114 > 0.5
+            val watermarkColor = if (isBgLight) Color.Black else Color.White
+            
+            val watermarkPaint = android.graphics.Paint().apply {
+                color = watermarkColor.copy(alpha = 0.35f).toArgb()
+                typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+                textSize = 14f * resolutionScale
+                isAntiAlias = true
+                textAlign = android.graphics.Paint.Align.CENTER
+            }
+            
+            val x = compLeft + compWidth / 2
+            val y = compTop + compHeight - (20f * resolutionScale)
+            drawContext.canvas.nativeCanvas.drawText(watermarkText, x, y, watermarkPaint)
         }
     }
 

@@ -14,78 +14,83 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import com.example.skreenup.navigation.About
-import com.example.skreenup.navigation.AdjustTab
-import com.example.skreenup.navigation.BackgroundTab
-import com.example.skreenup.navigation.Editor
-import com.example.skreenup.navigation.FrameTab
-import com.example.skreenup.navigation.TextTab
-import com.example.skreenup.ui.screens.AboutScreen
-import com.example.skreenup.ui.screens.tabs.AdjustTabScreen
-import com.example.skreenup.ui.screens.tabs.BackgroundTabScreen
-import com.example.skreenup.ui.screens.tabs.FrameTabScreen
-import com.example.skreenup.ui.screens.tabs.TextTabScreen
-import com.example.skreenup.ui.theme.SkreenupTheme
+import com.example.skreenup.data.AppTheme
+import com.example.skreenup.data.PRESET_TEMPLATES
+import com.example.skreenup.navigation.*
 import com.example.skreenup.ui.components.DeviceFrame
 import com.example.skreenup.ui.components.MockupRenderer.drawMockup
 import com.example.skreenup.ui.components.UpdateDialog
 import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.models.CompositionAspectRatio
 import com.example.skreenup.ui.models.DeviceModel
-import com.example.skreenup.ui.screens.EditorViewModel
+import com.example.skreenup.ui.models.DeviceModels
+import com.example.skreenup.ui.models.TextAlignLabel
+import com.example.skreenup.ui.models.TextFont
+import com.example.skreenup.ui.screens.*
+import com.example.skreenup.ui.screens.tabs.AdjustTabScreen
+import com.example.skreenup.ui.screens.tabs.BackgroundTabScreen
+import com.example.skreenup.ui.screens.tabs.FrameTabScreen
+import com.example.skreenup.ui.screens.tabs.TextTabScreen
+import com.example.skreenup.ui.theme.SkreenupTheme
 import com.example.skreenup.update.GitHubRelease
 import com.example.skreenup.update.UpdateChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.content.ClipboardManager
+import android.content.ClipData
+import androidx.core.content.FileProvider
+import com.example.skreenup.data.ExportAction
+import java.io.File
+import java.io.FileOutputStream
 import java.io.OutputStream
 
 class MainActivity : ComponentActivity() {
@@ -93,7 +98,16 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            SkreenupTheme {
+            val settingsViewModel: SettingsViewModel = viewModel()
+            val theme by settingsViewModel.theme.collectAsState()
+            
+            val isDarkTheme = when (theme) {
+                AppTheme.LIGHT -> false
+                AppTheme.DARK -> true
+                AppTheme.SYSTEM -> isSystemInDarkTheme()
+            }
+
+            SkreenupTheme(darkTheme = isDarkTheme) {
                 SkreenupApp()
             }
         }
@@ -104,6 +118,76 @@ class MainActivity : ComponentActivity() {
 fun SkreenupApp() {
     val context = LocalContext.current
     var showUpdateDialog by remember { mutableStateOf<GitHubRelease?>(null) }
+    
+    // Generate previews for preset templates if they don't exist
+    // V11 forces regeneration with fixed image loading and alignment
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            PRESET_TEMPLATES.forEach { template ->
+                val file = File(context.filesDir, "preset_v11_${template.id}.png")
+                if (!file.exists()) {
+                    val device = DeviceModels.find { it.name == template.config.selectedDeviceName } ?: DeviceModels.first()
+                    
+                    // Load background image with specific size to speed up rendering
+                    val bgImage = template.config.backgroundImageUri?.let { uri ->
+                        if (uri.startsWith("http")) {
+                            ImageLoaderHelper.loadBitmapFromUrl(context, uri)
+                        } else {
+                            ImageLoaderHelper.loadBitmapFromUri(context, Uri.parse(uri))
+                        }
+                    }?.asImageBitmap()
+
+                    val bitmap = captureToBitmap(
+                        density = Density(context),
+                        screenshot = null,
+                        deviceModel = device,
+                        backgroundType = BackgroundType.valueOf(template.config.backgroundType),
+                        backgroundColor = Color(template.config.backgroundColor),
+                        gradientColors = template.config.gradientColors.map { Color(it) },
+                        backgroundImage = bgImage,
+                        backgroundImageOffsetX = template.config.backgroundImageOffsetX,
+                        backgroundImageOffsetY = template.config.backgroundImageOffsetY,
+                        backgroundImageScale = template.config.backgroundImageScale,
+                        backgroundImageBlur = template.config.backgroundImageBlur,
+                        scale = template.config.scale,
+                        imageScale = template.config.imageScale,
+                        frameOffsetX = template.config.frameOffsetX,
+                        frameOffsetY = template.config.frameOffsetY,
+                        screenshotOffsetX = template.config.screenshotOffsetX,
+                        screenshotOffsetY = template.config.screenshotOffsetY,
+                        aspectRatio = CompositionAspectRatio.valueOf(template.config.aspectRatio),
+                        rotationDegrees = template.config.rotation,
+                        screenshotRotation = template.config.screenshotRotation,
+                        screenBackgroundColor = Color(template.config.screenBackgroundColor),
+                        heading = template.config.heading,
+                        subheading = template.config.subheading,
+                        headingFont = TextFont.valueOf(template.config.headingFont),
+                        subheadingFont = TextFont.valueOf(template.config.subheadingFont),
+                        headingSize = template.config.headingSize,
+                        subheadingSize = template.config.subheadingSize,
+                        textGap = template.config.textGap,
+                        textColor = Color(template.config.textColor),
+                        textOffsetX = template.config.textOffsetX,
+                        textOffsetY = template.config.textOffsetY,
+                        textAlignment = TextAlignLabel.valueOf(template.config.textAlign),
+                        headingBold = template.config.headingBold,
+                        subheadingBold = template.config.subheadingBold,
+                        showReflection = template.config.showReflection,
+                        showTextShadow = template.config.textShadow,
+                        shadowIntensity = template.config.shadowIntensity,
+                        shadowSoftness = template.config.shadowSoftness,
+                        textZIndex = template.config.textZIndex,
+                        showWatermark = template.config.showWatermark,
+                        watermarkText = template.config.watermarkText,
+                        ignoreScreenshot = true
+                    )
+                    file.outputStream().use {
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 85, it)
+                    }
+                }
+            }
+        }
+    }
     
     LaunchedEffect(Unit) {
         val checker = UpdateChecker()
@@ -134,13 +218,48 @@ fun SkreenupApp() {
         )
     }
 
-    val mainBackStack = rememberNavBackStack(Editor)
+    // Check if we should start with a preset directly
+    val startWithPreset = remember { 
+        val intent = (context as? ComponentActivity)?.intent
+        intent?.getBooleanExtra("START_WITH_PRESET", false) ?: false
+    }
+
+    val settingsViewModel: SettingsViewModel = viewModel()
+    val continueLastProject by settingsViewModel.continueLastProject.collectAsState()
+    val settingsManager = com.example.skreenup.data.SettingsManager.getInstance(context)
+    val hasLastProject = remember { settingsManager.getLastEditorConfig() != null }
+    val lastScreen = remember { settingsManager.getLastVisitedScreen() }
+
+    val mainBackStack: NavBackStack<NavKey> = rememberNavBackStack(Home)
+    val mainBackStackList: MutableList<NavKey> = mainBackStack
+
+    LaunchedEffect(Unit) {
+        if (startWithPreset) {
+            mainBackStackList.add(Editor())
+        } else if (continueLastProject && hasLastProject && lastScreen == "Editor") {
+            mainBackStackList.add(Editor(isLastProject = true))
+        }
+    }
+
+    // Save current screen to settings
+    LaunchedEffect(mainBackStackList.lastOrNull()) {
+        val currentKey = mainBackStackList.lastOrNull()
+        if (currentKey != null) {
+            val screenName = when (currentKey) {
+                is Editor -> "Editor"
+                is Home, is Settings, is About, is com.example.skreenup.navigation.Presets, 
+                is com.example.skreenup.navigation.History, is com.example.skreenup.navigation.YourTemplates -> "Other"
+                else -> null
+            }
+            screenName?.let { settingsManager.setLastVisitedScreen(it) }
+        }
+    }
 
     NavDisplay(
         backStack = mainBackStack,
         onBack = { 
-            if (mainBackStack.size > 1) {
-                mainBackStack.removeAt(mainBackStack.size - 1)
+            if (mainBackStackList.size > 1) {
+                mainBackStackList.removeAt(mainBackStackList.size - 1)
             }
         },
         entryDecorators = listOf(
@@ -148,16 +267,64 @@ fun SkreenupApp() {
             rememberViewModelStoreNavEntryDecorator()
         ),
         entryProvider = entryProvider {
-            entry<Editor> {
+            entry<Home> {
+                HomeScreen(
+                    onNavigateToEditor = { presetId, projectId, staticTemplateId -> 
+                        mainBackStackList.add(Editor(presetId = presetId, projectId = projectId, staticTemplateId = staticTemplateId))
+                    },
+                    onNavigateToPresets = { /* mainBackStackList.add(Presets) */ },
+                    onNavigateToYourTemplates = { /* mainBackStackList.add(YourTemplates) */ },
+                    onNavigateToHistory = { /* mainBackStackList.add(History) */ },
+                    onNavigateToSettings = { mainBackStackList.add(Settings) }
+                )
+            }
+            entry<Settings> {
+                SettingsScreen(
+                    onNavigateToAbout = { mainBackStackList.add(About) },
+                    onBack = { 
+                        if (mainBackStackList.size > 1) {
+                            mainBackStackList.removeAt(mainBackStackList.size - 1)
+                        }
+                    }
+                )
+            }
+            entry<Presets> {
+                // TODO: Implement PresetsScreen
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Presets Screen (Coming Soon)")
+                }
+            }
+            entry<History> {
+                // TODO: Implement HistoryScreen
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("History Screen (Coming Soon)")
+                }
+            }
+            entry<YourTemplates> {
+                // TODO: Implement YourTemplatesScreen
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Your Templates Screen (Coming Soon)")
+                }
+            }
+            entry<Editor> { key ->
                 EditorScreen(
-                    onNavigateToAbout = { mainBackStack.add(About) }
+                    onNavigateToAbout = { mainBackStackList.add(About) },
+                    onBack = {
+                        if (mainBackStackList.size > 1) {
+                            mainBackStackList.removeAt(mainBackStackList.size - 1)
+                        }
+                    },
+                    presetId = key.presetId,
+                    projectId = key.projectId,
+                    staticTemplateId = key.staticTemplateId,
+                    isLastProject = key.isLastProject
                 )
             }
             entry<About> {
                 AboutScreen(
                     onBack = { 
-                        if (mainBackStack.size > 1) {
-                            mainBackStack.removeAt(mainBackStack.size - 1)
+                        if (mainBackStackList.size > 1) {
+                            mainBackStackList.removeAt(mainBackStackList.size - 1)
                         }
                     }
                 )
@@ -170,12 +337,36 @@ fun SkreenupApp() {
 @Composable
 fun EditorScreen(
     onNavigateToAbout: () -> Unit,
-    editorViewModel: EditorViewModel = viewModel()
+    onBack: () -> Unit,
+    presetId: Long? = null,
+    projectId: Long? = null,
+    staticTemplateId: String? = null,
+    isLastProject: Boolean = false,
+    editorViewModel: EditorViewModel = viewModel(),
+    settingsViewModel: SettingsViewModel = viewModel()
 ) {
-    val tabBackStack = rememberNavBackStack(FrameTab)
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val tabBackStack: NavBackStack<NavKey> = rememberNavBackStack(FrameTab as NavKey)
+    val tabBackStackList: MutableList<NavKey> = tabBackStack
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    val defaultExportAction by settingsViewModel.defaultExportAction.collectAsState()
+    var showExportDialog by remember { mutableStateOf(false) }
     
+    LaunchedEffect(presetId, projectId, staticTemplateId, isLastProject) {
+        if (isLastProject) {
+            editorViewModel.loadLastProject()
+        } else if (presetId != null) {
+            editorViewModel.loadPreset(presetId)
+        } else if (projectId != null) {
+            editorViewModel.loadProject(projectId)
+        } else if (staticTemplateId != null) {
+            editorViewModel.loadStaticTemplate(staticTemplateId)
+        } else {
+            editorViewModel.clearInitialConfig()
+            editorViewModel.resetAll()
+        }
+    }
     val isKeyboardVisible = WindowInsets.isImeVisible
     val previewWeight = if (isKeyboardVisible) 0.5f else 1f
 
@@ -216,6 +407,21 @@ fun EditorScreen(
     val subheadingBold by editorViewModel.subheadingBold.collectAsState()
     val showReflection by editorViewModel.showReflection.collectAsState()
     val textShadow by editorViewModel.textShadow.collectAsState()
+    val showWatermark by editorViewModel.showWatermark.collectAsState()
+    val watermarkText by editorViewModel.watermarkText.collectAsState()
+
+    // Save state whenever any of these change
+    LaunchedEffect(
+        selectedDevice, screenshot, backgroundType, backgroundColor, gradientColors,
+        backgroundImage, backgroundImageOffsetX, backgroundImageOffsetY, backgroundImageScale, backgroundImageBlur,
+        screenBackgroundColor, scale, imageScale, aspectRatio, frameOffsetX, frameOffsetY,
+        screenshotOffsetX, screenshotOffsetY, screenshotRotation, rotation,
+        heading, subheading, headingFont, subheadingFont, headingSize, subheadingSize,
+        textGap, textOffsetX, textOffsetY, textColor, textAlign, headingBold, subheadingBold,
+        showReflection, textShadow, showWatermark, watermarkText
+    ) {
+        editorViewModel.saveStateToPrefs()
+    }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -226,13 +432,77 @@ fun EditorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Skreenup") },
-                actions = {
-                    IconButton(onClick = { editorViewModel.resetAll() }) {
-                        Icon(Icons.Rounded.Refresh, contentDescription = "Reset All")
+                title = { Text("Skreenup", color = MaterialTheme.colorScheme.onBackground) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
                     }
-                    IconButton(onClick = onNavigateToAbout) {
-                        Icon(Icons.Rounded.Info, contentDescription = "About")
+                },
+                actions = {
+                    val isSaved by editorViewModel.isSaved.collectAsState()
+                    IconButton(onClick = { 
+                        scope.launch {
+                            val bitmap = captureToBitmap(
+                                density = Density(context),
+                                screenshot = screenshot,
+                                deviceModel = selectedDevice,
+                                backgroundType = backgroundType,
+                                backgroundColor = backgroundColor,
+                                gradientColors = gradientColors,
+                                backgroundImage = backgroundImage,
+                                backgroundImageOffsetX = backgroundImageOffsetX,
+                                backgroundImageOffsetY = backgroundImageOffsetY,
+                                backgroundImageScale = backgroundImageScale,
+                                backgroundImageBlur = backgroundImageBlur,
+                                scale = scale,
+                                imageScale = imageScale,
+                                frameOffsetX = frameOffsetX,
+                                frameOffsetY = frameOffsetY,
+                                screenshotOffsetX = screenshotOffsetX,
+                                screenshotOffsetY = screenshotOffsetY,
+                                aspectRatio = aspectRatio,
+                                rotationDegrees = rotation,
+                                screenshotRotation = screenshotRotation,
+                                screenBackgroundColor = screenBackgroundColor,
+                                heading = heading,
+                                subheading = subheading,
+                                headingFont = headingFont,
+                                subheadingFont = subheadingFont,
+                                headingSize = headingSize,
+                                subheadingSize = subheadingSize,
+                                textGap = textGap,
+                                textColor = textColor,
+                                textOffsetX = textOffsetX,
+                                textOffsetY = textOffsetY,
+                                textAlignment = textAlign,
+                                headingBold = headingBold,
+                                subheadingBold = subheadingBold,
+                                showReflection = showReflection,
+                                showTextShadow = textShadow,
+                                shadowIntensity = editorViewModel.shadowIntensity.value,
+                                shadowSoftness = editorViewModel.shadowSoftness.value,
+                                textZIndex = editorViewModel.textZIndex.value,
+                                showWatermark = showWatermark,
+                                watermarkText = watermarkText,
+                                ignoreScreenshot = true
+                            )
+                            val path = savePreviewToInternal(context, bitmap)
+                            editorViewModel.saveTemplate(previewUri = path)
+                            Toast.makeText(context, "Template Saved!", Toast.LENGTH_SHORT).show()
+                        }
+                    }) {
+                        Icon(
+                            if (isSaved) Icons.Rounded.Bookmark else Icons.Outlined.BookmarkBorder,
+                            contentDescription = "Save Template",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                    IconButton(onClick = { editorViewModel.resetAll() }) {
+                        Icon(Icons.Rounded.Refresh, contentDescription = "Reset All", tint = MaterialTheme.colorScheme.onBackground)
                     }
                     IconButton(onClick = { 
                         scope.launch {
@@ -274,31 +544,55 @@ fun EditorScreen(
                                 showReflection = showReflection,
                                 showTextShadow = textShadow,
                                 shadowIntensity = editorViewModel.shadowIntensity.value,
-                                shadowSoftness = editorViewModel.shadowSoftness.value
+                                shadowSoftness = editorViewModel.shadowSoftness.value,
+                                textZIndex = editorViewModel.textZIndex.value,
+                                showWatermark = showWatermark,
+                                watermarkText = watermarkText,
+                                ignoreScreenshot = false
                             )
-                            val success = saveBitmapToGallery(context, bitmap)
-                            if (success) {
-                                Toast.makeText(context, "Export Saved!", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(context, "Export failed.", Toast.LENGTH_SHORT).show()
+
+                            val performSave = suspend {
+                                val path = savePreviewToInternal(context, bitmap)
+                                val success = saveBitmapToGallery(context, bitmap)
+                                if (success) {
+                                    editorViewModel.saveToHistory(previewUri = path)
+                                    Toast.makeText(context, "Export Saved!", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "Export failed.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+
+                            val performShare = {
+                                shareImage(context, bitmap)
+                            }
+
+                            val performCopy = {
+                                copyImageToClipboard(context, bitmap)
+                            }
+
+                            when (defaultExportAction) {
+                                ExportAction.ASK -> showExportDialog = true
+                                ExportAction.SAVE -> performSave()
+                                ExportAction.SHARE -> performShare()
+                                ExportAction.CLIPBOARD -> performCopy()
                             }
                         }
                     }) {
-                        Icon(Icons.Rounded.Save, contentDescription = "Save")
+                        Icon(Icons.Rounded.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.onBackground)
                     }
                 }
             )
         },
         bottomBar = {
             NavigationBar {
-                val currentTab = tabBackStack.lastOrNull()
+                val currentTab = tabBackStackList.lastOrNull()
 
                 NavigationBarItem(
                     selected = currentTab == FrameTab,
                     onClick = { 
                         if (currentTab != FrameTab) {
-                            tabBackStack.clear()
-                            tabBackStack.add(FrameTab)
+                            tabBackStackList.clear()
+                            tabBackStackList.add(FrameTab)
                         }
                     },
                     icon = { Icon(Icons.Rounded.Smartphone, contentDescription = "Frame") },
@@ -308,8 +602,8 @@ fun EditorScreen(
                     selected = currentTab == BackgroundTab,
                     onClick = { 
                         if (currentTab != BackgroundTab) {
-                            tabBackStack.clear()
-                            tabBackStack.add(BackgroundTab)
+                            tabBackStackList.clear()
+                            tabBackStackList.add(BackgroundTab)
                         }
                     },
                     icon = { Icon(Icons.Rounded.Palette, contentDescription = "Background") },
@@ -319,8 +613,8 @@ fun EditorScreen(
                     selected = currentTab == AdjustTab,
                     onClick = { 
                         if (currentTab != AdjustTab) {
-                            tabBackStack.clear()
-                            tabBackStack.add(AdjustTab)
+                            tabBackStackList.clear()
+                            tabBackStackList.add(AdjustTab)
                         }
                     },
                     icon = { Icon(Icons.Rounded.Tune, contentDescription = "Adjust") },
@@ -330,8 +624,8 @@ fun EditorScreen(
                     selected = currentTab == TextTab,
                     onClick = { 
                         if (currentTab != TextTab) {
-                            tabBackStack.clear()
-                            tabBackStack.add(TextTab)
+                            tabBackStackList.clear()
+                            tabBackStackList.add(TextTab)
                         }
                     },
                     icon = { Icon(Icons.Rounded.TextFields, contentDescription = "Text") },
@@ -349,16 +643,7 @@ fun EditorScreen(
             Box(
                 modifier = Modifier
                     .weight(previewWeight)
-                    .fillMaxWidth()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {
-                            photoPickerLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        }
-                    ),
+                    .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 DeviceFrame(
@@ -399,6 +684,9 @@ fun EditorScreen(
                     showTextShadow = textShadow,
                     shadowIntensity = editorViewModel.shadowIntensity.collectAsState().value,
                     shadowSoftness = editorViewModel.shadowSoftness.collectAsState().value,
+                    textZIndex = editorViewModel.textZIndex.collectAsState().value,
+                    showWatermark = showWatermark,
+                    watermarkText = watermarkText,
                     onScaleChange = { editorViewModel.setScale(it) },
                     onRotationChange = { editorViewModel.setRotation(it) },
                     onFrameOffsetChange = { x, y ->
@@ -408,6 +696,14 @@ fun EditorScreen(
                     onTextOffsetChange = { x, y ->
                         editorViewModel.setTextOffsetX(x)
                         editorViewModel.setTextOffsetY(y)
+                    },
+                    onHeadingSizeChange = { editorViewModel.setHeadingSize(it) },
+                    onSubheadingSizeChange = { editorViewModel.setSubheadingSize(it) },
+                    onTextZIndexChange = { editorViewModel.setTextZIndex(it) },
+                    onAddScreenshot = {
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
                     }
                 )
             }
@@ -416,8 +712,8 @@ fun EditorScreen(
             NavDisplay(
                 backStack = tabBackStack,
                 onBack = { 
-                    if (tabBackStack.size > 1) {
-                        tabBackStack.removeAt(tabBackStack.size - 1)
+                    if (tabBackStackList.size > 1) {
+                        tabBackStackList.removeAt(tabBackStackList.size - 1)
                     }
                 },
                 entryDecorators = listOf(
@@ -443,6 +739,330 @@ fun EditorScreen(
                     .weight(0.6f)
             )
         }
+    }
+
+    if (showExportDialog) {
+        AlertDialog(
+            onDismissRequest = { showExportDialog = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+            content = {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .padding(16.dp),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 6.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.align(Alignment.CenterStart)) {
+                                Text(
+                                    text = "Export Mockup",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Choose how to save or share your art.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        val bitmap = captureToBitmap(
+                                            density = Density(context),
+                                            screenshot = screenshot,
+                                            deviceModel = selectedDevice,
+                                            backgroundType = backgroundType,
+                                            backgroundColor = backgroundColor,
+                                            gradientColors = gradientColors,
+                                            backgroundImage = backgroundImage,
+                                            backgroundImageOffsetX = backgroundImageOffsetX,
+                                            backgroundImageOffsetY = backgroundImageOffsetY,
+                                            backgroundImageScale = backgroundImageScale,
+                                            backgroundImageBlur = backgroundImageBlur,
+                                            scale = scale,
+                                            imageScale = imageScale,
+                                            frameOffsetX = frameOffsetX,
+                                            frameOffsetY = frameOffsetY,
+                                            screenshotOffsetX = screenshotOffsetX,
+                                            screenshotOffsetY = screenshotOffsetY,
+                                            aspectRatio = aspectRatio,
+                                            rotationDegrees = rotation,
+                                            screenshotRotation = screenshotRotation,
+                                            screenBackgroundColor = screenBackgroundColor,
+                                            heading = heading,
+                                            subheading = subheading,
+                                            headingFont = headingFont,
+                                            subheadingFont = subheadingFont,
+                                            headingSize = headingSize,
+                                            subheadingSize = subheadingSize,
+                                            textGap = textGap,
+                                            textColor = textColor,
+                                            textOffsetX = textOffsetX,
+                                            textOffsetY = textOffsetY,
+                                            textAlignment = textAlign,
+                                            headingBold = headingBold,
+                                            subheadingBold = subheadingBold,
+                                            showReflection = showReflection,
+                                            showTextShadow = textShadow,
+                                            shadowIntensity = editorViewModel.shadowIntensity.value,
+                                            shadowSoftness = editorViewModel.shadowSoftness.value,
+                                            textZIndex = editorViewModel.textZIndex.value,
+                                            showWatermark = showWatermark,
+                                            watermarkText = watermarkText,
+                                            ignoreScreenshot = false
+                                        )
+                                        shareImage(context, bitmap)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(48.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        androidx.compose.foundation.shape.CircleShape
+                                    )
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Share,
+                                    contentDescription = "Quick Share",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(24.dp))
+
+                        // Save Button (Primary)
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    val bitmap = captureToBitmap(
+                                        density = Density(context),
+                                        screenshot = screenshot,
+                                        deviceModel = selectedDevice,
+                                        backgroundType = backgroundType,
+                                        backgroundColor = backgroundColor,
+                                        gradientColors = gradientColors,
+                                        backgroundImage = backgroundImage,
+                                        backgroundImageOffsetX = backgroundImageOffsetX,
+                                        backgroundImageOffsetY = backgroundImageOffsetY,
+                                        backgroundImageScale = backgroundImageScale,
+                                        backgroundImageBlur = backgroundImageBlur,
+                                        scale = scale,
+                                        imageScale = imageScale,
+                                        frameOffsetX = frameOffsetX,
+                                        frameOffsetY = frameOffsetY,
+                                        screenshotOffsetX = screenshotOffsetX,
+                                        screenshotOffsetY = screenshotOffsetY,
+                                        aspectRatio = aspectRatio,
+                                        rotationDegrees = rotation,
+                                        screenshotRotation = screenshotRotation,
+                                        screenBackgroundColor = screenBackgroundColor,
+                                        heading = heading,
+                                        subheading = subheading,
+                                        headingFont = headingFont,
+                                        subheadingFont = subheadingFont,
+                                        headingSize = headingSize,
+                                        subheadingSize = subheadingSize,
+                                        textGap = textGap,
+                                        textColor = textColor,
+                                        textOffsetX = textOffsetX,
+                                        textOffsetY = textOffsetY,
+                                        textAlignment = textAlign,
+                                        headingBold = headingBold,
+                                        subheadingBold = subheadingBold,
+                                        showReflection = showReflection,
+                                        showTextShadow = textShadow,
+                                        shadowIntensity = editorViewModel.shadowIntensity.value,
+                                        shadowSoftness = editorViewModel.shadowSoftness.value,
+                                        textZIndex = editorViewModel.textZIndex.value,
+                                        showWatermark = showWatermark,
+                                        watermarkText = watermarkText,
+                                        ignoreScreenshot = false
+                                    )
+                                    val path = savePreviewToInternal(context, bitmap)
+                                    val success = saveBitmapToGallery(context, bitmap)
+                                    if (success) {
+                                        editorViewModel.saveToHistory(previewUri = path)
+                                        Toast.makeText(context, "Export Saved!", Toast.LENGTH_SHORT).show()
+                                    }
+                                    showExportDialog = false
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                        ) {
+                            Icon(Icons.Rounded.Save, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text("Save to Gallery", style = MaterialTheme.typography.labelLarge)
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        // Share Button
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    val bitmap = captureToBitmap(
+                                        density = Density(context),
+                                        screenshot = screenshot,
+                                        deviceModel = selectedDevice,
+                                        backgroundType = backgroundType,
+                                        backgroundColor = backgroundColor,
+                                        gradientColors = gradientColors,
+                                        backgroundImage = backgroundImage,
+                                        backgroundImageOffsetX = backgroundImageOffsetX,
+                                        backgroundImageOffsetY = backgroundImageOffsetY,
+                                        backgroundImageScale = backgroundImageScale,
+                                        backgroundImageBlur = backgroundImageBlur,
+                                        scale = scale,
+                                        imageScale = imageScale,
+                                        frameOffsetX = frameOffsetX,
+                                        frameOffsetY = frameOffsetY,
+                                        screenshotOffsetX = screenshotOffsetX,
+                                        screenshotOffsetY = screenshotOffsetY,
+                                        aspectRatio = aspectRatio,
+                                        rotationDegrees = rotation,
+                                        screenshotRotation = screenshotRotation,
+                                        screenBackgroundColor = screenBackgroundColor,
+                                        heading = heading,
+                                        subheading = subheading,
+                                        headingFont = headingFont,
+                                        subheadingFont = subheadingFont,
+                                        headingSize = headingSize,
+                                        subheadingSize = subheadingSize,
+                                        textGap = textGap,
+                                        textColor = textColor,
+                                        textOffsetX = textOffsetX,
+                                        textOffsetY = textOffsetY,
+                                        textAlignment = textAlign,
+                                        headingBold = headingBold,
+                                        subheadingBold = subheadingBold,
+                                        showReflection = showReflection,
+                                        showTextShadow = textShadow,
+                                        shadowIntensity = editorViewModel.shadowIntensity.value,
+                                        shadowSoftness = editorViewModel.shadowSoftness.value,
+                                        textZIndex = editorViewModel.textZIndex.value,
+                                        showWatermark = showWatermark,
+                                        watermarkText = watermarkText,
+                                        ignoreScreenshot = false
+                                    )
+                                    shareImage(context, bitmap)
+                                    showExportDialog = false
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                        ) {
+                            Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text("Share as Image", style = MaterialTheme.typography.labelLarge)
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        // Copy Button
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    val bitmap = captureToBitmap(
+                                        density = Density(context),
+                                        screenshot = screenshot,
+                                        deviceModel = selectedDevice,
+                                        backgroundType = backgroundType,
+                                        backgroundColor = backgroundColor,
+                                        gradientColors = gradientColors,
+                                        backgroundImage = backgroundImage,
+                                        backgroundImageOffsetX = backgroundImageOffsetX,
+                                        backgroundImageOffsetY = backgroundImageOffsetY,
+                                        backgroundImageScale = backgroundImageScale,
+                                        backgroundImageBlur = backgroundImageBlur,
+                                        scale = scale,
+                                        imageScale = imageScale,
+                                        frameOffsetX = frameOffsetX,
+                                        frameOffsetY = frameOffsetY,
+                                        screenshotOffsetX = screenshotOffsetX,
+                                        screenshotOffsetY = screenshotOffsetY,
+                                        aspectRatio = aspectRatio,
+                                        rotationDegrees = rotation,
+                                        screenshotRotation = screenshotRotation,
+                                        screenBackgroundColor = screenBackgroundColor,
+                                        heading = heading,
+                                        subheading = subheading,
+                                        headingFont = headingFont,
+                                        subheadingFont = subheadingFont,
+                                        headingSize = headingSize,
+                                        subheadingSize = subheadingSize,
+                                        textGap = textGap,
+                                        textColor = textColor,
+                                        textOffsetX = textOffsetX,
+                                        textOffsetY = textOffsetY,
+                                        textAlignment = textAlign,
+                                        headingBold = headingBold,
+                                        subheadingBold = subheadingBold,
+                                        showReflection = showReflection,
+                                        showTextShadow = textShadow,
+                                        shadowIntensity = editorViewModel.shadowIntensity.value,
+                                        shadowSoftness = editorViewModel.shadowSoftness.value,
+                                        textZIndex = editorViewModel.textZIndex.value,
+                                        showWatermark = showWatermark,
+                                        watermarkText = watermarkText,
+                                        ignoreScreenshot = false
+                                    )
+                                    copyImageToClipboard(context, bitmap)
+                                    showExportDialog = false
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                        ) {
+                            Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text("Copy to Clipboard", style = MaterialTheme.typography.labelLarge)
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        TextButton(
+                            onClick = { showExportDialog = false }
+                        ) {
+                            Text(
+                                "Cancel",
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
+                    }
+                }
+            }
+        )
     }
 }
 
@@ -484,7 +1104,11 @@ suspend fun captureToBitmap(
     showReflection: Boolean = true,
     showTextShadow: Boolean = true,
     shadowIntensity: Float = 0.3f,
-    shadowSoftness: Float = 1.0f
+    shadowSoftness: Float = 1.0f,
+    textZIndex: Int = 1,
+    showWatermark: Boolean = true,
+    watermarkText: String = "Made with Skreenup",
+    ignoreScreenshot: Boolean = false
 ): Bitmap {
     return withContext(Dispatchers.Default) {
         val exportWidth = 2048
@@ -500,7 +1124,7 @@ suspend fun captureToBitmap(
             size = Size(exportWidth.toFloat(), exportHeight.toFloat())
         ) {
             drawMockup(
-                screenshot = screenshot,
+                screenshot = if (ignoreScreenshot) null else screenshot,
                 deviceModel = deviceModel,
                 backgroundType = backgroundType,
                 backgroundColor = backgroundColor,
@@ -517,8 +1141,6 @@ suspend fun captureToBitmap(
                 screenshotOffsetX = screenshotOffsetX,
                 screenshotOffsetY = screenshotOffsetY,
                 aspectRatio = aspectRatio,
-                showWatermark = false,
-                watermarkText = "",
                 isExport = true,
                 rotationDegrees = rotationDegrees,
                 screenshotRotation = screenshotRotation,
@@ -539,11 +1161,25 @@ suspend fun captureToBitmap(
                 showReflection = showReflection,
                 showTextShadow = showTextShadow,
                 shadowIntensity = shadowIntensity,
-                shadowSoftness = shadowSoftness
+                shadowSoftness = shadowSoftness,
+                textZIndex = textZIndex,
+                showWatermark = showWatermark,
+                watermarkText = watermarkText
             )
         }
 
         bitmap
+    }
+}
+
+suspend fun savePreviewToInternal(context: android.content.Context, bitmap: Bitmap): String {
+    return withContext(Dispatchers.IO) {
+        val filename = "preview_${System.currentTimeMillis()}.png"
+        val file = File(context.filesDir, filename)
+        file.outputStream().use {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 50, it)
+        }
+        file.absolutePath
     }
 }
 
@@ -567,5 +1203,59 @@ suspend fun saveBitmapToGallery(context: android.content.Context, bitmap: Bitmap
             e.printStackTrace()
             false
         }
+    }
+}
+
+fun shareImage(context: android.content.Context, bitmap: Bitmap) {
+    try {
+        val cachePath = File(context.cacheDir, "shared_images")
+        cachePath.mkdirs()
+        val stream = FileOutputStream("$cachePath/image.png")
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        stream.close()
+
+        val imagePath = File(context.cacheDir, "shared_images")
+        val newFile = File(imagePath, "image.png")
+        val contentUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", newFile)
+
+        if (contentUri != null) {
+            val shareIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                setDataAndType(contentUri, context.contentResolver.getType(contentUri))
+                putExtra(Intent.EXTRA_STREAM, contentUri)
+                type = "image/png"
+            }
+            context.startActivity(Intent.createChooser(shareIntent, "Share Image"))
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
+fun copyImageToClipboard(context: android.content.Context, bitmap: Bitmap) {
+    try {
+        val cachePath = File(context.cacheDir, "shared_images")
+        cachePath.mkdirs()
+        val stream = FileOutputStream("$cachePath/copy_image.png")
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        stream.close()
+
+        val imagePath = File(context.cacheDir, "shared_images")
+        val newFile = File(imagePath, "copy_image.png")
+        val contentUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", newFile)
+
+        if (contentUri != null) {
+            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newUri(context.contentResolver, "Image", contentUri)
+            clipboard.setPrimaryClip(clip)
+            
+            // Android 13+ shows its own visual confirmation, but for older versions we might want a Toast
+            if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.S_V2) {
+                Toast.makeText(context, "Image copied to clipboard", Toast.LENGTH_SHORT).show()
+            }
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
 }

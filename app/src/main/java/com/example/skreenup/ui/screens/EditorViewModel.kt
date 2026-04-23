@@ -19,18 +19,37 @@ import com.example.skreenup.ui.models.DeviceModels
 import com.example.skreenup.ui.models.TextFont
 import com.example.skreenup.ui.models.TextAlignLabel
 import kotlinx.coroutines.Dispatchers
+import com.example.skreenup.data.Project
+import com.example.skreenup.data.Preset
+import com.example.skreenup.data.SkreenupDatabase
+import com.example.skreenup.ui.models.EditorConfig
+import com.example.skreenup.data.PRESET_TEMPLATES
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
+import com.example.skreenup.data.SettingsManager
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
+    private val db = SkreenupDatabase.getDatabase(application)
+    private val presetDao = db.presetDao()
+    private val projectDao = db.projectDao()
+    private val settingsManager = SettingsManager.getInstance(application)
+
+    private var initialConfig: EditorConfig? = null
+
     private val _selectedDevice = MutableStateFlow(DeviceModels.first())
     val selectedDevice: StateFlow<DeviceModel> = _selectedDevice.asStateFlow()
 
     private val _screenshot = MutableStateFlow<ImageBitmap?>(null)
     val screenshot: StateFlow<ImageBitmap?> = _screenshot.asStateFlow()
+
+    private val _screenshotUri = MutableStateFlow<String?>(null)
+    val screenshotUri: StateFlow<String?> = _screenshotUri.asStateFlow()
 
     // Background State
     private val _backgroundType = MutableStateFlow(BackgroundType.GRADIENT)
@@ -44,6 +63,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _backgroundImage = MutableStateFlow<ImageBitmap?>(null)
     val backgroundImage: StateFlow<ImageBitmap?> = _backgroundImage.asStateFlow()
+
+    private val _backgroundImageUri = MutableStateFlow<String?>(null)
+    val backgroundImageUri: StateFlow<String?> = _backgroundImageUri.asStateFlow()
 
     private val _backgroundImageOffsetX = MutableStateFlow(0f)
     val backgroundImageOffsetX: StateFlow<Float> = _backgroundImageOffsetX.asStateFlow()
@@ -141,6 +163,15 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _textShadow = MutableStateFlow(true)
     val textShadow: StateFlow<Boolean> = _textShadow.asStateFlow()
 
+    private val _textZIndex = MutableStateFlow(1)
+    val textZIndex: StateFlow<Int> = _textZIndex.asStateFlow()
+
+    private val _showWatermark = MutableStateFlow(true)
+    val showWatermark: StateFlow<Boolean> = _showWatermark.asStateFlow()
+
+    private val _watermarkText = MutableStateFlow("Made with Skreenup")
+    val watermarkText: StateFlow<String> = _watermarkText.asStateFlow()
+
     private val _hexColorSolid = MutableStateFlow("#3F51B5")
     val hexColorSolid: StateFlow<String> = _hexColorSolid.asStateFlow()
 
@@ -155,28 +186,33 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun selectDevice(device: DeviceModel) {
         _selectedDevice.value = device
+        _isSaved.value = false
     }
 
     fun setScreenshot(uri: Uri) {
+        _screenshotUri.value = uri.toString()
         viewModelScope.launch {
-            val bitmap = loadBitmapFromUri(getApplication(), uri)
+            val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), uri)
             _screenshot.value = bitmap?.asImageBitmap()
         }
     }
 
     fun setBackgroundType(type: BackgroundType) {
         _backgroundType.value = type
+        _isSaved.value = false
     }
 
     fun setBackgroundColor(color: Color) {
         _backgroundColor.value = color
         _hexColorSolid.value = "#" + Integer.toHexString(color.toArgb()).uppercase().substring(2)
+        _isSaved.value = false
     }
 
     fun setGradientColors(colors: List<Color>) {
         _gradientColors.value = colors
         _hexColorGradientStart.value = "#" + Integer.toHexString(colors[0].toArgb()).uppercase().substring(2)
         _hexColorGradientEnd.value = "#" + Integer.toHexString(colors[1].toArgb()).uppercase().substring(2)
+        _isSaved.value = false
     }
 
     fun swapGradientColors() {
@@ -187,9 +223,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setBackgroundImage(uri: Uri) {
+        _backgroundImageUri.value = uri.toString()
         viewModelScope.launch {
-            val bitmap = loadBitmapFromUri(getApplication(), uri)
+            val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), uri)
             _backgroundImage.value = bitmap?.asImageBitmap()
+            _backgroundType.value = BackgroundType.IMAGE
         }
     }
 
@@ -210,8 +248,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setPresetBackgroundImage(url: String) {
+        _backgroundImageUri.value = url
         viewModelScope.launch {
-            val bitmap = loadBitmapFromUrl(getApplication(), url)
+            val bitmap = ImageLoaderHelper.loadBitmapFromUrl(getApplication(), url)
             _backgroundImage.value = bitmap?.asImageBitmap()
             _backgroundType.value = BackgroundType.IMAGE
         }
@@ -219,39 +258,48 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setScale(value: Float) {
         _scale.value = value
+        _isSaved.value = false
     }
 
     fun setImageScale(value: Float) {
         _imageScale.value = value
+        _isSaved.value = false
     }
 
     fun setScreenshotRotation(value: Float) {
         _screenshotRotation.value = value
+        _isSaved.value = false
     }
 
     fun setAspectRatio(ratio: CompositionAspectRatio) {
         _aspectRatio.value = ratio
+        _isSaved.value = false
     }
 
     fun setFrameOffsetX(value: Float) {
         _frameOffsetX.value = value
+        _isSaved.value = false
     }
 
     fun setFrameOffsetY(value: Float) {
         _frameOffsetY.value = value
+        _isSaved.value = false
     }
 
     fun setScreenshotOffsetX(value: Float) {
         _screenshotOffsetX.value = value
+        _isSaved.value = false
     }
 
     fun setScreenshotOffsetY(value: Float) {
         _screenshotOffsetY.value = value
+        _isSaved.value = false
     }
 
     // Rotation with snap
     fun setRotation(degrees: Float) {
         _rotation.value = degrees
+        _isSaved.value = false
     }
 
     fun setHexColorSolid(value: String) {
@@ -284,78 +332,190 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     // Text Setters
-    fun setHeading(value: String) { _heading.value = value }
-    fun setSubheading(value: String) { _subheading.value = value }
+    fun setHeading(value: String) { 
+        _heading.value = value 
+        _isSaved.value = false
+    }
+    fun setSubheading(value: String) { 
+        _subheading.value = value 
+        _isSaved.value = false
+    }
     fun setHeadingFont(value: TextFont) { _headingFont.value = value }
     fun setSubheadingFont(value: TextFont) { _subheadingFont.value = value }
-    fun setHeadingSize(value: Float) { _headingSize.value = value }
-    fun setSubheadingSize(value: Float) { _subheadingSize.value = value }
-    fun setTextGap(value: Float) { _textGap.value = value }
+    fun setHeadingSize(value: Float) { 
+        _headingSize.value = value 
+        _isSaved.value = false
+    }
+    fun setSubheadingSize(value: Float) { 
+        _subheadingSize.value = value 
+        _isSaved.value = false
+    }
+    fun setTextGap(value: Float) { 
+        _textGap.value = value 
+        _isSaved.value = false
+    }
     fun setTextOffsetX(value: Float) {
         _textOffsetX.value = value
+        _isSaved.value = false
     }
     fun setTextOffsetY(value: Float) {
         _textOffsetY.value = value
+        _isSaved.value = false
     }
-    fun setTextColor(color: Color) { _textColor.value = color }
-    fun setTextAlign(value: TextAlignLabel) { _textAlign.value = value }
-    fun setHeadingBold(value: Boolean) { _headingBold.value = value }
-    fun setSubheadingBold(value: Boolean) { _subheadingBold.value = value }
+    fun setTextColor(color: Color) { 
+        _textColor.value = color 
+        _isSaved.value = false
+    }
+    fun setTextAlign(value: TextAlignLabel) { 
+        _textAlign.value = value 
+        _isSaved.value = false
+    }
+    fun setHeadingBold(value: Boolean) { 
+        _headingBold.value = value 
+        _isSaved.value = false
+    }
+    fun setSubheadingBold(value: Boolean) { 
+        _subheadingBold.value = value 
+        _isSaved.value = false
+    }
 
-    fun setShowReflection(value: Boolean) { _showReflection.value = value }
+    fun setShowReflection(value: Boolean) { 
+        _showReflection.value = value 
+        _isSaved.value = false
+    }
 
-    fun setShadowIntensity(value: Float) { _shadowIntensity.value = value }
+    fun setShadowIntensity(value: Float) { 
+        _shadowIntensity.value = value 
+        _isSaved.value = false
+    }
 
-    fun setShadowSoftness(value: Float) { _shadowSoftness.value = value }
+    fun setShadowSoftness(value: Float) { 
+        _shadowSoftness.value = value 
+        _isSaved.value = false
+    }
 
-    fun setTextShadow(value: Boolean) { _textShadow.value = value }
+    fun setTextShadow(value: Boolean) { 
+        _textShadow.value = value 
+        _isSaved.value = false
+    }
+
+    fun setTextZIndex(value: Int) { 
+        _textZIndex.value = value 
+        _isSaved.value = false
+    }
+
+    fun setShowWatermark(value: Boolean) {
+        _showWatermark.value = value
+        _isSaved.value = false
+    }
+
+    fun setWatermarkText(value: String) {
+        _watermarkText.value = value
+        _isSaved.value = false
+    }
 
     fun resetFrameTab() {
-        _selectedDevice.value = DeviceModels.first()
-        _showReflection.value = true
-        setScreenBackgroundColor(Color(0xFF2C2C2C))
+        initialConfig?.let { config ->
+            _selectedDevice.value = DeviceModels.find { it.name == config.selectedDeviceName } ?: DeviceModels.first()
+            _showReflection.value = config.showReflection
+            setScreenBackgroundColor(Color(config.screenBackgroundColor))
+        } ?: run {
+            _selectedDevice.value = DeviceModels.first()
+            _showReflection.value = true
+            setScreenBackgroundColor(Color(0xFF2C2C2C))
+        }
+        _screenshot.value = null
+        _screenshotUri.value = null
     }
 
     fun resetBackgroundTab() {
-        _backgroundType.value = BackgroundType.GRADIENT
-        setBackgroundColor(Color(0xFF3F51B5))
-        setGradientColors(listOf(Color(0xFF3F51B5), Color(0xFF006A6A)))
+        initialConfig?.let { config ->
+            _backgroundType.value = BackgroundType.valueOf(config.backgroundType)
+            setBackgroundColor(Color(config.backgroundColor))
+            setGradientColors(config.gradientColors.map { Color(it) })
+            _backgroundImageOffsetX.value = config.backgroundImageOffsetX
+            _backgroundImageOffsetY.value = config.backgroundImageOffsetY
+            _backgroundImageScale.value = config.backgroundImageScale
+            _backgroundImageBlur.value = config.backgroundImageBlur
+        } ?: run {
+            _backgroundType.value = BackgroundType.GRADIENT
+            setBackgroundColor(Color(0xFF3F51B5))
+            setGradientColors(listOf(Color(0xFF3F51B5), Color(0xFF006A6A)))
+            _backgroundImageOffsetX.value = 0f
+            _backgroundImageOffsetY.value = 0f
+            _backgroundImageScale.value = 1.0f
+            _backgroundImageBlur.value = 0f
+        }
         _backgroundImage.value = null
-        _backgroundImageOffsetX.value = 0f
-        _backgroundImageOffsetY.value = 0f
-        _backgroundImageScale.value = 1.0f
-        _backgroundImageBlur.value = 0f
+        _backgroundImageUri.value = null
     }
 
     fun resetAdjustTab() {
-        _scale.value = 0.8f
-        _imageScale.value = 1.0f
-        _screenshotRotation.value = 0f
-        _aspectRatio.value = CompositionAspectRatio.SQUARE
-        _frameOffsetX.value = 0f
-        _frameOffsetY.value = 0f
-        _screenshotOffsetX.value = 0f
-        _screenshotOffsetY.value = 0f
-        _rotation.value = 0f
-        _shadowIntensity.value = 0.3f
-        _shadowSoftness.value = 1.0f
+        initialConfig?.let { config ->
+            _scale.value = config.scale
+            _imageScale.value = config.imageScale
+            _screenshotRotation.value = config.screenshotRotation
+            _aspectRatio.value = CompositionAspectRatio.valueOf(config.aspectRatio)
+            _frameOffsetX.value = config.frameOffsetX
+            _frameOffsetY.value = config.frameOffsetY
+            _screenshotOffsetX.value = config.screenshotOffsetX
+            _screenshotOffsetY.value = config.screenshotOffsetY
+            _rotation.value = config.rotation
+            _shadowIntensity.value = config.shadowIntensity
+            _shadowSoftness.value = config.shadowSoftness
+        } ?: run {
+            _scale.value = 0.8f
+            _imageScale.value = 1.0f
+            _screenshotRotation.value = 0f
+            _aspectRatio.value = CompositionAspectRatio.SQUARE
+            _frameOffsetX.value = 0f
+            _frameOffsetY.value = 0f
+            _screenshotOffsetX.value = 0f
+            _screenshotOffsetY.value = 0f
+            _rotation.value = 0f
+            _shadowIntensity.value = 0.3f
+            _shadowSoftness.value = 1.0f
+        }
     }
 
     fun resetTextTab() {
-        _heading.value = ""
-        _subheading.value = ""
-        _headingSize.value = 60f
-        _subheadingSize.value = 40f
-        _textGap.value = 20f
-        _textOffsetX.value = 0f
-        _textOffsetY.value = 0f
-        _textColor.value = Color.White
-        _textAlign.value = TextAlignLabel.CENTER
-        _textShadow.value = true
-        _headingFont.value = TextFont.POPPINS
-        _subheadingFont.value = TextFont.POPPINS
-        _headingBold.value = true
-        _subheadingBold.value = false
+        initialConfig?.let { config ->
+            _heading.value = config.heading
+            _subheading.value = config.subheading
+            _headingSize.value = config.headingSize
+            _subheadingSize.value = config.subheadingSize
+            _textGap.value = config.textGap
+            _textOffsetX.value = config.textOffsetX
+            _textOffsetY.value = config.textOffsetY
+            _textColor.value = Color(config.textColor)
+            _textAlign.value = TextAlignLabel.valueOf(config.textAlign)
+            _textShadow.value = config.textShadow
+            _headingFont.value = TextFont.valueOf(config.headingFont)
+            _subheadingFont.value = TextFont.valueOf(config.subheadingFont)
+            _headingBold.value = config.headingBold
+            _subheadingBold.value = config.subheadingBold
+            _textZIndex.value = config.textZIndex
+            _showWatermark.value = config.showWatermark
+            _watermarkText.value = config.watermarkText
+        } ?: run {
+            _heading.value = ""
+            _subheading.value = ""
+            _headingSize.value = 60f
+            _subheadingSize.value = 40f
+            _textGap.value = 20f
+            _textOffsetX.value = 0f
+            _textOffsetY.value = 0f
+            _textColor.value = Color.White
+            _textAlign.value = TextAlignLabel.CENTER
+            _textShadow.value = true
+            _headingFont.value = TextFont.POPPINS
+            _subheadingFont.value = TextFont.POPPINS
+            _headingBold.value = true
+            _subheadingBold.value = false
+            _textZIndex.value = 1
+            _showWatermark.value = true
+            _watermarkText.value = "Made with Skreenup"
+        }
     }
 
     fun resetAll() {
@@ -363,6 +523,209 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         resetBackgroundTab()
         resetAdjustTab()
         resetTextTab()
+    }
+
+    fun clearInitialConfig() {
+        initialConfig = null
+    }
+
+    private val _isSaved = MutableStateFlow(true)
+    val isSaved: StateFlow<Boolean> = _isSaved.asStateFlow()
+
+    fun loadPreset(id: Long) {
+        viewModelScope.launch {
+            presetDao.getAllPresets().first().find { it.id == id }?.let { p ->
+                val config = Json.decodeFromString<EditorConfig>(p.configJson)
+                initialConfig = config
+                applyConfig(config)
+                _isSaved.value = true
+            }
+        }
+    }
+
+    fun loadStaticTemplate(id: String) {
+        PRESET_TEMPLATES.find { it.id == id }?.let { template ->
+            initialConfig = template.config
+            applyConfig(template.config)
+            _isSaved.value = true
+        }
+    }
+
+    // Better to use a direct query for single item
+    fun loadProject(id: Long) {
+        viewModelScope.launch {
+            projectDao.getProjectById(id)?.let { p ->
+                val config = Json.decodeFromString<EditorConfig>(p.configJson)
+                initialConfig = config
+                applyConfig(config)
+                _isSaved.value = true
+            }
+        }
+    }
+
+    fun loadLastProject() {
+        settingsManager.getLastEditorConfig()?.let { json ->
+            try {
+                val config = Json.decodeFromString<EditorConfig>(json)
+                applyConfig(config)
+                _isSaved.value = false // Last unsaved state
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun saveStateToPrefs() {
+        if (settingsManager.continueLastProject.value) {
+            val config = getCurrentConfig()
+            settingsManager.saveLastEditorConfig(Json.encodeToString(config))
+        }
+    }
+
+    private fun getCurrentConfig(): EditorConfig {
+        return EditorConfig(
+            selectedDeviceName = _selectedDevice.value.name,
+            screenshotUri = _screenshotUri.value,
+            backgroundType = _backgroundType.value.name,
+            backgroundColor = _backgroundColor.value.toArgb(),
+            gradientColors = _gradientColors.value.map { it.toArgb() },
+            backgroundImageUri = _backgroundImageUri.value,
+            backgroundImageOffsetX = _backgroundImageOffsetX.value,
+            backgroundImageOffsetY = _backgroundImageOffsetY.value,
+            backgroundImageScale = _backgroundImageScale.value,
+            backgroundImageBlur = _backgroundImageBlur.value,
+            screenBackgroundColor = _screenBackgroundColor.value.toArgb(),
+            heading = _heading.value,
+            subheading = _subheading.value,
+            headingFont = _headingFont.value.name,
+            subheadingFont = _subheadingFont.value.name,
+            headingSize = _headingSize.value,
+            subheadingSize = _subheadingSize.value,
+            textGap = _textGap.value,
+            textOffsetX = _textOffsetX.value,
+            textOffsetY = _textOffsetY.value,
+            textColor = _textColor.value.toArgb(),
+            textAlign = _textAlign.value.name,
+            headingBold = _headingBold.value,
+            subheadingBold = _subheadingBold.value,
+            scale = _scale.value,
+            imageScale = _imageScale.value,
+            screenshotRotation = _screenshotRotation.value,
+            aspectRatio = _aspectRatio.value.name,
+            frameOffsetX = _frameOffsetX.value,
+            frameOffsetY = _frameOffsetY.value,
+            screenshotOffsetX = _screenshotOffsetX.value,
+            screenshotOffsetY = _screenshotOffsetY.value,
+            rotation = _rotation.value,
+            showReflection = _showReflection.value,
+            shadowIntensity = _shadowIntensity.value,
+            shadowSoftness = _shadowSoftness.value,
+            textShadow = _textShadow.value,
+            textZIndex = _textZIndex.value,
+            showWatermark = _showWatermark.value,
+            watermarkText = _watermarkText.value
+        )
+    }
+
+    fun applyConfig(config: EditorConfig) {
+        _selectedDevice.value = DeviceModels.find { it.name == config.selectedDeviceName } ?: DeviceModels.first()
+        _backgroundType.value = BackgroundType.valueOf(config.backgroundType)
+        _backgroundColor.value = Color(config.backgroundColor)
+        _gradientColors.value = config.gradientColors.map { Color(it) }
+        
+        _screenshotUri.value = config.screenshotUri
+        config.screenshotUri?.let { uriStr ->
+            viewModelScope.launch {
+                val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), Uri.parse(uriStr))
+                _screenshot.value = bitmap?.asImageBitmap()
+            }
+        }
+
+        _backgroundImageUri.value = config.backgroundImageUri
+        config.backgroundImageUri?.let { uriStr ->
+            viewModelScope.launch {
+                val bitmap = if (uriStr.startsWith("http")) {
+                    ImageLoaderHelper.loadBitmapFromUrl(getApplication(), uriStr)
+                } else {
+                    ImageLoaderHelper.loadBitmapFromUri(getApplication(), Uri.parse(uriStr))
+                }
+                _backgroundImage.value = bitmap?.asImageBitmap()
+            }
+        }
+
+        _backgroundImageOffsetX.value = config.backgroundImageOffsetX
+        _backgroundImageOffsetY.value = config.backgroundImageOffsetY
+        _backgroundImageScale.value = config.backgroundImageScale
+        _backgroundImageBlur.value = config.backgroundImageBlur
+        _screenBackgroundColor.value = Color(config.screenBackgroundColor)
+        _heading.value = config.heading
+        _subheading.value = config.subheading
+        _headingFont.value = TextFont.valueOf(config.headingFont)
+        _subheadingFont.value = TextFont.valueOf(config.subheadingFont)
+        _headingSize.value = config.headingSize
+        _subheadingSize.value = config.subheadingSize
+        _textGap.value = config.textGap
+        _textOffsetX.value = config.textOffsetX
+        _textOffsetY.value = config.textOffsetY
+        _textColor.value = Color(config.textColor)
+        _textAlign.value = TextAlignLabel.valueOf(config.textAlign)
+        _headingBold.value = config.headingBold
+        _subheadingBold.value = config.subheadingBold
+        _scale.value = config.scale
+        _imageScale.value = config.imageScale
+        _screenshotRotation.value = config.screenshotRotation
+        _aspectRatio.value = CompositionAspectRatio.valueOf(config.aspectRatio)
+        _frameOffsetX.value = config.frameOffsetX
+        _frameOffsetY.value = config.frameOffsetY
+        _screenshotOffsetX.value = config.screenshotOffsetX
+        _screenshotOffsetY.value = config.screenshotOffsetY
+        _rotation.value = config.rotation
+        _showReflection.value = config.showReflection
+        _shadowIntensity.value = config.shadowIntensity
+        _shadowSoftness.value = config.shadowSoftness
+        _textShadow.value = config.textShadow
+        _textZIndex.value = config.textZIndex
+        _showWatermark.value = config.showWatermark
+        _watermarkText.value = config.watermarkText
+    }
+
+    fun saveTemplate(name: String = "My Template", previewUri: String? = null) {
+        viewModelScope.launch {
+            val currentConfig = getCurrentConfig()
+            val templateConfig = currentConfig.copy(screenshotUri = null)
+            val templateConfigJson = Json.encodeToString(templateConfig)
+            val historyConfigJson = Json.encodeToString(currentConfig)
+            
+            // Save to Presets (Templates) without screenshot
+            val preset = Preset(
+                name = name,
+                configJson = templateConfigJson,
+                previewUri = previewUri
+            )
+            presetDao.insertPreset(preset)
+
+            // Also Save to History (Projects) with screenshot
+            val project = Project(
+                name = name,
+                configJson = historyConfigJson,
+                previewUri = previewUri
+            )
+            projectDao.insertProject(project)
+
+            _isSaved.value = true
+        }
+    }
+
+    fun saveToHistory(previewUri: String? = null) {
+        viewModelScope.launch {
+            val config = getCurrentConfig()
+            val project = Project(
+                name = "Recent Project ${System.currentTimeMillis()}",
+                configJson = Json.encodeToString(config),
+                previewUri = previewUri
+            )
+            projectDao.insertProject(project)
+        }
     }
 
     private fun parseHexColor(hex: String): Color? {
@@ -373,13 +736,25 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             null
         }
     }
+}
 
-    private suspend fun loadBitmapFromUri(context: android.content.Context, uri: Uri): Bitmap? {
+object ImageLoaderHelper {
+    private var singletonLoader: ImageLoader? = null
+
+    private fun getLoader(context: android.content.Context): ImageLoader {
+        return singletonLoader ?: synchronized(this) {
+            singletonLoader ?: ImageLoader.Builder(context.applicationContext)
+                .crossfade(true)
+                .allowHardware(false)
+                .build().also { singletonLoader = it }
+        }
+    }
+
+    suspend fun loadBitmapFromUri(context: android.content.Context, uri: Uri): android.graphics.Bitmap? {
         return withContext(Dispatchers.IO) {
-            val loader = ImageLoader(context)
+            val loader = getLoader(context)
             val request = ImageRequest.Builder(context)
                 .data(uri)
-                .allowHardware(false)
                 .build()
 
             val result = loader.execute(request)
@@ -391,12 +766,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private suspend fun loadBitmapFromUrl(context: android.content.Context, url: String): Bitmap? {
+    suspend fun loadBitmapFromUrl(context: android.content.Context, url: String): android.graphics.Bitmap? {
         return withContext(Dispatchers.IO) {
-            val loader = ImageLoader(context)
+            val loader = getLoader(context)
             val request = ImageRequest.Builder(context)
                 .data(url)
-                .allowHardware(false)
+                .size(1024, 1024) // Optimized size for backgrounds
                 .build()
 
             val result = loader.execute(request)

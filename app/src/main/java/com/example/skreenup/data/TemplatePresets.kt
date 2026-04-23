@@ -1,0 +1,280 @@
+package com.example.skreenup.data
+
+import com.example.skreenup.ui.models.EditorConfig
+import com.example.skreenup.ui.models.BackgroundType
+import com.example.skreenup.ui.models.CompositionAspectRatio
+import com.example.skreenup.ui.models.TextAlignLabel
+import com.example.skreenup.ui.models.TextFont
+
+data class StaticTemplate(
+    val id: String,
+    val name: String,
+    val config: EditorConfig
+)
+
+val PRESET_TEMPLATES = listOf(
+    StaticTemplate(
+        id = "zenith_pro",
+        name = "Zenith Pro",
+        config = EditorConfig(
+            selectedDeviceName = "iPhone 17 Pro Max",
+            backgroundType = BackgroundType.GRADIENT.name,
+            backgroundColor = 0xFF121212.toInt(),
+            gradientColors = listOf(0xFF0F2027.toInt(), 0xFF203A43.toInt(), 0xFF2C5364.toInt()),
+            screenBackgroundColor = 0xFF000000.toInt(),
+            heading = "Professional\nMockups",
+            subheading = "Transform your screenshots into art",
+            headingFont = TextFont.POPPINS.name,
+            subheadingFont = TextFont.INTER.name,
+            headingSize = 70f,
+            subheadingSize = 28f,
+            textColor = 0xFFFFFFFF.toInt(),
+            textAlign = TextAlignLabel.LEFT.name,
+            aspectRatio = CompositionAspectRatio.LANDSCAPE.name,
+            scale = 0.85f,
+            rotation = 8f,
+            frameOffsetX = 280f,
+            frameOffsetY = 0f,
+            textOffsetX = 0f,
+            textOffsetY = 0f
+        )
+    ),
+    StaticTemplate(
+        id = "crimson_story",
+        name = "Crimson Story",
+        config = EditorConfig(
+            selectedDeviceName = "iPhone 17",
+            backgroundType = BackgroundType.GRADIENT.name,
+            backgroundColor = 0xFFFF0844.toInt(),
+            gradientColors = listOf(0xFFFF0844.toInt(), 0xFFFFB199.toInt()),
+            screenBackgroundColor = 0xFFFFFFFF.toInt(),
+            heading = "Social Ready",
+            subheading = "Capture attention on any platform",
+            headingFont = TextFont.ANTON.name,
+            subheadingFont = TextFont.INTER.name,
+            headingSize = 80f,
+            subheadingSize = 32f,
+            textColor = 0xFFFFFFFF.toInt(),
+            textAlign = TextAlignLabel.CENTER.name,
+            aspectRatio = CompositionAspectRatio.PORTRAIT.name,
+            scale = 0.95f,
+            rotation = 0f,
+            frameOffsetX = 0f,
+            frameOffsetY = 250f,
+            textOffsetX = 0f,
+            textOffsetY = -750f
+        )
+    ),
+    StaticTemplate(
+        id = "laptop_clean",
+        name = "Studio Workstation",
+        config = EditorConfig(
+            selectedDeviceName = "MacBook Pro",
+            backgroundType = BackgroundType.IMAGE.name,
+            backgroundColor = 0xFF121212.toInt(),
+            gradientColors = listOf(0xFF121212.toInt(), 0xFF121212.toInt()),
+            backgroundImageUri = "https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2070&auto=format&fit=crop",
+            backgroundImageBlur = 5f,
+            screenBackgroundColor = 0xFF121212.toInt(),
+            heading = "Desktop Showcase",
+            subheading = "Professional presentation for your web apps",
+            headingFont = TextFont.BEBAS.name,
+            subheadingFont = TextFont.QUICKSAND.name,
+            headingSize = 90f,
+            subheadingSize = 30f,
+            textColor = 0xFFFFFFFF.toInt(),
+            textAlign = TextAlignLabel.CENTER.name,
+            aspectRatio = CompositionAspectRatio.LANDSCAPE.name,
+            scale = 0.7f,
+            rotation = 0f,
+            frameOffsetX = 0f,
+            frameOffsetY = 150f,
+            textOffsetX = 0f,
+            textOffsetY = -200f
+        )
+    ),
+    StaticTemplate(
+        id = "minimal_mint",
+        name = "Minimal Mint",
+        config = EditorConfig(
+            selectedDeviceName = "Galaxy S26 Ultra",
+            backgroundType = BackgroundType.SOLID.name,
+            backgroundColor = 0xFFE0F2F1.toInt(),
+            gradientColors = listOf(0xFFE0F2F1.toInt(), 0xFFE0F2F1.toInt()),
+            screenBackgroundColor = 0xFF000000.toInt(),
+            heading = "Clean Focus",
+            subheading = "Minimalist design for maximum impact",
+            headingFont = TextFont.MONTSERRAT.name,
+            subheadingFont = TextFont.INTER.name,
+            headingSize = 75f,
+            subheadingSize = 26f,
+            textColor = 0xFF004D40.toInt(),
+            textAlign = TextAlignLabel.CENTER.name,
+            aspectRatio = CompositionAspectRatio.SQUARE.name,
+            scale = 0.85f,
+            rotation = -5f,
+            frameOffsetX = 0f,
+            frameOffsetY = 150f,
+            textOffsetX = 0f,
+            textOffsetY = -400f
+        )
+    ),
+    StaticTemplate(
+        id = "editorial_gold",
+        name = "Editorial Gold",
+        config = EditorConfig(
+            selectedDeviceName = "iPhone 17 Pro Max",
+            backgroundType = BackgroundType.GRADIENT.name,
+            backgroundColor = 0xFF000000.toInt(),
+            gradientColors = listOf(0xFF161616.toInt(), 0xFF000000.toInt()),
+            screenBackgroundColor = 0xFF000000.toInt(),
+            heading = "The Golden\nStandard",
+            subheading = "Exquisite detail in every pixel",
+            headingFont = TextFont.PLAYFAIR.name,
+            subheadingFont = TextFont.LIBRE_BASKERVILLE.name,
+            headingSize = 85f,
+            subheadingSize = 28f,
+            textColor = 0xFFD4AF37.toInt(),
+            textAlign = TextAlignLabel.RIGHT.name,
+            aspectRatio = CompositionAspectRatio.LANDSCAPE.name,
+            scale = 0.85f,
+            rotation = -8f,
+            frameOffsetX = -280f,
+            frameOffsetY = 0f,
+            textOffsetX = 0f,
+            textOffsetY = 0f
+        )
+    ),
+    StaticTemplate(
+        id = "safari_light",
+        name = "SaaS Light",
+        config = EditorConfig(
+            selectedDeviceName = "Safari",
+            backgroundType = BackgroundType.IMAGE.name,
+            backgroundColor = 0xFFFFFFFF.toInt(),
+            gradientColors = listOf(0xFFFFFFFF.toInt(), 0xFFECE9E6.toInt()),
+            backgroundImageUri = "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop",
+            backgroundImageBlur = 10f,
+            screenBackgroundColor = 0xFFFFFFFF.toInt(),
+            heading = "Web App",
+            subheading = "Clean browser mockups for your SaaS product",
+            headingFont = TextFont.MONTSERRAT.name,
+            subheadingFont = TextFont.QUICKSAND.name,
+            headingSize = 80f,
+            subheadingSize = 28f,
+            textColor = 0xFFFFFFFF.toInt(),
+            textAlign = TextAlignLabel.LEFT.name,
+            aspectRatio = CompositionAspectRatio.LANDSCAPE.name,
+            scale = 0.75f,
+            rotation = 0f,
+            frameOffsetX = 350f,
+            frameOffsetY = 0f,
+            textOffsetX = 0f,
+            textOffsetY = 0f
+        )
+    ),
+    StaticTemplate(
+        id = "night_focus",
+        name = "Night Focus",
+        config = EditorConfig(
+            selectedDeviceName = "iPhone X",
+            backgroundType = BackgroundType.SOLID.name,
+            backgroundColor = 0xFF121212.toInt(),
+            gradientColors = listOf(0xFF121212.toInt(), 0xFF121212.toInt()),
+            screenBackgroundColor = 0xFF000000.toInt(),
+            heading = "Dark Mode",
+            subheading = "Sleek and easy on the eyes",
+            headingFont = TextFont.BEBAS.name,
+            subheadingFont = TextFont.INTER.name,
+            headingSize = 100f,
+            subheadingSize = 32f,
+            textColor = 0xFF00E5FF.toInt(),
+            textAlign = TextAlignLabel.CENTER.name,
+            aspectRatio = CompositionAspectRatio.PORTRAIT.name,
+            scale = 1.1f,
+            rotation = 0f,
+            frameOffsetX = 0f,
+            frameOffsetY = 300f,
+            textOffsetX = 0f,
+            textOffsetY = -800f
+        )
+    ),
+    StaticTemplate(
+        id = "vibrant_square",
+        name = "Vibrant Post",
+        config = EditorConfig(
+            selectedDeviceName = "iPhone 17",
+            backgroundType = BackgroundType.GRADIENT.name,
+            backgroundColor = 0xFF667eea.toInt(),
+            gradientColors = listOf(0xFF667eea.toInt(), 0xFF764ba2.toInt()),
+            screenBackgroundColor = 0xFFFFFFFF.toInt(),
+            heading = "Perfect Post",
+            subheading = "Designed for your social media feed",
+            headingFont = TextFont.POPPINS.name,
+            subheadingFont = TextFont.INTER.name,
+            headingSize = 75f,
+            subheadingSize = 28f,
+            textColor = 0xFFFFFFFF.toInt(),
+            textAlign = TextAlignLabel.CENTER.name,
+            aspectRatio = CompositionAspectRatio.SQUARE.name,
+            scale = 0.9f,
+            rotation = 0f,
+            frameOffsetX = 0f,
+            frameOffsetY = 180f,
+            textOffsetX = 0f,
+            textOffsetY = -400f
+        )
+    ),
+    StaticTemplate(
+        id = "tablet_pro",
+        name = "Creative Tablet",
+        config = EditorConfig(
+            selectedDeviceName = "iPad Pro 13\"",
+            backgroundType = BackgroundType.GRADIENT.name,
+            backgroundColor = 0xFF000000.toInt(),
+            gradientColors = listOf(0xFF333333.toInt(), 0xFF000000.toInt()),
+            screenBackgroundColor = 0xFF000000.toInt(),
+            heading = "Big Ideas",
+            subheading = "More space for your creative projects",
+            headingFont = TextFont.POPPINS.name,
+            subheadingFont = TextFont.QUICKSAND.name,
+            headingSize = 90f,
+            subheadingSize = 30f,
+            textColor = 0xFFFCE4EC.toInt(),
+            textAlign = TextAlignLabel.RIGHT.name,
+            aspectRatio = CompositionAspectRatio.TABLET.name,
+            scale = 0.7f,
+            rotation = 0f,
+            frameOffsetX = -250f,
+            frameOffsetY = 0f,
+            textOffsetX = 0f,
+            textOffsetY = 0f
+        )
+    ),
+    StaticTemplate(
+        id = "gx_gaming",
+        name = "Gamer Edge",
+        config = EditorConfig(
+            selectedDeviceName = "Opera GX",
+            backgroundType = BackgroundType.GRADIENT.name,
+            backgroundColor = 0xFF000000.toInt(),
+            gradientColors = listOf(0xFF000000.toInt(), 0xFF350000.toInt(), 0xFF000000.toInt()),
+            screenBackgroundColor = 0xFF121212.toInt(),
+            heading = "Level Up",
+            subheading = "Show off your gaming setup",
+            headingFont = TextFont.ANTON.name,
+            subheadingFont = TextFont.OSWALD.name,
+            headingSize = 90f,
+            subheadingSize = 34f,
+            textColor = 0xFFFF0000.toInt(),
+            textAlign = TextAlignLabel.LEFT.name,
+            aspectRatio = CompositionAspectRatio.LANDSCAPE.name,
+            scale = 0.8f,
+            rotation = 0f,
+            frameOffsetX = 350f,
+            frameOffsetY = 0f,
+            textOffsetX = 0f,
+            textOffsetY = 0f
+        )
+    )
+)

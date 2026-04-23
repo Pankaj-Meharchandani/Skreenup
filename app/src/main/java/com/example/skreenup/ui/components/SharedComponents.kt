@@ -1,5 +1,7 @@
 package com.example.skreenup.ui.components
 
+import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,26 +11,93 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.ScrollState
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.skreenup.ui.screens.SettingsViewModel
+
+@Composable
+fun GradientBackground() {
+    val color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.5f)
+                .background(
+                    Brush.verticalGradient(
+                        0f to color,
+                        1f to Color.Transparent
+                    )
+                )
+        )
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun AppScaffold(
+    title: String,
+    onBack: (() -> Unit)? = null,
+    actions: @Composable RowScope.() -> Unit = {},
+    settingsViewModel: SettingsViewModel = viewModel(),
+    content: @Composable (PaddingValues) -> Unit
+) {
+    val useGradient by settingsViewModel.useGradientBackground.collectAsState()
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (useGradient) {
+            GradientBackground()
+        }
+        
+        Scaffold(
+            containerColor = if (useGradient) Color.Transparent else MaterialTheme.colorScheme.surface,
+            topBar = {
+                TopAppBar(
+                    title = { Text(title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground) },
+                    navigationIcon = {
+                        if (onBack != null) {
+                            IconButton(onClick = onBack) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack, 
+                                    contentDescription = "Back",
+                                    tint = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
+                        }
+                    },
+                    actions = actions,
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    )
+                )
+            }
+        ) { padding ->
+            content(padding)
+        }
+    }
+}
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -181,10 +250,13 @@ fun SnappingSlider(
         valueRange.start + (valueRange.endInclusive - valueRange.start) * 0.5f,
         valueRange.start + (valueRange.endInclusive - valueRange.start) * 0.75f,
         valueRange.endInclusive
-    )
+    ),
+    settingsViewModel: SettingsViewModel = viewModel()
 ) {
     val totalRange = valueRange.endInclusive - valueRange.start
     val threshold = totalRange * snapThresholdPercent
+    val useHaptics by settingsViewModel.useHaptics.collectAsState()
+    val view = LocalView.current
 
     Box(
         modifier = Modifier.fillMaxWidth().height(44.dp),
@@ -214,6 +286,9 @@ fun SnappingSlider(
             onValueChange = { newValue ->
                 val closestSnap = hintPoints.minByOrNull { Math.abs(it - newValue) }
                 val snappedValue = if (closestSnap != null && Math.abs(closestSnap - newValue) <= threshold) {
+                    if (value != closestSnap && useHaptics) {
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                    }
                     closestSnap
                 } else {
                     newValue

@@ -59,6 +59,7 @@ object MockupRenderer {
         screenshotRotation: Float = 0f,
         textLayers: List<TextLayer> = emptyList(),
         selectedTextLayerId: String? = null,
+        editingTextLayerId: String? = null,
         showReflection: Boolean = true,
         shadowIntensity: Float = 0.3f,
         shadowSoftness: Float = 1.0f,
@@ -180,7 +181,10 @@ object MockupRenderer {
 
         // ── 3. Helper for Drawing Text ──
         val drawTextContent = { zIndexFilter: Int ->
-            textLayers.filter { if (zIndexFilter < 0) it.zIndex < 0 else it.zIndex >= 0 }.forEach { layer ->
+            textLayers.filter { 
+                val zMatch = if (zIndexFilter < 0) it.zIndex < 0 else it.zIndex >= 0
+                zMatch && it.id != editingTextLayerId
+            }.forEach { layer ->
                 val hText = layer.heading.trim()
                 val sText = layer.subheading.trim()
 

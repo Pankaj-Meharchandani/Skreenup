@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -374,6 +375,7 @@ fun DeviceFrame(
                 screenshotRotation = screenshotRotation,
                 textLayers = textLayers,
                 selectedTextLayerId = selectedTextLayerId,
+                editingTextLayerId = isEditingTextId,
                 showReflection = showReflection,
                 shadowIntensity = shadowIntensity,
                 shadowSoftness = shadowSoftness,
@@ -479,8 +481,7 @@ fun DeviceFrame(
                     else -> compLeft + compWidth / 2 + (layer.offsetX * resScale)
                 }
 
-                val padding = 16.dp
-                val paddingPx = with(LocalDensity.current) { padding.toPx() }
+                val paddingPx = 0f // No padding for closer alignment
                 
                 val rectLeft = when (layer.textAlign) {
                     "LEFT" -> centerX - paddingPx
@@ -507,26 +508,23 @@ fun DeviceFrame(
                             color = Color(0xFFFA1E4E).copy(alpha = 0.5f),
                             shape = RoundedCornerShape(4.dp)
                         )
-                        .background(Color(0xFFFA1E4E).copy(alpha = 0.05f))
                 ) {
                     // Delete Button (X) - Top Left, bigger
                     Box(
                         modifier = Modifier
-                            .offset(x = (-16).dp, y = (-16).dp)
-                            .size(36.dp)
+                            .offset(x = (-20).dp, y = (-20).dp)
+                            .size(40.dp)
                             .background(Color(0xFFFA1E4E), CircleShape)
                             .clickable { onDeleteTextLayer(layer.id) },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Rounded.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Rounded.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
                     }
 
                     // Direct Edit Fields
                     if (isEditingTextId == layer.id) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(padding),
+                            modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = when (layer.textAlign) {
                                 "LEFT" -> Alignment.Start
@@ -534,7 +532,7 @@ fun DeviceFrame(
                                 else -> Alignment.CenterHorizontally
                             }
                         ) {
-                        BasicTextField(
+                            BasicTextField(
                                 value = layer.heading,
                                 onValueChange = { newVal -> onTextLayerUpdate(layer.id) { it.copy(heading = newVal) } },
                                 textStyle = TextStyle(
@@ -546,7 +544,12 @@ fun DeviceFrame(
                                     },
                                     color = Color(layer.textColor),
                                     fontWeight = if (layer.headingBold) FontWeight.Bold else FontWeight.Normal,
-                                    fontFamily = getComposeFontFamily(layer.headingFont)
+                                    fontFamily = getComposeFontFamily(layer.headingFont),
+                                    shadow = if (layer.textShadow) Shadow(
+                                        color = Color.Black.copy(alpha = 0.5f),
+                                        offset = Offset(2f * resScale, 2f * resScale),
+                                        blurRadius = 10f * resScale
+                                    ) else null
                                 ),
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -563,7 +566,12 @@ fun DeviceFrame(
                                     },
                                     color = Color(layer.textColor).copy(alpha = 0.8f),
                                     fontWeight = if (layer.subheadingBold) FontWeight.Bold else FontWeight.Normal,
-                                    fontFamily = getComposeFontFamily(layer.subheadingFont)
+                                    fontFamily = getComposeFontFamily(layer.subheadingFont),
+                                    shadow = if (layer.textShadow) Shadow(
+                                        color = Color.Black.copy(alpha = 0.5f),
+                                        offset = Offset(2f * resScale, 2f * resScale),
+                                        blurRadius = 10f * resScale
+                                    ) else null
                                 ),
                                 modifier = Modifier.fillMaxWidth()
                             )

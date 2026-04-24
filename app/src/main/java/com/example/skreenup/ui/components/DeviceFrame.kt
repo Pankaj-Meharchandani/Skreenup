@@ -5,22 +5,35 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import android.graphics.Typeface
+import android.graphics.Paint as NativePaint
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -39,6 +52,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -92,7 +106,7 @@ fun DeviceFrame(
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     var activeTarget by remember { mutableStateOf<Target>(Target.NONE) }
-    var showDirectEditDialog by remember { mutableStateOf<com.example.skreenup.ui.models.TextLayer?>(null) }
+    var isEditingTextId by remember { mutableStateOf<String?>(null) }
     
     // Internal trackers to manage "breakable" snapping
     var sessionPanX by remember { mutableStateOf(0f) }
@@ -171,10 +185,19 @@ fun DeviceFrame(
                             selectedId = currentSelectedId
                         )
                         when (hit) {
-                            is HitResult.Text -> onSelectTextLayer(hit.id)
-                            is HitResult.DeleteText -> onDeleteTextLayer(hit.id)
+                            is HitResult.Text -> {
+                                onSelectTextLayer(hit.id)
+                                isEditingTextId = null // Reset editing if just selecting
+                            }
+                            is HitResult.DeleteText -> {
+                                onDeleteTextLayer(hit.id)
+                                isEditingTextId = null
+                            }
                             is HitResult.Frame -> onAddScreenshot()
-                            else -> onSelectTextLayer(null)
+                            else -> {
+                                onSelectTextLayer(null)
+                                isEditingTextId = null
+                            }
                         }
                     },
                     onDoubleTap = { offset ->
@@ -190,7 +213,8 @@ fun DeviceFrame(
                             selectedId = currentSelectedId
                         )
                         if (hit is HitResult.Text) {
-                            showDirectEditDialog = currentTextLayers.find { it.id == hit.id }
+                            onSelectTextLayer(hit.id)
+                            isEditingTextId = hit.id
                         }
                     }
                 )
@@ -397,42 +421,156 @@ fun DeviceFrame(
             }
         }
 
-        // ── Direct Edit Dialog ──
-        showDirectEditDialog?.let { layer ->
-            var hText by remember(layer.id) { mutableStateOf(layer.heading) }
-            var sText by remember(layer.id) { mutableStateOf(layer.subheading) }
-            
-            AlertDialog(
-                onDismissRequest = { showDirectEditDialog = null },
-                title = { Text("Edit Text") },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedTextField(
-                            value = hText,
-                            onValueChange = { 
-                                hText = it
-                                onTextLayerUpdate(layer.id) { l -> l.copy(heading = it) }
-                            },
-                            label = { Text("Heading") },
-                            modifier = Modifier.fillMaxWidth()
+        // ── Direct Edit Dialog (REMOVED) ──
+
+        // ── On-Screen Selection & Edit UI ──
+        if (selectedTextLayerId != null && canvasSize.width > 0) {
+            val layer = textLayers.find { it.id == selectedTextLayerId }
+            if (layer != null) {
+                val canvasWidth = canvasSize.width.toFloat()
+                val canvasHeight = canvasSize.height.toFloat()
+                val compWidth: Float
+                val compHeight: Float
+                if (canvasWidth / canvasHeight > aspectRatio.ratio) {
+                    compHeight = canvasHeight
+                    compWidth = compHeight * aspectRatio.ratio
+                } else {
+                    compWidth = canvasWidth
+                    compHeight = compWidth / aspectRatio.ratio
+                }
+                val compLeft = (canvasWidth - compWidth) / 2
+                val compTop = (canvasHeight - compHeight) / 2
+                val resScale = compWidth / 1000f
+
+                // Re-calculate bounds (same logic as renderer)
+                val hPaint = NativePaint().apply {
+                    textSize = layer.headingSize * resScale
+                    typeface = getNativeTypeface(layer.headingFont, layer.headingBold)
+                }
+                val sPaint = NativePaint().apply {
+                    textSize = layer.subheadingSize * resScale
+                    typeface = getNativeTypeface(layer.subheadingFont, layer.subheadingBold)
+                }
+
+                val hLines = layer.heading.split("\n")
+                val sLines = layer.subheading.split("\n")
+                
+                var maxW = 0f
+                hLines.forEach { maxW = maxOf(maxW, hPaint.measureText(it)) }
+                sLines.forEach { maxW = maxOf(maxW, sPaint.measureText(it)) }
+
+                val hSpacing = hPaint.fontSpacing
+                val sSpacing = sPaint.fontSpacing
+                val hMetrics = hPaint.fontMetrics
+                val sMetrics = sPaint.fontMetrics
+                
+                val hBlockH = if (layer.heading.isNotEmpty()) (hLines.size - 1) * hSpacing + (hMetrics.descent - hMetrics.ascent) else 0f
+                val sBlockH = if (layer.subheading.isNotEmpty()) (sLines.size - 1) * sSpacing + (sMetrics.descent - sMetrics.ascent) else 0f
+                val gap = layer.textGap * resScale
+                val totalH = hBlockH + (if (layer.heading.isNotEmpty() && layer.subheading.isNotEmpty()) gap else 0f) + sBlockH
+
+                val textCenterY = compTop + compHeight / 2 + (layer.offsetY * resScale)
+                val blockTop = textCenterY - (totalH / 2)
+
+                val horizontalMargin = 60f * resScale
+                val centerX = when (layer.textAlign) {
+                    "LEFT" -> compLeft + horizontalMargin + (layer.offsetX * resScale)
+                    "RIGHT" -> compLeft + compWidth - horizontalMargin + (layer.offsetX * resScale)
+                    else -> compLeft + compWidth / 2 + (layer.offsetX * resScale)
+                }
+
+                val padding = 16.dp
+                val paddingPx = with(LocalDensity.current) { padding.toPx() }
+                
+                val rectLeft = when (layer.textAlign) {
+                    "LEFT" -> centerX - paddingPx
+                    "RIGHT" -> centerX - maxW - paddingPx
+                    else -> centerX - (maxW / 2) - paddingPx
+                }
+                val rectTop = blockTop - paddingPx
+                val rectW = maxW + (paddingPx * 2)
+                val rectH = totalH + (paddingPx * 2)
+
+                // Selection Box & Edit Fields
+                Box(
+                    modifier = Modifier
+                        .size(
+                            width = with(LocalDensity.current) { rectW.toDp() },
+                            height = with(LocalDensity.current) { rectH.toDp() }
                         )
-                        OutlinedTextField(
-                            value = sText,
-                            onValueChange = { 
-                                sText = it
-                                onTextLayerUpdate(layer.id) { l -> l.copy(subheading = it) }
-                            },
-                            label = { Text("Subheading") },
-                            modifier = Modifier.fillMaxWidth()
+                        .graphicsLayer {
+                            translationX = rectLeft
+                            translationY = rectTop
+                        }
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFFFA1E4E).copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(4.dp)
                         )
+                        .background(Color(0xFFFA1E4E).copy(alpha = 0.05f))
+                ) {
+                    // Delete Button (X) - Top Left, bigger
+                    Box(
+                        modifier = Modifier
+                            .offset(x = (-16).dp, y = (-16).dp)
+                            .size(36.dp)
+                            .background(Color(0xFFFA1E4E), CircleShape)
+                            .clickable { onDeleteTextLayer(layer.id) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Rounded.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
                     }
-                },
-                confirmButton = {
-                    Button(onClick = { showDirectEditDialog = null }) {
-                        Text("Done")
+
+                    // Direct Edit Fields
+                    if (isEditingTextId == layer.id) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(padding),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = when (layer.textAlign) {
+                                "LEFT" -> Alignment.Start
+                                "RIGHT" -> Alignment.End
+                                else -> Alignment.CenterHorizontally
+                            }
+                        ) {
+                        BasicTextField(
+                                value = layer.heading,
+                                onValueChange = { newVal -> onTextLayerUpdate(layer.id) { it.copy(heading = newVal) } },
+                                textStyle = TextStyle(
+                                    fontSize = with(LocalDensity.current) { (layer.headingSize * resScale).toSp() },
+                                    textAlign = when (layer.textAlign) {
+                                        "LEFT" -> androidx.compose.ui.text.style.TextAlign.Left
+                                        "RIGHT" -> androidx.compose.ui.text.style.TextAlign.Right
+                                        else -> androidx.compose.ui.text.style.TextAlign.Center
+                                    },
+                                    color = Color(layer.textColor),
+                                    fontWeight = if (layer.headingBold) FontWeight.Bold else FontWeight.Normal,
+                                    fontFamily = getComposeFontFamily(layer.headingFont)
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(with(LocalDensity.current) { gap.toDp() }))
+                            BasicTextField(
+                                value = layer.subheading,
+                                onValueChange = { newVal -> onTextLayerUpdate(layer.id) { it.copy(subheading = newVal) } },
+                                textStyle = TextStyle(
+                                    fontSize = with(LocalDensity.current) { (layer.subheadingSize * resScale).toSp() },
+                                    textAlign = when (layer.textAlign) {
+                                        "LEFT" -> androidx.compose.ui.text.style.TextAlign.Left
+                                        "RIGHT" -> androidx.compose.ui.text.style.TextAlign.Right
+                                        else -> androidx.compose.ui.text.style.TextAlign.Center
+                                    },
+                                    color = Color(layer.textColor).copy(alpha = 0.8f),
+                                    fontWeight = if (layer.subheadingBold) FontWeight.Bold else FontWeight.Normal,
+                                    fontFamily = getComposeFontFamily(layer.subheadingFont)
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
-            )
+            }
         }
 
         // ── "Select Screenshot" UI (Only inside the frame) ──
@@ -539,15 +677,51 @@ private fun hitTest(
         val textCenterX = compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor)
         val textCenterY = compTop + compHeight / 2 + (layer.offsetY * exportScaleFactor)
         
-        // Rough estimate of total height based on sizes and gap
-        val totalHeight = (layer.headingSize + layer.subheadingSize + layer.textGap) * exportScaleFactor
+        val hPaint = NativePaint().apply {
+            textSize = layer.headingSize * exportScaleFactor
+            typeface = getNativeTypeface(layer.headingFont, layer.headingBold)
+        }
+        val sPaint = NativePaint().apply {
+            textSize = layer.subheadingSize * exportScaleFactor
+            typeface = getNativeTypeface(layer.subheadingFont, layer.subheadingBold)
+        }
+
+        val hLines = layer.heading.split("\n")
+        val sLines = layer.subheading.split("\n")
+        
+        var maxW = 0f
+        hLines.forEach { maxW = maxOf(maxW, hPaint.measureText(it)) }
+        sLines.forEach { maxW = maxOf(maxW, sPaint.measureText(it)) }
+
+        val hSpacing = hPaint.fontSpacing
+        val sSpacing = sPaint.fontSpacing
+        val hMetrics = hPaint.fontMetrics
+        val sMetrics = sPaint.fontMetrics
+        
+        val hBlockH = if (layer.heading.isNotEmpty()) (hLines.size - 1) * hSpacing + (hMetrics.descent - hMetrics.ascent) else 0f
+        val sBlockH = if (layer.subheading.isNotEmpty()) (sLines.size - 1) * sSpacing + (sMetrics.descent - sMetrics.ascent) else 0f
+        val gap = layer.textGap * exportScaleFactor
+        val totalHeight = hBlockH + (if (layer.heading.isNotEmpty() && layer.subheading.isNotEmpty()) gap else 0f) + sBlockH
+        
         val blockTop = textCenterY - (totalHeight / 2)
         
-        // Use a more accurate hit test if needed, but for now heuristic
+        val horizontalMargin = 60f * exportScaleFactor
+        val centerX = when (layer.textAlign) {
+            "LEFT" -> compLeft + horizontalMargin + (layer.offsetX * exportScaleFactor)
+            "RIGHT" -> compLeft + compWidth - horizontalMargin + (layer.offsetX * exportScaleFactor)
+            else -> compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor)
+        }
+
+        // Use a more accurate hit test
         val hitPadding = 20f * exportScaleFactor
+        val rectLeft = when (layer.textAlign) {
+            "LEFT" -> centerX - hitPadding
+            "RIGHT" -> centerX - maxW - hitPadding
+            else -> centerX - (maxW / 2) - hitPadding
+        }
         val textHitRect = Rect(
-            left = textCenterX - 300f * exportScaleFactor,
-            right = textCenterX + 300f * exportScaleFactor,
+            left = rectLeft,
+            right = rectLeft + maxW + (hitPadding * 2),
             top = blockTop - hitPadding,
             bottom = blockTop + totalHeight + hitPadding
         )
@@ -556,15 +730,11 @@ private fun hitTest(
             // Check for delete button hit if selected
             if (layer.id == selectedId) {
                 val padding = 12f * exportScaleFactor
-                val rectTop = blockTop - padding
-                val rectLeft = when (layer.textAlign) {
-                    "LEFT" -> textCenterX - padding
-                    "RIGHT" -> textCenterX - 400f * exportScaleFactor - padding // Still rough
-                    else -> textCenterX - 200f * exportScaleFactor - padding
-                }
+                val deleteRectTop = blockTop - padding
+                val deleteRectLeft = rectLeft
                 
-                val xSize = 24f * exportScaleFactor
-                val xHitRect = Rect(Offset(rectLeft - xSize/2, rectTop - xSize/2), androidx.compose.ui.geometry.Size(xSize, xSize))
+                val xSize = 40f * exportScaleFactor // Make it big for clicking
+                val xHitRect = Rect(Offset(deleteRectLeft - xSize/2, deleteRectTop - xSize/2), androidx.compose.ui.geometry.Size(xSize, xSize))
                 if (xHitRect.contains(point)) return HitResult.DeleteText(layer.id)
             }
             return HitResult.Text(layer.id)
@@ -592,4 +762,41 @@ private fun hitTest(
     if (frameRect.contains(point)) return HitResult.Frame
 
     return HitResult.NONE
+}
+
+private fun getNativeTypeface(fontName: String, isBold: Boolean): Typeface {
+    val style = if (isBold) Typeface.BOLD else Typeface.NORMAL
+    return when (fontName) {
+        "POPPINS" -> Typeface.create("sans-serif", style)
+        "INTER" -> Typeface.create("sans-serif-medium", style)
+        "MONTSERRAT" -> Typeface.create("sans-serif-light", style)
+        "BEBAS" -> Typeface.create("sans-serif-black", style)
+        "PACIFICO" -> Typeface.create("cursive", style)
+        "PLAYFAIR" -> Typeface.create("serif-monospace", style)
+        "TIMES" -> Typeface.create("serif", style)
+        "OSWALD" -> Typeface.create("sans-serif-condensed", style)
+        "RALEWAY" -> Typeface.create("sans-serif-thin", style)
+        "ANTON" -> Typeface.create("sans-serif-black", style)
+        "QUICKSAND" -> Typeface.create("sans-serif-light", style)
+        "LIBRE_BASKERVILLE" -> Typeface.create("serif", style)
+        else -> Typeface.create("sans-serif", style)
+    }
+}
+
+private fun getComposeFontFamily(fontName: String): FontFamily {
+    return when (fontName) {
+        "POPPINS" -> FontFamily.SansSerif
+        "INTER" -> FontFamily.SansSerif
+        "MONTSERRAT" -> FontFamily.SansSerif
+        "BEBAS" -> FontFamily.SansSerif
+        "PACIFICO" -> FontFamily.Cursive
+        "PLAYFAIR" -> FontFamily.Serif
+        "TIMES" -> FontFamily.Serif
+        "OSWALD" -> FontFamily.SansSerif
+        "RALEWAY" -> FontFamily.SansSerif
+        "ANTON" -> FontFamily.SansSerif
+        "QUICKSAND" -> FontFamily.SansSerif
+        "LIBRE_BASKERVILLE" -> FontFamily.Serif
+        else -> FontFamily.SansSerif
+    }
 }

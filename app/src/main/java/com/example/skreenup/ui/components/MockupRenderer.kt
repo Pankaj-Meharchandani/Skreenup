@@ -282,66 +282,6 @@ object MockupRenderer {
                             )
                         }
                     }
-
-                    // Draw selection indicator if not exporting
-                    if (!isExport && layer.id == selectedTextLayerId) {
-                        val padding = 12f * resolutionScale
-                        
-                        // Calculate bounding box width
-                        var maxLineWidth = 0f
-                        headingLinesInitial.forEach { line ->
-                            maxLineWidth = maxOf(maxLineWidth, hPaint.measureText(line))
-                        }
-                        subheadingLinesInitial.forEach { line ->
-                            maxLineWidth = maxOf(maxLineWidth, sPaint.measureText(line))
-                        }
-
-                        val rectLeft = when (layer.textAlign) {
-                            "LEFT" -> centerX - padding
-                            "RIGHT" -> centerX - maxLineWidth - padding
-                            else -> centerX - (maxLineWidth / 2) - padding
-                        }
-                        val rectTop = blockTop - padding
-                        val rectWidth = maxLineWidth + (padding * 2)
-                        val rectHeight = totalTextHeight + (padding * 2)
-
-                        // Dotted box
-                        drawRoundRect(
-                            color = Color(0xFFFA1E4E),
-                            topLeft = Offset(rectLeft, rectTop),
-                            size = Size(rectWidth, rectHeight),
-                            cornerRadius = CornerRadius(4f * resolutionScale),
-                            style = Stroke(
-                                width = 1.5f * resolutionScale,
-                                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-                            )
-                        )
-
-                        // Delete button (X) at top-right or top-left
-                        // User said top-left
-                        val xSize = 16f * resolutionScale
-                        val xRect = Rect(Offset(rectLeft - xSize/2, rectTop - xSize/2), Size(xSize, xSize))
-                        
-                        drawCircle(
-                            color = Color(0xFFFA1E4E),
-                            radius = xSize / 2,
-                            center = xRect.center
-                        )
-                        
-                        val crossPadding = 4f * resolutionScale
-                        drawLine(
-                            color = Color.White,
-                            start = Offset(xRect.left + crossPadding, xRect.top + crossPadding),
-                            end = Offset(xRect.right - crossPadding, xRect.bottom - crossPadding),
-                            strokeWidth = 2f * resolutionScale
-                        )
-                        drawLine(
-                            color = Color.White,
-                            start = Offset(xRect.right - crossPadding, xRect.top + crossPadding),
-                            end = Offset(xRect.left + crossPadding, xRect.bottom - crossPadding),
-                            strokeWidth = 2f * resolutionScale
-                        )
-                    }
                 }
             }
         }

@@ -23,6 +23,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.skreenup.ui.models.TextFont
@@ -93,7 +94,7 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                             val sFont = TextFont.valueOf(template.layer.subheadingFont)
                             
                             Text(
-                                text = template.layer.heading.take(15),
+                                text = template.layer.heading,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = if (template.layer.headingBold) FontWeight.Bold else FontWeight.Normal,
                                 fontFamily = when(hFont.family) {
@@ -101,10 +102,12 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                                     "serif" -> FontFamily.Serif
                                     "serif-monospace" -> FontFamily.Monospace
                                     else -> FontFamily.SansSerif
-                                }
+                                },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = template.layer.subheading.take(20),
+                                text = template.layer.subheading,
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = if (template.layer.subheadingBold) FontWeight.Bold else FontWeight.Normal,
                                 fontFamily = when(sFont.family) {
@@ -113,7 +116,9 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                                     "serif-monospace" -> FontFamily.Monospace
                                     else -> FontFamily.SansSerif
                                 },
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Spacer(Modifier.height(8.dp))
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -122,7 +127,9 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                                 text = template.description,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -139,7 +146,13 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                         FilterChip(
                             selected = selectedId == layer.id,
                             onClick = { viewModel.selectTextLayer(layer.id) },
-                            label = { Text(layer.heading.take(15).ifEmpty { "Text Layer" }) },
+                            label = { 
+                                Text(
+                                    text = layer.heading.ifEmpty { "Text Layer" },
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                ) 
+                            },
                             trailingIcon = {
                                 IconButton(
                                     onClick = { viewModel.removeTextLayer(layer.id) },

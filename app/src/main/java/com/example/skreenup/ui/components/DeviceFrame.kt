@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -84,11 +86,13 @@ fun DeviceFrame(
     onRotationChange: (Float) -> Unit = {},
     onFrameOffsetChange: (Float, Float) -> Unit = { _, _ -> },
     onTextLayerUpdate: (String, (com.example.skreenup.ui.models.TextLayer) -> com.example.skreenup.ui.models.TextLayer) -> Unit = { _, _ -> },
+    onDeleteTextLayer: (String) -> Unit = {},
     onSelectTextLayer: (String?) -> Unit = {},
     onAddScreenshot: () -> Unit = {}
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     var activeTarget by remember { mutableStateOf<Target>(Target.NONE) }
+    var showDirectEditDialog by remember { mutableStateOf<com.example.skreenup.ui.models.TextLayer?>(null) }
     
     // Internal trackers to manage "breakable" snapping
     var sessionPanX by remember { mutableStateOf(0f) }
@@ -163,14 +167,30 @@ fun DeviceFrame(
                             scale = currentScale,
                             frameOffsetX = currentFrameOffsetX,
                             frameOffsetY = currentFrameOffsetY,
-                            textLayers = currentTextLayers
+                            textLayers = currentTextLayers,
+                            selectedId = currentSelectedId
+                        )
+                        when (hit) {
+                            is HitResult.Text -> onSelectTextLayer(hit.id)
+                            is HitResult.DeleteText -> onDeleteTextLayer(hit.id)
+                            is HitResult.Frame -> onAddScreenshot()
+                            else -> onSelectTextLayer(null)
+                        }
+                    },
+                    onDoubleTap = { offset ->
+                        val hit = hitTest(
+                            point = offset,
+                            canvasSize = canvasSize,
+                            aspectRatio = currentRatio,
+                            deviceModel = currentDevice,
+                            scale = currentScale,
+                            frameOffsetX = currentFrameOffsetX,
+                            frameOffsetY = currentFrameOffsetY,
+                            textLayers = currentTextLayers,
+                            selectedId = currentSelectedId
                         )
                         if (hit is HitResult.Text) {
-                            onSelectTextLayer(hit.id)
-                        } else if (hit is HitResult.Frame) {
-                            onAddScreenshot()
-                        } else {
-                            onSelectTextLayer(null)
+                            showDirectEditDialog = currentTextLayers.find { it.id == hit.id }
                         }
                     }
                 )
@@ -204,6 +224,9 @@ fun DeviceFrame(
                                 sessionPanX = layer?.offsetX ?: 0f
                                 sessionPanY = layer?.offsetY ?: 0f
                                 sessionRotation = 0f
+                            }
+                            is HitResult.DeleteText -> {
+                                activeTarget = Target.NONE
                             }
                             HitResult.NONE -> {
                                 activeTarget = Target.BACKGROUND
@@ -326,6 +349,7 @@ fun DeviceFrame(
                 rotationDegrees = rotationDegrees,
                 screenshotRotation = screenshotRotation,
                 textLayers = textLayers,
+                selectedTextLayerId = selectedTextLayerId,
                 showReflection = showReflection,
                 shadowIntensity = shadowIntensity,
                 shadowSoftness = shadowSoftness,
@@ -371,6 +395,44 @@ fun DeviceFrame(
                     )
                 }
             }
+        }
+
+        // ── Direct Edit Dialog ──
+        showDirectEditDialog?.let { layer ->
+            var hText by remember(layer.id) { mutableStateOf(layer.heading) }
+            var sText by remember(layer.id) { mutableStateOf(layer.subheading) }
+            
+            AlertDialog(
+                onDismissRequest = { showDirectEditDialog = null },
+                title = { Text("Edit Text") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = hText,
+                            onValueChange = { 
+                                hText = it
+                                onTextLayerUpdate(layer.id) { l -> l.copy(heading = it) }
+                            },
+                            label = { Text("Heading") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = sText,
+                            onValueChange = { 
+                                sText = it
+                                onTextLayerUpdate(layer.id) { l -> l.copy(subheading = it) }
+                            },
+                            label = { Text("Subheading") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = { showDirectEditDialog = null }) {
+                        Text("Done")
+                    }
+                }
+            )
         }
 
         // ── "Select Screenshot" UI (Only inside the frame) ──
@@ -440,6 +502,7 @@ private sealed class HitResult {
     object NONE : HitResult()
     object Frame : HitResult()
     data class Text(val id: String) : HitResult()
+    data class DeleteText(val id: String) : HitResult()
 }
 
 private fun hitTest(
@@ -450,7 +513,8 @@ private fun hitTest(
     scale: Float,
     frameOffsetX: Float,
     frameOffsetY: Float,
-    textLayers: List<com.example.skreenup.ui.models.TextLayer>
+    textLayers: List<com.example.skreenup.ui.models.TextLayer>,
+    selectedId: String? = null
 ): HitResult {
     val canvasWidth = canvasSize.width.toFloat()
     val canvasHeight = canvasSize.height.toFloat()
@@ -475,15 +539,36 @@ private fun hitTest(
         val textCenterX = compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor)
         val textCenterY = compTop + compHeight / 2 + (layer.offsetY * exportScaleFactor)
         
-        // Heuristic: touchable area for text
+        // Rough estimate of total height based on sizes and gap
+        val totalHeight = (layer.headingSize + layer.subheadingSize + layer.textGap) * exportScaleFactor
+        val blockTop = textCenterY - (totalHeight / 2)
+        
+        // Use a more accurate hit test if needed, but for now heuristic
+        val hitPadding = 20f * exportScaleFactor
         val textHitRect = Rect(
-            left = textCenterX - 250f * exportScaleFactor,
-            right = textCenterX + 250f * exportScaleFactor,
-            top = textCenterY - 80f * exportScaleFactor,
-            bottom = textCenterY + 80f * exportScaleFactor
+            left = textCenterX - 300f * exportScaleFactor,
+            right = textCenterX + 300f * exportScaleFactor,
+            top = blockTop - hitPadding,
+            bottom = blockTop + totalHeight + hitPadding
         )
 
-        if (textHitRect.contains(point)) return HitResult.Text(layer.id)
+        if (textHitRect.contains(point)) {
+            // Check for delete button hit if selected
+            if (layer.id == selectedId) {
+                val padding = 12f * exportScaleFactor
+                val rectTop = blockTop - padding
+                val rectLeft = when (layer.textAlign) {
+                    "LEFT" -> textCenterX - padding
+                    "RIGHT" -> textCenterX - 400f * exportScaleFactor - padding // Still rough
+                    else -> textCenterX - 200f * exportScaleFactor - padding
+                }
+                
+                val xSize = 24f * exportScaleFactor
+                val xHitRect = Rect(Offset(rectLeft - xSize/2, rectTop - xSize/2), androidx.compose.ui.geometry.Size(xSize, xSize))
+                if (xHitRect.contains(point)) return HitResult.DeleteText(layer.id)
+            }
+            return HitResult.Text(layer.id)
+        }
     }
 
     // 3. Check Frame Hit

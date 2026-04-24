@@ -648,6 +648,7 @@ fun EditorScreen(
                         editorViewModel.selectTextLayer(id)
                         editorViewModel.updateSelectedTextLayer(update)
                     },
+                    onDeleteTextLayer = { editorViewModel.removeTextLayer(it) },
                     onSelectTextLayer = { editorViewModel.selectTextLayer(it) },
                     onAddScreenshot = {
                         photoPickerLauncher.launch(
@@ -1025,6 +1026,7 @@ suspend fun captureToBitmap(
                 screenshotRotation = screenshotRotation,
                 screenBackgroundColor = screenBackgroundColor,
                 textLayers = textLayers,
+                selectedTextLayerId = null,
                 showReflection = showReflection,
                 shadowIntensity = shadowIntensity,
                 shadowSoftness = shadowSoftness,

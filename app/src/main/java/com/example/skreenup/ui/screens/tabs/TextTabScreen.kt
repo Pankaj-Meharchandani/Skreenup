@@ -80,23 +80,49 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                 items(PRESET_TEXT_TEMPLATES) { template ->
                     OutlinedCard(
                         onClick = { viewModel.addTextLayer(template.layer.copy(id = java.util.UUID.randomUUID().toString())) },
-                        modifier = Modifier.width(120.dp),
+                        modifier = Modifier.width(160.dp),
                         shape = MaterialTheme.shapes.medium
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
+                            val hFont = TextFont.valueOf(template.layer.headingFont)
+                            val sFont = TextFont.valueOf(template.layer.subheadingFont)
+                            
                             Text(
-                                text = "Abc",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
+                                text = template.layer.heading.take(15),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = if (template.layer.headingBold) FontWeight.Bold else FontWeight.Normal,
+                                fontFamily = when(hFont.family) {
+                                    "cursive" -> FontFamily.Cursive
+                                    "serif" -> FontFamily.Serif
+                                    "serif-monospace" -> FontFamily.Monospace
+                                    else -> FontFamily.SansSerif
+                                }
                             )
-                            Spacer(Modifier.height(4.dp))
                             Text(
-                                text = template.name,
-                                style = MaterialTheme.typography.labelSmall,
+                                text = template.layer.subheading.take(20),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = if (template.layer.subheadingBold) FontWeight.Bold else FontWeight.Normal,
+                                fontFamily = when(sFont.family) {
+                                    "cursive" -> FontFamily.Cursive
+                                    "serif" -> FontFamily.Serif
+                                    "serif-monospace" -> FontFamily.Monospace
+                                    else -> FontFamily.SansSerif
+                                },
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = template.description,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }

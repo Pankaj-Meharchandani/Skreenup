@@ -173,10 +173,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _textZIndex = MutableStateFlow(1)
     val textZIndex: StateFlow<Int> = _textZIndex.asStateFlow()
 
-    private val _showWatermark = MutableStateFlow(true)
+    private val _showWatermark = MutableStateFlow(settingsManager.showWatermark.value)
     val showWatermark: StateFlow<Boolean> = _showWatermark.asStateFlow()
 
-    private val _watermarkText = MutableStateFlow("Made with Skreenup")
+    private val _watermarkText = MutableStateFlow(settingsManager.customWatermark.value)
     val watermarkText: StateFlow<String> = _watermarkText.asStateFlow()
 
     private val _hexColorSolid = MutableStateFlow("#3F51B5")
@@ -566,8 +566,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _headingBold.value = config.headingBold
             _subheadingBold.value = config.subheadingBold
             _textZIndex.value = config.textZIndex
-            _showWatermark.value = config.showWatermark
-            _watermarkText.value = config.watermarkText
+            _showWatermark.value = if (config.watermarkText == "Made with Skreenup") settingsManager.showWatermark.value else config.showWatermark
+            _watermarkText.value = if (config.watermarkText == "Made with Skreenup") settingsManager.customWatermark.value else config.watermarkText
         } ?: run {
             _heading.value = ""
             _subheading.value = ""
@@ -584,8 +584,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _headingBold.value = true
             _subheadingBold.value = false
             _textZIndex.value = 1
-            _showWatermark.value = true
-            _watermarkText.value = "Made with Skreenup"
+            _showWatermark.value = settingsManager.showWatermark.value
+            _watermarkText.value = settingsManager.customWatermark.value
         }
     }
 
@@ -773,8 +773,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _shadowSoftness.value = config.shadowSoftness
         _textShadow.value = config.textShadow
         _textZIndex.value = config.textZIndex
-        _showWatermark.value = config.showWatermark
-        _watermarkText.value = config.watermarkText
+        _showWatermark.value = if (config.watermarkText == "Made with Skreenup") settingsManager.showWatermark.value else config.showWatermark
+        _watermarkText.value = if (config.watermarkText == "Made with Skreenup") settingsManager.customWatermark.value else config.watermarkText
     }
 
     fun saveTemplate(name: String = "My Template", previewUri: String? = null) {

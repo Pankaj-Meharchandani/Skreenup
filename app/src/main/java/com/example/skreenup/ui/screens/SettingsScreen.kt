@@ -23,6 +23,8 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material.icons.rounded.TextFields
+import androidx.compose.foundation.shape.RoundedCornerShape
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -41,6 +43,8 @@ fun SettingsScreen(
     val continueLastProject by settingsViewModel.continueLastProject.collectAsState()
     val useHaptics by settingsViewModel.useHaptics.collectAsState()
     val defaultExportAction by settingsViewModel.defaultExportAction.collectAsState()
+    val showWatermark by settingsViewModel.showWatermark.collectAsState()
+    val customWatermark by settingsViewModel.customWatermark.collectAsState()
     val updateState by settingsViewModel.updateState.collectAsState()
 
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -144,6 +148,46 @@ fun SettingsScreen(
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 modifier = Modifier.clickable { showExportActionDialog = true }
             )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Text(
+                text = "Watermark",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            ListItem(
+                headlineContent = { Text("Show Watermark") },
+                supportingContent = { Text("Add watermark to your designs") },
+                leadingContent = { Icon(Icons.Rounded.TextFields, contentDescription = null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                trailingContent = {
+                    Switch(
+                        checked = showWatermark,
+                        onCheckedChange = { settingsViewModel.setShowWatermark(it) }
+                    )
+                }
+            )
+
+            if (showWatermark) {
+                ListItem(
+                    headlineContent = {
+                        OutlinedTextField(
+                            value = customWatermark,
+                            onValueChange = { settingsViewModel.setCustomWatermark(it) },
+                            placeholder = { Text("Made with Skreenup") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            label = { Text("Custom Watermark Text") },
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 

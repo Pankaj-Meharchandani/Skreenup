@@ -31,6 +31,12 @@ class SettingsManager private constructor(context: Context) {
     private val _defaultExportAction = MutableStateFlow(loadDefaultExportAction())
     val defaultExportAction: StateFlow<ExportAction> = _defaultExportAction
 
+    private val _showWatermark = MutableStateFlow(loadShowWatermark())
+    val showWatermark: StateFlow<Boolean> = _showWatermark
+
+    private val _customWatermark = MutableStateFlow(loadCustomWatermark())
+    val customWatermark: StateFlow<String> = _customWatermark
+
     fun setTheme(theme: AppTheme) {
         prefs.edit().putString("app_theme", theme.name).apply()
         _theme.value = theme
@@ -100,6 +106,24 @@ class SettingsManager private constructor(context: Context) {
 
     fun getLastVisitedScreen(): String? {
         return prefs.getString("last_visited_screen", null)
+    }
+
+    fun setShowWatermark(show: Boolean) {
+        prefs.edit().putBoolean("show_watermark", show).apply()
+        _showWatermark.value = show
+    }
+
+    private fun loadShowWatermark(): Boolean {
+        return prefs.getBoolean("show_watermark", true)
+    }
+
+    fun setCustomWatermark(text: String) {
+        prefs.edit().putString("custom_watermark", text).apply()
+        _customWatermark.value = text
+    }
+
+    private fun loadCustomWatermark(): String {
+        return prefs.getString("custom_watermark", "Made with Skreenup") ?: "Made with Skreenup"
     }
 
     companion object {

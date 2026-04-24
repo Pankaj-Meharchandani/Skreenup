@@ -73,38 +73,22 @@ fun DeviceFrame(
     rotationDegrees: Float = 0f,
     screenshotRotation: Float = 0f,
     screenBackgroundColor: Color = Color(0xFF2C2C2C),
-    heading: String = "",
-    subheading: String = "",
-    headingFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
-    subheadingFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
-    headingSize: Float = 60f,
-    subheadingSize: Float = 40f,
-    textGap: Float = 20f,
-    textColor: Color = Color.White,
-    textOffsetX: Float = 0f,
-    textOffsetY: Float = 0f,
-    textAlign: com.example.skreenup.ui.models.TextAlignLabel = com.example.skreenup.ui.models.TextAlignLabel.CENTER,
-    headingBold: Boolean = true,
-    subheadingBold: Boolean = false,
+    textLayers: List<com.example.skreenup.ui.models.TextLayer> = emptyList(),
+    selectedTextLayerId: String? = null,
     showReflection: Boolean = true,
-    showTextShadow: Boolean = true,
     shadowIntensity: Float = 0.3f,
     shadowSoftness: Float = 1.0f,
-    textZIndex: Int = 1,
     showWatermark: Boolean = true,
     watermarkText: String = "Made with Skreenup",
     onScaleChange: (Float) -> Unit = {},
     onRotationChange: (Float) -> Unit = {},
     onFrameOffsetChange: (Float, Float) -> Unit = { _, _ -> },
-    onTextOffsetChange: (Float, Float) -> Unit = { _, _ -> },
-    onHeadingSizeChange: (Float) -> Unit = {},
-    onSubheadingSizeChange: (Float) -> Unit = {},
-    onTextZIndexChange: (Int) -> Unit = {},
+    onTextLayerUpdate: (String, (com.example.skreenup.ui.models.TextLayer) -> com.example.skreenup.ui.models.TextLayer) -> Unit = { _, _ -> },
+    onSelectTextLayer: (String?) -> Unit = {},
     onAddScreenshot: () -> Unit = {}
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     var activeTarget by remember { mutableStateOf<Target>(Target.NONE) }
-    var showZIndexDialog by remember { mutableStateOf(false) }
     
     // Internal trackers to manage "breakable" snapping
     var sessionPanX by remember { mutableStateOf(0f) }
@@ -117,17 +101,13 @@ fun DeviceFrame(
 
     // Use rememberUpdatedState to avoid restarting pointerInput when values change
     val currentScale by rememberUpdatedState(scale)
-    val currentHeadingSize by rememberUpdatedState(headingSize)
-    val currentSubheadingSize by rememberUpdatedState(subheadingSize)
     val currentRotation by rememberUpdatedState(rotationDegrees)
     val currentFrameOffsetX by rememberUpdatedState(frameOffsetX)
     val currentFrameOffsetY by rememberUpdatedState(frameOffsetY)
-    val currentTextOffsetX by rememberUpdatedState(textOffsetX)
-    val currentTextOffsetY by rememberUpdatedState(textOffsetY)
-    val currentHeading by rememberUpdatedState(heading)
-    val currentSubheading by rememberUpdatedState(subheading)
     val currentDevice by rememberUpdatedState(deviceModel)
     val currentRatio by rememberUpdatedState(aspectRatio)
+    val currentTextLayers by rememberUpdatedState(textLayers)
+    val currentSelectedId by rememberUpdatedState(selectedTextLayerId)
 
     // Calculate frame rect for hit-testing and prompt positioning
     val frameRect = remember(canvasSize, currentDevice, currentScale, currentFrameOffsetX, currentFrameOffsetY, currentRatio) {
@@ -174,9 +154,8 @@ fun DeviceFrame(
             .onSizeChanged { canvasSize = it }
             .pointerInput(canvasSize) {
                 detectTapGestures(
-                    onTap = { onAddScreenshot() },
-                    onLongPress = { offset ->
-                        val target = hitTest(
+                    onTap = { offset ->
+                        val hit = hitTest(
                             point = offset,
                             canvasSize = canvasSize,
                             aspectRatio = currentRatio,
@@ -184,13 +163,14 @@ fun DeviceFrame(
                             scale = currentScale,
                             frameOffsetX = currentFrameOffsetX,
                             frameOffsetY = currentFrameOffsetY,
-                            heading = currentHeading,
-                            subheading = currentSubheading,
-                            textOffsetX = currentTextOffsetX,
-                            textOffsetY = currentTextOffsetY
+                            textLayers = currentTextLayers
                         )
-                        if (target == Target.TEXT) {
-                            showZIndexDialog = true
+                        if (hit is HitResult.Text) {
+                            onSelectTextLayer(hit.id)
+                        } else if (hit is HitResult.Frame) {
+                            onAddScreenshot()
+                        } else {
+                            onSelectTextLayer(null)
                         }
                     }
                 )
@@ -199,7 +179,7 @@ fun DeviceFrame(
                 detectTransformGestures { centroid, pan, zoom, rotationChange ->
                     // Determine target on first movement if not set
                     if (activeTarget == Target.NONE) {
-                        activeTarget = hitTest(
+                        val hit = hitTest(
                             point = centroid,
                             canvasSize = canvasSize,
                             aspectRatio = currentRatio,
@@ -207,43 +187,48 @@ fun DeviceFrame(
                             scale = currentScale,
                             frameOffsetX = currentFrameOffsetX,
                             frameOffsetY = currentFrameOffsetY,
-                            heading = currentHeading,
-                            subheading = currentSubheading,
-                            textOffsetX = currentTextOffsetX,
-                            textOffsetY = currentTextOffsetY
+                            textLayers = currentTextLayers
                         )
-                        // Initialize session tracking based on target
-                        when (activeTarget) {
-                            Target.FRAME -> {
+                        
+                        when (hit) {
+                            is HitResult.Frame -> {
+                                activeTarget = Target.FRAME
                                 sessionPanX = currentFrameOffsetX
                                 sessionPanY = currentFrameOffsetY
                                 sessionRotation = currentRotation
                             }
-                            Target.TEXT -> {
-                                sessionPanX = currentTextOffsetX
-                                sessionPanY = currentTextOffsetY
-                                sessionRotation = 0f // Text doesn't rotate in this impl
+                            is HitResult.Text -> {
+                                activeTarget = Target.TEXT
+                                onSelectTextLayer(hit.id)
+                                val layer = currentTextLayers.find { it.id == hit.id }
+                                sessionPanX = layer?.offsetX ?: 0f
+                                sessionPanY = layer?.offsetY ?: 0f
+                                sessionRotation = 0f
                             }
-                            else -> {
-                                sessionPanX = currentFrameOffsetX
-                                sessionPanY = currentFrameOffsetY
-                                sessionRotation = currentRotation
+                            HitResult.NONE -> {
+                                activeTarget = Target.BACKGROUND
+                                sessionPanX = 0f
+                                sessionPanY = 0f
                             }
                         }
                     }
 
                     // 1. Handle Scale (Zoom)
                     if (zoom != 1f) {
-                        if (activeTarget == Target.TEXT) {
-                            onHeadingSizeChange((currentHeadingSize * zoom).coerceIn(10f, 300f))
-                            onSubheadingSizeChange((currentSubheadingSize * zoom).coerceIn(8f, 200f))
+                        if (activeTarget == Target.TEXT && currentSelectedId != null) {
+                            onTextLayerUpdate(currentSelectedId!!) { layer ->
+                                layer.copy(
+                                    headingSize = (layer.headingSize * zoom).coerceIn(10f, 300f),
+                                    subheadingSize = (layer.subheadingSize * zoom).coerceIn(8f, 200f)
+                                )
+                            }
                         } else {
                             onScaleChange((currentScale * zoom).coerceIn(0.1f, 2.0f))
                         }
                     }
 
                     // 2. Handle Rotation (Two fingers)
-                    if (rotationChange != 0f) {
+                    if (rotationChange != 0f && activeTarget == Target.FRAME) {
                         sessionRotation = (sessionRotation + rotationChange) % 360f
                         if (sessionRotation < 0) sessionRotation += 360f
                         
@@ -277,38 +262,28 @@ fun DeviceFrame(
 
                         when (activeTarget) {
                             Target.FRAME -> {
-                                // ── Professional "Breakable" Snap Logic ──
                                 val snapThreshold = 25f
-                                
                                 val snapX = kotlin.math.abs(sessionPanX) < snapThreshold
                                 val snapY = kotlin.math.abs(sessionPanY) < snapThreshold
-
                                 val finalX = if (snapX) 0f else sessionPanX
                                 val finalY = if (snapY) 0f else sessionPanY
-                                
                                 showSnapLineX = snapX
                                 showSnapLineY = snapY
-
                                 onFrameOffsetChange(finalX, finalY)
                             }
                             Target.TEXT -> {
-                                // ── Professional "Breakable" Snap Logic for Text ──
-                                val snapThreshold = 25f
-                                
-                                val snapX = kotlin.math.abs(sessionPanX) < snapThreshold
-                                val snapY = kotlin.math.abs(sessionPanY) < snapThreshold
-
-                                val finalX = if (snapX) 0f else sessionPanX
-                                val finalY = if (snapY) 0f else sessionPanY
-                                
-                                showSnapLineX = snapX
-                                showSnapLineY = snapY
-
-                                onTextOffsetChange(finalX, finalY)
+                                if (currentSelectedId != null) {
+                                    val snapThreshold = 25f
+                                    val snapX = kotlin.math.abs(sessionPanX) < snapThreshold
+                                    val snapY = kotlin.math.abs(sessionPanY) < snapThreshold
+                                    val finalX = if (snapX) 0f else sessionPanX
+                                    val finalY = if (snapY) 0f else sessionPanY
+                                    showSnapLineX = snapX
+                                    showSnapLineY = snapY
+                                    onTextLayerUpdate(currentSelectedId!!) { it.copy(offsetX = finalX, offsetY = finalY) }
+                                }
                             }
-                            else -> {
-                                onFrameOffsetChange(currentFrameOffsetX + dx, currentFrameOffsetY + dy)
-                            }
+                            else -> {}
                         }
                     }
                 }
@@ -350,50 +325,12 @@ fun DeviceFrame(
                 isExport = false,
                 rotationDegrees = rotationDegrees,
                 screenshotRotation = screenshotRotation,
-                heading = heading,
-                subheading = subheading,
-                headingFont = headingFont,
-                subheadingFont = subheadingFont,
-                headingSize = headingSize,
-                subheadingSize = subheadingSize,
-                textGap = textGap,
-                textColor = textColor,
-                textOffsetX = textOffsetX,
-                textOffsetY = textOffsetY,
-                textAlignment = textAlign,
-                headingBold = headingBold,
-                subheadingBold = subheadingBold,
+                textLayers = textLayers,
                 showReflection = showReflection,
-                showTextShadow = showTextShadow,
                 shadowIntensity = shadowIntensity,
                 shadowSoftness = shadowSoftness,
-                textZIndex = textZIndex,
                 showWatermark = showWatermark,
                 watermarkText = watermarkText
-            )
-        }
-
-        if (showZIndexDialog) {
-            AlertDialog(
-                onDismissRequest = { showZIndexDialog = false },
-                title = { Text("Text Layering") },
-                text = { Text("Where do you want to place the text?") },
-                confirmButton = {
-                    TextButton(onClick = { 
-                        onTextZIndexChange(1)
-                        showZIndexDialog = false 
-                    }) {
-                        Text("Move to Front")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { 
-                        onTextZIndexChange(-1)
-                        showZIndexDialog = false 
-                    }) {
-                        Text("Move to Back")
-                    }
-                }
             )
         }
 
@@ -497,7 +434,13 @@ fun DeviceFrame(
     }
 }
 
-private enum class Target { NONE, FRAME, TEXT }
+private enum class Target { NONE, FRAME, TEXT, BACKGROUND }
+
+private sealed class HitResult {
+    object NONE : HitResult()
+    object Frame : HitResult()
+    data class Text(val id: String) : HitResult()
+}
 
 private fun hitTest(
     point: Offset,
@@ -507,14 +450,11 @@ private fun hitTest(
     scale: Float,
     frameOffsetX: Float,
     frameOffsetY: Float,
-    heading: String,
-    subheading: String,
-    textOffsetX: Float,
-    textOffsetY: Float
-): Target {
+    textLayers: List<com.example.skreenup.ui.models.TextLayer>
+): HitResult {
     val canvasWidth = canvasSize.width.toFloat()
     val canvasHeight = canvasSize.height.toFloat()
-    if (canvasWidth <= 0 || canvasHeight <= 0) return Target.NONE
+    if (canvasWidth <= 0 || canvasHeight <= 0) return HitResult.NONE
 
     // 1. Calculate comp area (Same logic as MockupRenderer)
     val compWidth: Float
@@ -530,20 +470,20 @@ private fun hitTest(
     val compTop = (canvasHeight - compHeight) / 2
     val exportScaleFactor = compWidth / 1000f
 
-    // 2. Check Text Hit (Rough bounding box)
-    if (heading.isNotEmpty() || subheading.isNotEmpty()) {
-        val textCenterX = compLeft + compWidth / 2 + (textOffsetX * exportScaleFactor)
-        val textCenterY = compTop + compHeight / 2 + (textOffsetY * exportScaleFactor)
+    // 2. Check Text Hit (Rough bounding box) - Reverse order for top-most first
+    textLayers.asReversed().forEach { layer ->
+        val textCenterX = compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor)
+        val textCenterY = compTop + compHeight / 2 + (layer.offsetY * exportScaleFactor)
         
         // Heuristic: touchable area for text
         val textHitRect = Rect(
-            left = textCenterX - 300f * exportScaleFactor,
-            right = textCenterX + 300f * exportScaleFactor,
-            top = textCenterY - 100f * exportScaleFactor,
-            bottom = textCenterY + 100f * exportScaleFactor
+            left = textCenterX - 250f * exportScaleFactor,
+            right = textCenterX + 250f * exportScaleFactor,
+            top = textCenterY - 80f * exportScaleFactor,
+            bottom = textCenterY + 80f * exportScaleFactor
         )
 
-        if (textHitRect.contains(point)) return Target.TEXT
+        if (textHitRect.contains(point)) return HitResult.Text(layer.id)
     }
 
     // 3. Check Frame Hit
@@ -564,7 +504,7 @@ private fun hitTest(
     val frameTop = compTop + (compHeight - frameHeight) / 2 + currentFrameOffsetY
     
     val frameRect = Rect(Offset(frameLeft, frameTop), androidx.compose.ui.geometry.Size(frameWidth, frameHeight))
-    if (frameRect.contains(point)) return Target.FRAME
+    if (frameRect.contains(point)) return HitResult.Frame
 
-    return Target.NONE
+    return HitResult.NONE
 }

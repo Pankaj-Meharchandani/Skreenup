@@ -58,3 +58,23 @@ enum class TextAlignLabel(val label: String) {
     CENTER("Center"),
     RIGHT("Right")
 }
+
+@kotlinx.serialization.Serializable
+data class TextLayer(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val heading: String = "",
+    val subheading: String = "",
+    val headingFont: String = TextFont.POPPINS.name,
+    val subheadingFont: String = TextFont.POPPINS.name,
+    val headingSize: Float = 60f,
+    val subheadingSize: Float = 40f,
+    val textGap: Float = 20f,
+    val offsetX: Float = 0f,
+    val offsetY: Float = 0f,
+    val textColor: Int = 0xFFFFFFFF.toInt(),
+    val textAlign: String = TextAlignLabel.CENTER.name,
+    val headingBold: Boolean = true,
+    val subheadingBold: Boolean = false,
+    val textShadow: Boolean = true,
+    val zIndex: Int = 1
+)

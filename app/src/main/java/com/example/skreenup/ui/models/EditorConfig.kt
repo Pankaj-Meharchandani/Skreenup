@@ -15,19 +15,24 @@ data class EditorConfig(
     val backgroundImageScale: Float = 1.0f,
     val backgroundImageBlur: Float = 0f,
     val screenBackgroundColor: Int,
+    val textLayers: List<TextLayer> = emptyList(),
+    // Legacy fields for migration
     val heading: String = "",
     val subheading: String = "",
-    val headingFont: String,
-    val subheadingFont: String,
+    val headingFont: String = "POPPINS",
+    val subheadingFont: String = "POPPINS",
     val headingSize: Float = 60f,
     val subheadingSize: Float = 40f,
     val textGap: Float = 20f,
     val textOffsetX: Float = 0f,
     val textOffsetY: Float = 0f,
-    val textColor: Int,
-    val textAlign: String,
+    val textColor: Int = -1,
+    val textAlign: String = "CENTER",
     val headingBold: Boolean = true,
     val subheadingBold: Boolean = false,
+    val textShadow: Boolean = true,
+    val textZIndex: Int = 1,
+    // End legacy
     val scale: Float = 0.8f,
     val imageScale: Float = 1.0f,
     val screenshotRotation: Float = 0f,
@@ -40,8 +45,6 @@ data class EditorConfig(
     val showReflection: Boolean = true,
     val shadowIntensity: Float = 0.3f,
     val shadowSoftness: Float = 1.0f,
-    val textShadow: Boolean = true,
-    val textZIndex: Int = 1, // 1 for Front, -1 for Back
     val showWatermark: Boolean = true,
     val watermarkText: String = "Made with Skreenup"
 )

@@ -18,6 +18,7 @@ import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.DeviceModels
 import com.example.skreenup.ui.models.TextFont
 import com.example.skreenup.ui.models.TextAlignLabel
+import com.example.skreenup.ui.models.TextLayer
 import kotlinx.coroutines.Dispatchers
 import com.example.skreenup.data.Project
 import com.example.skreenup.data.Preset
@@ -83,6 +84,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     val screenBackgroundColor: StateFlow<Color> = _screenBackgroundColor.asStateFlow()
 
     // Text State
+    private val _textLayers = MutableStateFlow<List<TextLayer>>(emptyList())
+    val textLayers: StateFlow<List<TextLayer>> = _textLayers.asStateFlow()
+
+    private val _selectedTextLayerId = MutableStateFlow<String?>(null)
+    val selectedTextLayerId: StateFlow<String?> = _selectedTextLayerId.asStateFlow()
+
     private val _heading = MutableStateFlow("")
     val heading: StateFlow<String> = _heading.asStateFlow()
 
@@ -331,51 +338,113 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         parseHexColor(value)?.let { _screenBackgroundColor.value = it }
     }
 
+    // Text Layer Management
+    fun addTextLayer(layer: TextLayer = TextLayer()) {
+        _textLayers.value = _textLayers.value + layer
+        _selectedTextLayerId.value = layer.id
+        _isSaved.value = false
+    }
+
+    fun removeTextLayer(id: String) {
+        _textLayers.value = _textLayers.value.filter { it.id != id }
+        if (_selectedTextLayerId.value == id) {
+            _selectedTextLayerId.value = _textLayers.value.lastOrNull()?.id
+        }
+        _isSaved.value = false
+    }
+
+    fun selectTextLayer(id: String?) {
+        _selectedTextLayerId.value = id
+        val layer = _textLayers.value.find { it.id == id }
+        if (layer != null) {
+            _heading.value = layer.heading
+            _subheading.value = layer.subheading
+            _headingFont.value = try { TextFont.valueOf(layer.headingFont) } catch(e: Exception) { TextFont.POPPINS }
+            _subheadingFont.value = try { TextFont.valueOf(layer.subheadingFont) } catch(e: Exception) { TextFont.POPPINS }
+            _headingSize.value = layer.headingSize
+            _subheadingSize.value = layer.subheadingSize
+            _textGap.value = layer.textGap
+            _textOffsetX.value = layer.offsetX
+            _textOffsetY.value = layer.offsetY
+            _textColor.value = Color(layer.textColor)
+            _textAlign.value = try { TextAlignLabel.valueOf(layer.textAlign) } catch(e: Exception) { TextAlignLabel.CENTER }
+            _headingBold.value = layer.headingBold
+            _subheadingBold.value = layer.subheadingBold
+            _textShadow.value = layer.textShadow
+            _textZIndex.value = layer.zIndex
+        }
+    }
+
+    fun updateSelectedTextLayer(update: (TextLayer) -> TextLayer) {
+        val selectedId = _selectedTextLayerId.value ?: return
+        _textLayers.value = _textLayers.value.map {
+            if (it.id == selectedId) update(it) else it
+        }
+        _isSaved.value = false
+    }
+
     // Text Setters
     fun setHeading(value: String) { 
         _heading.value = value 
+        updateSelectedTextLayer { it.copy(heading = value) }
         _isSaved.value = false
     }
     fun setSubheading(value: String) { 
         _subheading.value = value 
+        updateSelectedTextLayer { it.copy(subheading = value) }
         _isSaved.value = false
     }
-    fun setHeadingFont(value: TextFont) { _headingFont.value = value }
-    fun setSubheadingFont(value: TextFont) { _subheadingFont.value = value }
+    fun setHeadingFont(value: TextFont) { 
+        _headingFont.value = value 
+        updateSelectedTextLayer { it.copy(headingFont = value.name) }
+    }
+    fun setSubheadingFont(value: TextFont) { 
+        _subheadingFont.value = value 
+        updateSelectedTextLayer { it.copy(subheadingFont = value.name) }
+    }
     fun setHeadingSize(value: Float) { 
         _headingSize.value = value 
+        updateSelectedTextLayer { it.copy(headingSize = value) }
         _isSaved.value = false
     }
     fun setSubheadingSize(value: Float) { 
         _subheadingSize.value = value 
+        updateSelectedTextLayer { it.copy(subheadingSize = value) }
         _isSaved.value = false
     }
     fun setTextGap(value: Float) { 
         _textGap.value = value 
+        updateSelectedTextLayer { it.copy(textGap = value) }
         _isSaved.value = false
     }
     fun setTextOffsetX(value: Float) {
         _textOffsetX.value = value
+        updateSelectedTextLayer { it.copy(offsetX = value) }
         _isSaved.value = false
     }
     fun setTextOffsetY(value: Float) {
         _textOffsetY.value = value
+        updateSelectedTextLayer { it.copy(offsetY = value) }
         _isSaved.value = false
     }
     fun setTextColor(color: Color) { 
         _textColor.value = color 
+        updateSelectedTextLayer { it.copy(textColor = color.toArgb()) }
         _isSaved.value = false
     }
     fun setTextAlign(value: TextAlignLabel) { 
         _textAlign.value = value 
+        updateSelectedTextLayer { it.copy(textAlign = value.name) }
         _isSaved.value = false
     }
     fun setHeadingBold(value: Boolean) { 
         _headingBold.value = value 
+        updateSelectedTextLayer { it.copy(headingBold = value) }
         _isSaved.value = false
     }
     fun setSubheadingBold(value: Boolean) { 
         _subheadingBold.value = value 
+        updateSelectedTextLayer { it.copy(subheadingBold = value) }
         _isSaved.value = false
     }
 
@@ -396,11 +465,13 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setTextShadow(value: Boolean) { 
         _textShadow.value = value 
+        updateSelectedTextLayer { it.copy(textShadow = value) }
         _isSaved.value = false
     }
 
     fun setTextZIndex(value: Int) { 
         _textZIndex.value = value 
+        updateSelectedTextLayer { it.copy(zIndex = value) }
         _isSaved.value = false
     }
 
@@ -595,6 +666,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             backgroundImageScale = _backgroundImageScale.value,
             backgroundImageBlur = _backgroundImageBlur.value,
             screenBackgroundColor = _screenBackgroundColor.value.toArgb(),
+            textLayers = _textLayers.value,
+            // Legacy support
             heading = _heading.value,
             subheading = _subheading.value,
             headingFont = _headingFont.value.name,
@@ -608,6 +681,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             textAlign = _textAlign.value.name,
             headingBold = _headingBold.value,
             subheadingBold = _subheadingBold.value,
+            textShadow = _textShadow.value,
+            textZIndex = _textZIndex.value,
+            // End legacy
             scale = _scale.value,
             imageScale = _imageScale.value,
             screenshotRotation = _screenshotRotation.value,
@@ -620,8 +696,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             showReflection = _showReflection.value,
             shadowIntensity = _shadowIntensity.value,
             shadowSoftness = _shadowSoftness.value,
-            textShadow = _textShadow.value,
-            textZIndex = _textZIndex.value,
             showWatermark = _showWatermark.value,
             watermarkText = _watermarkText.value
         )
@@ -658,19 +732,33 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _backgroundImageScale.value = config.backgroundImageScale
         _backgroundImageBlur.value = config.backgroundImageBlur
         _screenBackgroundColor.value = Color(config.screenBackgroundColor)
-        _heading.value = config.heading
-        _subheading.value = config.subheading
-        _headingFont.value = TextFont.valueOf(config.headingFont)
-        _subheadingFont.value = TextFont.valueOf(config.subheadingFont)
-        _headingSize.value = config.headingSize
-        _subheadingSize.value = config.subheadingSize
-        _textGap.value = config.textGap
-        _textOffsetX.value = config.textOffsetX
-        _textOffsetY.value = config.textOffsetY
-        _textColor.value = Color(config.textColor)
-        _textAlign.value = TextAlignLabel.valueOf(config.textAlign)
-        _headingBold.value = config.headingBold
-        _subheadingBold.value = config.subheadingBold
+
+        if (config.textLayers.isNotEmpty()) {
+            _textLayers.value = config.textLayers
+            config.textLayers.firstOrNull()?.let { selectTextLayer(it.id) }
+        } else {
+            // Migration from legacy
+            val legacyLayer = TextLayer(
+                heading = config.heading,
+                subheading = config.subheading,
+                headingFont = config.headingFont,
+                subheadingFont = config.subheadingFont,
+                headingSize = config.headingSize,
+                subheadingSize = config.subheadingSize,
+                textGap = config.textGap,
+                offsetX = config.textOffsetX,
+                offsetY = config.textOffsetY,
+                textColor = if (config.textColor == -1) Color.White.toArgb() else config.textColor,
+                textAlign = config.textAlign,
+                headingBold = config.headingBold,
+                subheadingBold = config.subheadingBold,
+                textShadow = config.textShadow,
+                zIndex = config.textZIndex
+            )
+            _textLayers.value = listOf(legacyLayer)
+            selectTextLayer(legacyLayer.id)
+        }
+
         _scale.value = config.scale
         _imageScale.value = config.imageScale
         _screenshotRotation.value = config.screenshotRotation

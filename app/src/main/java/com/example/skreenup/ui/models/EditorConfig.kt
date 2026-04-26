@@ -45,6 +45,7 @@ data class EditorConfig(
     val showReflection: Boolean = true,
     val shadowIntensity: Float = 0.3f,
     val shadowSoftness: Float = 1.0f,
+    val deviceFramePosition: Int = -1, // -1 means at the bottom (behind all)
     val showWatermark: Boolean = true,
     val watermarkText: String = "Made with Skreenup"
 )

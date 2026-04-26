@@ -184,8 +184,8 @@ object MockupRenderer {
         val drawTextContent = { zIndexFilter: Int ->
             textLayers.filter { 
                 val zMatch = if (zIndexFilter < 0) it.zIndex < 0 else it.zIndex >= 0
-                zMatch && it.id != editingTextLayerId
-            }.forEach { layer ->
+                zMatch && it.id != editingTextLayerId && it.isVisible
+            }.reversed().forEach { layer ->
                 val hText = layer.heading.trim()
                 val sText = layer.subheading.trim()
 

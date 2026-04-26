@@ -38,6 +38,14 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.Tune
@@ -368,6 +376,7 @@ fun EditorScreen(
 
     val defaultExportAction by settingsViewModel.defaultExportAction.collectAsState()
     var showExportDialog by remember { mutableStateOf(false) }
+    var showLayersSheet by remember { mutableStateOf(false) }
     
     LaunchedEffect(presetId, projectId, staticTemplateId, isLastProject) {
         if (isLastProject) {
@@ -667,6 +676,25 @@ fun EditorScreen(
                         )
                     }
                 )
+
+                // Floating Layers Button
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 8.dp, end = 12.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                    tonalElevation = 2.dp
+                ) {
+                    IconButton(onClick = { showLayersSheet = true }) {
+                        Icon(
+                            Icons.Rounded.Layers, 
+                            contentDescription = "Layers",
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
             }
 
             // Bottom area: Tab Content
@@ -969,6 +997,113 @@ fun EditorScreen(
             }
         )
     }
+
+    if (showLayersSheet) {
+        val devicePos by editorViewModel.deviceFramePosition.collectAsState()
+        val combinedItems = remember(textLayers, devicePos) {
+            val list = textLayers.toMutableList<Any>()
+            val actualPos = if (devicePos == -1) list.size else devicePos.coerceIn(0, list.size)
+            list.add(actualPos, "DEVICE")
+            list
+        }
+
+        ModalBottomSheet(
+            onDismissRequest = { showLayersSheet = false },
+            sheetState = rememberModalBottomSheetState()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    "Layers",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                LazyColumn {
+                    itemsIndexed(combinedItems) { index, item ->
+                        if (item is com.example.skreenup.ui.models.TextLayer) {
+                            LayerItem(
+                                name = if (item.heading.isNotBlank()) item.heading else "Text Layer",
+                                isVisible = item.isVisible,
+                                isFront = index < combinedItems.indexOf("DEVICE"),
+                                onToggleVisibility = { editorViewModel.setTextLayerVisibility(item.id, !item.isVisible) },
+                                onMoveUp = { if (index > 0) editorViewModel.moveLayer(index, index - 1) },
+                                onMoveDown = { if (index < combinedItems.size - 1) editorViewModel.moveLayer(index, index + 1) },
+                                onSelect = { editorViewModel.selectTextLayer(item.id) },
+                                isSelected = selectedTextLayerId == item.id
+                            )
+                        } else {
+                            ListItem(
+                                headlineContent = { Text("Device Frame", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) },
+                                leadingContent = { Icon(Icons.Rounded.Smartphone, contentDescription = null) },
+                                trailingContent = {
+                                    Column {
+                                        IconButton(onClick = { if (index > 0) editorViewModel.moveLayer(index, index - 1) }, modifier = Modifier.size(24.dp)) {
+                                            Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Move Up")
+                                        }
+                                        IconButton(onClick = { if (index < combinedItems.size - 1) editorViewModel.moveLayer(index, index + 1) }, modifier = Modifier.size(24.dp)) {
+                                            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Move Down")
+                                        }
+                                    }
+                                },
+                                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LayerItem(
+    name: String,
+    isVisible: Boolean,
+    isFront: Boolean,
+    onToggleVisibility: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onSelect: () -> Unit,
+    isSelected: Boolean
+) {
+    ListItem(
+        modifier = Modifier.clickable { onSelect() },
+        headlineContent = { 
+            Text(
+                name, 
+                maxLines = 1, 
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            ) 
+        },
+        supportingContent = { Text(if (isFront) "In Front of Device" else "Behind Device") },
+        leadingContent = {
+            IconButton(onClick = onToggleVisibility) {
+                Icon(
+                    if (isVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
+                    contentDescription = "Toggle Visibility"
+                )
+            }
+        },
+        trailingContent = {
+            Column {
+                IconButton(onClick = onMoveUp, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Move Up")
+                }
+                IconButton(onClick = onMoveDown, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Move Down")
+                }
+            }
+        },
+        colors = ListItemDefaults.colors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent
+        )
+    )
 }
 
 suspend fun captureToBitmap(

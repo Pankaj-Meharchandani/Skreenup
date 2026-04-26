@@ -85,6 +85,7 @@ data class TextLayer(
     val subheadingBold: Boolean = false,
     val textShadow: Boolean = true,
     val zIndex: Int = 1,
+    val isVisible: Boolean = true,
     val backgroundStyle: String = TextBackgroundStyle.NONE.name,
     val backgroundColor: Int = 0xFF000000.toInt(),
     val backgroundAlpha: Float = 0.5f,

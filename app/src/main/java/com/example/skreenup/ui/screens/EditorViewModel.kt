@@ -179,6 +179,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _rotation = MutableStateFlow(0f)
     val rotation: StateFlow<Float> = _rotation.asStateFlow()
 
+    private val _deviceFramePosition = MutableStateFlow(-1)
+    val deviceFramePosition: StateFlow<Int> = _deviceFramePosition.asStateFlow()
+
     private val _showReflection = MutableStateFlow(true)
     val showReflection: StateFlow<Boolean> = _showReflection.asStateFlow()
 
@@ -447,6 +450,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun addTextLayer(layer: TextLayer = TextLayer()) {
         _textLayers.value = _textLayers.value + layer
         _selectedTextLayerId.value = layer.id
+        updateZIndices()
         _isSaved.value = false
     }
 
@@ -455,6 +459,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         if (_selectedTextLayerId.value == id) {
             _selectedTextLayerId.value = _textLayers.value.lastOrNull()?.id
         }
+        updateZIndices()
         _isSaved.value = false
     }
 
@@ -485,12 +490,77 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun setTextLayerZIndex(id: String, zIndex: Int) {
+        _textLayers.value = _textLayers.value.map {
+            if (it.id == id) it.copy(zIndex = zIndex) else it
+        }
+        _isSaved.value = false
+    }
+
     fun updateSelectedTextLayer(update: (TextLayer) -> TextLayer) {
         val selectedId = _selectedTextLayerId.value ?: return
         _textLayers.value = _textLayers.value.map {
             if (it.id == selectedId) update(it) else it
         }
         _isSaved.value = false
+    }
+
+    fun setTextLayerVisibility(id: String, visible: Boolean) {
+        _textLayers.value = _textLayers.value.map {
+            if (it.id == id) it.copy(isVisible = visible) else it
+        }
+        _isSaved.value = false
+    }
+
+    fun setDeviceFramePosition(position: Int) {
+        _deviceFramePosition.value = position
+        updateZIndices()
+        _isSaved.value = false
+    }
+
+    private fun updateZIndices() {
+        val pos = if (_deviceFramePosition.value == -1) _textLayers.value.size else _deviceFramePosition.value
+        _textLayers.value = _textLayers.value.mapIndexed { index, layer ->
+            val newZ = if (index < pos) 1 else -1
+            layer.copy(zIndex = newZ)
+        }
+    }
+
+    fun moveLayer(fromIndex: Int, toIndex: Int) {
+        val devicePos = if (_deviceFramePosition.value == -1) _textLayers.value.size else _deviceFramePosition.value
+        val list = _textLayers.value.toMutableList<Any>()
+        list.add(devicePos, "DEVICE")
+        
+        if (fromIndex in list.indices && toIndex in list.indices) {
+            val item = list.removeAt(fromIndex)
+            list.add(toIndex, item)
+            
+            // Re-separate
+            val newTextLayers = mutableListOf<TextLayer>()
+            var newDevicePos = -1
+            list.forEachIndexed { idx, it ->
+                if (it is TextLayer) {
+                    newTextLayers.add(it)
+                } else {
+                    newDevicePos = idx
+                }
+            }
+            _textLayers.value = newTextLayers
+            _deviceFramePosition.value = newDevicePos
+            updateZIndices()
+            _isSaved.value = false
+        }
+    }
+
+    fun moveTextLayer(fromIndex: Int, toIndex: Int) {
+        val list = _textLayers.value.toMutableList()
+        if (fromIndex in list.indices && toIndex in list.indices) {
+            val item = list.removeAt(fromIndex)
+            list.add(toIndex, item)
+            _textLayers.value = list
+            updateZIndices()
+            _isSaved.value = false
+        }
     }
 
     // Text Setters
@@ -741,6 +811,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         resetBackgroundTab()
         resetAdjustTab()
         resetTextTab()
+        _deviceFramePosition.value = -1
     }
 
     fun clearInitialConfig() {
@@ -843,6 +914,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             showReflection = _showReflection.value,
             shadowIntensity = _shadowIntensity.value,
             shadowSoftness = _shadowSoftness.value,
+            deviceFramePosition = _deviceFramePosition.value,
             showWatermark = _showWatermark.value,
             watermarkText = _watermarkText.value
         )
@@ -919,6 +991,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _showReflection.value = config.showReflection
         _shadowIntensity.value = config.shadowIntensity
         _shadowSoftness.value = config.shadowSoftness
+        _deviceFramePosition.value = config.deviceFramePosition
         _textShadow.value = config.textShadow
         _textZIndex.value = config.textZIndex
         _showWatermark.value = if (config.watermarkText == "Made with Skreenup") settingsManager.showWatermark.value else config.showWatermark

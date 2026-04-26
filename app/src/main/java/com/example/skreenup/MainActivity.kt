@@ -45,7 +45,12 @@ import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.rounded.DragHandle
+import sh.calvin.reorderable.*
+import com.example.skreenup.ui.models.TextLayer
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.Tune
@@ -168,25 +173,27 @@ fun SkreenupApp() {
                         rotationDegrees = template.config.rotation,
                         screenshotRotation = template.config.screenshotRotation,
                         screenBackgroundColor = Color(template.config.screenBackgroundColor),
-                        textLayers = if (template.config.textLayers.isNotEmpty()) template.config.textLayers else listOf(
-                            com.example.skreenup.ui.models.TextLayer(
-                                heading = template.config.heading,
-                                subheading = template.config.subheading,
-                                headingFont = template.config.headingFont,
-                                subheadingFont = template.config.subheadingFont,
-                                headingSize = template.config.headingSize,
-                                subheadingSize = template.config.subheadingSize,
-                                textGap = template.config.textGap,
-                                offsetX = template.config.textOffsetX,
-                                offsetY = template.config.textOffsetY,
-                                textColor = if (template.config.textColor == -1) Color.White.toArgb() else template.config.textColor,
-                                textAlign = template.config.textAlign,
-                                headingBold = template.config.headingBold,
-                                subheadingBold = template.config.subheadingBold,
-                                textShadow = template.config.textShadow,
-                                zIndex = template.config.textZIndex
+                        textLayers = template.config.textLayers.ifEmpty {
+                            listOf(
+                                TextLayer(
+                                    heading = template.config.heading,
+                                    subheading = template.config.subheading,
+                                    headingFont = template.config.headingFont,
+                                    subheadingFont = template.config.subheadingFont,
+                                    headingSize = template.config.headingSize,
+                                    subheadingSize = template.config.subheadingSize,
+                                    textGap = template.config.textGap,
+                                    offsetX = template.config.textOffsetX,
+                                    offsetY = template.config.textOffsetY,
+                                    textColor = if (template.config.textColor == -1) Color.White.toArgb() else template.config.textColor,
+                                    textAlign = template.config.textAlign,
+                                    headingBold = template.config.headingBold,
+                                    subheadingBold = template.config.subheadingBold,
+                                    textShadow = template.config.textShadow,
+                                    zIndex = template.config.textZIndex
+                                )
                             )
-                        ),
+                        },
                         showReflection = template.config.showReflection,
                         shadowIntensity = template.config.shadowIntensity,
                         shadowSoftness = template.config.shadowSoftness,
@@ -1007,6 +1014,11 @@ fun EditorScreen(
             list
         }
 
+        val lazyListState = rememberLazyListState()
+        val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+            editorViewModel.moveLayer(from.index, to.index)
+        }
+
         ModalBottomSheet(
             onDismissRequest = { showLayersSheet = false },
             sheetState = rememberModalBottomSheetState()
@@ -1023,35 +1035,38 @@ fun EditorScreen(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                LazyColumn {
-                    itemsIndexed(combinedItems) { index, item ->
-                        if (item is com.example.skreenup.ui.models.TextLayer) {
-                            LayerItem(
-                                name = if (item.heading.isNotBlank()) item.heading else "Text Layer",
-                                isVisible = item.isVisible,
-                                isFront = index < combinedItems.indexOf("DEVICE"),
-                                onToggleVisibility = { editorViewModel.setTextLayerVisibility(item.id, !item.isVisible) },
-                                onMoveUp = { if (index > 0) editorViewModel.moveLayer(index, index - 1) },
-                                onMoveDown = { if (index < combinedItems.size - 1) editorViewModel.moveLayer(index, index + 1) },
-                                onSelect = { editorViewModel.selectTextLayer(item.id) },
-                                isSelected = selectedTextLayerId == item.id
-                            )
-                        } else {
-                            ListItem(
-                                headlineContent = { Text("Device Frame", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) },
-                                leadingContent = { Icon(Icons.Rounded.Smartphone, contentDescription = null) },
-                                trailingContent = {
-                                    Column {
-                                        IconButton(onClick = { if (index > 0) editorViewModel.moveLayer(index, index - 1) }, modifier = Modifier.size(24.dp)) {
-                                            Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Move Up")
-                                        }
-                                        IconButton(onClick = { if (index < combinedItems.size - 1) editorViewModel.moveLayer(index, index + 1) }, modifier = Modifier.size(24.dp)) {
-                                            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Move Down")
-                                        }
-                                    }
-                                },
-                                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            )
+                LazyColumn(
+                    state = lazyListState,
+                ) {
+                    itemsIndexed(combinedItems, key = { _, item -> 
+                        if (item is TextLayer) item.id else "DEVICE" 
+                    }) { index, item ->
+                        ReorderableItem(reorderableState, key = if (item is TextLayer) item.id else "DEVICE") { isDragging ->
+                            val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp)
+                            Surface(shadowElevation = elevation) {
+                                if (item is TextLayer) {
+                                    LayerItem(
+                                        name = item.heading.ifBlank { "Text Layer" },
+                                        isVisible = item.isVisible,
+                                        isFront = index < combinedItems.indexOf("DEVICE"),
+                                        onToggleVisibility = { editorViewModel.setTextLayerVisibility(item.id, !item.isVisible) },
+                                        onSelect = { editorViewModel.selectTextLayer(item.id) },
+                                        isSelected = selectedTextLayerId == item.id,
+                                        tintColor = Color(item.textColor),
+                                        modifier = Modifier.longPressDraggableHandle()
+                                    )
+                                } else {
+                                    ListItem(
+                                        modifier = Modifier.longPressDraggableHandle(),
+                                        headlineContent = { Text("Device Frame", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) },
+                                        leadingContent = { Icon(Icons.Rounded.Smartphone, contentDescription = null) },
+                                        trailingContent = {
+                                            Icon(Icons.Rounded.DragHandle, contentDescription = "Drag to reorder")
+                                        },
+                                        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -1066,13 +1081,13 @@ fun LayerItem(
     isVisible: Boolean,
     isFront: Boolean,
     onToggleVisibility: () -> Unit,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
     onSelect: () -> Unit,
-    isSelected: Boolean
+    isSelected: Boolean,
+    modifier: Modifier = Modifier,
+    tintColor: Color = Color.Transparent
 ) {
     ListItem(
-        modifier = Modifier.clickable { onSelect() },
+        modifier = modifier.clickable { onSelect() },
         headlineContent = { 
             Text(
                 name, 
@@ -1091,17 +1106,14 @@ fun LayerItem(
             }
         },
         trailingContent = {
-            Column {
-                IconButton(onClick = onMoveUp, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Move Up")
-                }
-                IconButton(onClick = onMoveDown, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Move Down")
-                }
-            }
+            Icon(Icons.Rounded.DragHandle, contentDescription = "Drag to reorder")
         },
         colors = ListItemDefaults.colors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+            } else {
+                tintColor.copy(alpha = 0.1f)
+            }
         )
     )
 }

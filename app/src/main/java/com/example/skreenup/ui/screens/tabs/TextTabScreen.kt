@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.VerticalAlignCenter
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.skreenup.ui.models.TextFont
 import com.example.skreenup.ui.models.TextAlignLabel
+import com.example.skreenup.ui.models.TextBackgroundStyle
 import com.example.skreenup.ui.models.TextLayer
 import com.example.skreenup.ui.screens.EditorViewModel
 import com.example.skreenup.ui.components.*
@@ -53,6 +55,11 @@ fun TextTabScreen(viewModel: EditorViewModel) {
     val headingBold by viewModel.headingBold.collectAsState()
     val subheadingBold by viewModel.subheadingBold.collectAsState()
     val textShadow by viewModel.textShadow.collectAsState()
+    val textBackgroundStyle by viewModel.textBackgroundStyle.collectAsState()
+    val textBackgroundColor by viewModel.textBackgroundColor.collectAsState()
+    val textBackgroundAlpha by viewModel.textBackgroundAlpha.collectAsState()
+    val textBackgroundPadding by viewModel.textBackgroundPadding.collectAsState()
+    val textBackgroundCornerRadius by viewModel.textBackgroundCornerRadius.collectAsState()
     val showWatermark by viewModel.showWatermark.collectAsState()
     val watermarkText by viewModel.watermarkText.collectAsState()
 
@@ -243,6 +250,61 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                 }
 
                 ColorSelector(selectedColor = textColor, onColorSelected = { viewModel.setTextColor(it) })
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                // Text Background Section
+                SectionHeader(label = "Background", icon = Icons.Rounded.TextFields)
+                
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(TextBackgroundStyle.entries) { style ->
+                        FilterChip(
+                            selected = textBackgroundStyle == style,
+                            onClick = { viewModel.setTextBackgroundStyle(style) },
+                            label = { Text(style.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                            shape = MaterialTheme.shapes.large
+                        )
+                    }
+                }
+
+                if (textBackgroundStyle != TextBackgroundStyle.NONE) {
+                    if (textBackgroundStyle != TextBackgroundStyle.GLASS) {
+                        ColorSelector(
+                            selectedColor = textBackgroundColor,
+                            onColorSelected = { viewModel.setTextBackgroundColor(it) },
+                            label = "Background Color"
+                        )
+                        
+                        AdjustmentItem(
+                            label = "Background Opacity",
+                            value = textBackgroundAlpha,
+                            onValueChange = { viewModel.setTextBackgroundAlpha(it) },
+                            valueRange = 0f..1f,
+                            icon = Icons.Rounded.Tune
+                        )
+                    }
+
+                    AdjustmentItem(
+                        label = "Padding",
+                        value = textBackgroundPadding,
+                        onValueChange = { viewModel.setTextBackgroundPadding(it) },
+                        valueRange = 0f..100f,
+                        icon = Icons.Rounded.Tune,
+                        showAsRaw = true
+                    )
+
+                    AdjustmentItem(
+                        label = "Corner Radius",
+                        value = textBackgroundCornerRadius,
+                        onValueChange = { viewModel.setTextBackgroundCornerRadius(it) },
+                        valueRange = 0f..100f,
+                        icon = Icons.Rounded.Tune,
+                        showAsRaw = true
+                    )
+                }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 

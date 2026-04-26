@@ -18,6 +18,7 @@ import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.DeviceModels
 import com.example.skreenup.ui.models.TextFont
 import com.example.skreenup.ui.models.TextAlignLabel
+import com.example.skreenup.ui.models.TextBackgroundStyle
 import com.example.skreenup.ui.models.TextLayer
 import kotlinx.coroutines.Dispatchers
 import com.example.skreenup.data.Project
@@ -122,6 +123,21 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _textAlign = MutableStateFlow(TextAlignLabel.CENTER)
     val textAlign: StateFlow<TextAlignLabel> = _textAlign.asStateFlow()
+
+    private val _textBackgroundStyle = MutableStateFlow(TextBackgroundStyle.NONE)
+    val textBackgroundStyle: StateFlow<TextBackgroundStyle> = _textBackgroundStyle.asStateFlow()
+
+    private val _textBackgroundColor = MutableStateFlow(Color.Black)
+    val textBackgroundColor: StateFlow<Color> = _textBackgroundColor.asStateFlow()
+
+    private val _textBackgroundAlpha = MutableStateFlow(0.5f)
+    val textBackgroundAlpha: StateFlow<Float> = _textBackgroundAlpha.asStateFlow()
+
+    private val _textBackgroundPadding = MutableStateFlow(24f)
+    val textBackgroundPadding: StateFlow<Float> = _textBackgroundPadding.asStateFlow()
+
+    private val _textBackgroundCornerRadius = MutableStateFlow(16f)
+    val textBackgroundCornerRadius: StateFlow<Float> = _textBackgroundCornerRadius.asStateFlow()
 
     private val _headingBold = MutableStateFlow(true)
     val headingBold: StateFlow<Boolean> = _headingBold.asStateFlow()
@@ -368,6 +384,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _textOffsetY.value = layer.offsetY
             _textColor.value = Color(layer.textColor)
             _textAlign.value = try { TextAlignLabel.valueOf(layer.textAlign) } catch(e: Exception) { TextAlignLabel.CENTER }
+            _textBackgroundStyle.value = try { TextBackgroundStyle.valueOf(layer.backgroundStyle) } catch(e: Exception) { TextBackgroundStyle.NONE }
+            _textBackgroundColor.value = Color(layer.backgroundColor)
+            _textBackgroundAlpha.value = layer.backgroundAlpha
+            _textBackgroundPadding.value = layer.backgroundPadding
+            _textBackgroundCornerRadius.value = layer.backgroundCornerRadius
             _headingBold.value = layer.headingBold
             _subheadingBold.value = layer.subheadingBold
             _textShadow.value = layer.textShadow
@@ -437,6 +458,37 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         updateSelectedTextLayer { it.copy(textAlign = value.name) }
         _isSaved.value = false
     }
+
+    fun setTextBackgroundStyle(value: TextBackgroundStyle) {
+        _textBackgroundStyle.value = value
+        updateSelectedTextLayer { it.copy(backgroundStyle = value.name) }
+        _isSaved.value = false
+    }
+
+    fun setTextBackgroundColor(color: Color) {
+        _textBackgroundColor.value = color
+        updateSelectedTextLayer { it.copy(backgroundColor = color.toArgb()) }
+        _isSaved.value = false
+    }
+
+    fun setTextBackgroundAlpha(value: Float) {
+        _textBackgroundAlpha.value = value
+        updateSelectedTextLayer { it.copy(backgroundAlpha = value) }
+        _isSaved.value = false
+    }
+
+    fun setTextBackgroundPadding(value: Float) {
+        _textBackgroundPadding.value = value
+        updateSelectedTextLayer { it.copy(backgroundPadding = value) }
+        _isSaved.value = false
+    }
+
+    fun setTextBackgroundCornerRadius(value: Float) {
+        _textBackgroundCornerRadius.value = value
+        updateSelectedTextLayer { it.copy(backgroundCornerRadius = value) }
+        _isSaved.value = false
+    }
+
     fun setHeadingBold(value: Boolean) { 
         _headingBold.value = value 
         updateSelectedTextLayer { it.copy(headingBold = value) }
@@ -584,6 +636,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _headingBold.value = true
             _subheadingBold.value = false
             _textZIndex.value = 1
+            _textBackgroundStyle.value = TextBackgroundStyle.NONE
+            _textBackgroundColor.value = Color.Black
+            _textBackgroundAlpha.value = 0.5f
+            _textBackgroundPadding.value = 24f
+            _textBackgroundCornerRadius.value = 16f
             _showWatermark.value = settingsManager.showWatermark.value
             _watermarkText.value = settingsManager.customWatermark.value
         }

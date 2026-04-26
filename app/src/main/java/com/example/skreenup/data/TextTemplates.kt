@@ -3,6 +3,9 @@ package com.example.skreenup.data
 import com.example.skreenup.ui.models.TextLayer
 import com.example.skreenup.ui.models.TextAlignLabel
 import com.example.skreenup.ui.models.TextFont
+import com.example.skreenup.ui.models.TextBackgroundStyle
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 
 data class TextTemplate(
     val id: String,
@@ -90,6 +93,45 @@ val PRESET_TEXT_TEMPLATES = listOf(
             textGap = 10f,
             headingBold = true,
             subheadingBold = false
+        )
+    ),
+    TextTemplate(
+        id = "glass_badge",
+        name = "Glass Badge",
+        description = "Modern translucent feel",
+        layer = TextLayer(
+            heading = "NEW FEATURE",
+            subheading = "Check out the latest update",
+            headingFont = TextFont.INTER.name,
+            subheadingFont = TextFont.INTER.name,
+            headingSize = 40f,
+            subheadingSize = 24f,
+            textGap = 10f,
+            headingBold = true,
+            backgroundStyle = TextBackgroundStyle.GLASS.name,
+            backgroundPadding = 40f,
+            backgroundCornerRadius = 32f
+        )
+    ),
+    TextTemplate(
+        id = "filled_label",
+        name = "Filled Label",
+        description = "High contrast tag",
+        layer = TextLayer(
+            heading = "GET STARTED",
+            subheading = "Quick setup guide",
+            headingFont = TextFont.POPPINS.name,
+            subheadingFont = TextFont.POPPINS.name,
+            headingSize = 45f,
+            subheadingSize = 22f,
+            textGap = 8f,
+            headingBold = true,
+            textColor = 0xFFFFFFFF.toInt(),
+            backgroundStyle = TextBackgroundStyle.FILLED.name,
+            backgroundColor = 0xFF3F51B5.toInt(),
+            backgroundAlpha = 1.0f,
+            backgroundPadding = 30f,
+            backgroundCornerRadius = 12f
         )
     )
 )

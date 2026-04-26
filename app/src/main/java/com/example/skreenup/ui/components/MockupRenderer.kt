@@ -30,6 +30,7 @@ import com.example.skreenup.ui.models.FrameType
 import com.example.skreenup.ui.models.TextFont
 import com.example.skreenup.ui.models.TextAlignLabel
 import com.example.skreenup.ui.models.TextLayer
+import com.example.skreenup.ui.models.TextBackgroundStyle
 import android.graphics.Typeface
 import android.graphics.BlurMaskFilter
 import android.graphics.Paint as NativePaint
@@ -257,6 +258,74 @@ object MockupRenderer {
                     val totalTextHeight = headingBlockHeight + (if (hText.isNotEmpty() && sText.isNotEmpty()) gap else 0f) + subheadingBlockHeight
 
                     val blockTop = compTop + compHeight / 2 + (layer.offsetY * resolutionScale) - (totalTextHeight / 2)
+
+                    // ── Draw Text Background ──
+                    if (layer.backgroundStyle != TextBackgroundStyle.NONE.name) {
+                        val padding = layer.backgroundPadding * resolutionScale
+                        val cornerRadius = layer.backgroundCornerRadius * resolutionScale
+                        
+                        // Calculate max width for background
+                        var maxWidth = 0f
+                        headingLinesInitial.forEach { line ->
+                            maxWidth = maxOf(maxWidth, hPaint.measureText(line))
+                        }
+                        subheadingLinesInitial.forEach { line ->
+                            maxWidth = maxOf(maxWidth, sPaint.measureText(line))
+                        }
+
+                        val bgRect = when (layer.textAlign) {
+                            "LEFT" -> Rect(
+                                offset = Offset(centerX - padding, blockTop - padding),
+                                size = Size(maxWidth + padding * 2, totalTextHeight + padding * 2)
+                            )
+                            "RIGHT" -> Rect(
+                                offset = Offset(centerX - maxWidth - padding, blockTop - padding),
+                                size = Size(maxWidth + padding * 2, totalTextHeight + padding * 2)
+                            )
+                            else -> Rect(
+                                offset = Offset(centerX - maxWidth / 2 - padding, blockTop - padding),
+                                size = Size(maxWidth + padding * 2, totalTextHeight + padding * 2)
+                            )
+                        }
+
+                        val bgColor = Color(layer.backgroundColor).copy(alpha = layer.backgroundAlpha)
+                        
+                        when (layer.backgroundStyle) {
+                            TextBackgroundStyle.FILLED.name -> {
+                                drawRoundRect(
+                                    color = bgColor,
+                                    topLeft = bgRect.topLeft,
+                                    size = bgRect.size,
+                                    cornerRadius = CornerRadius(cornerRadius)
+                                )
+                            }
+                            TextBackgroundStyle.OUTLINED.name -> {
+                                drawRoundRect(
+                                    color = bgColor,
+                                    topLeft = bgRect.topLeft,
+                                    size = bgRect.size,
+                                    cornerRadius = CornerRadius(cornerRadius),
+                                    style = Stroke(width = 2f * resolutionScale)
+                                )
+                            }
+                            TextBackgroundStyle.GLASS.name -> {
+                                // Background with glass effect
+                                drawRoundRect(
+                                    color = Color.White.copy(alpha = 0.1f),
+                                    topLeft = bgRect.topLeft,
+                                    size = bgRect.size,
+                                    cornerRadius = CornerRadius(cornerRadius)
+                                )
+                                drawRoundRect(
+                                    color = Color.White.copy(alpha = 0.2f),
+                                    topLeft = bgRect.topLeft,
+                                    size = bgRect.size,
+                                    cornerRadius = CornerRadius(cornerRadius),
+                                    style = Stroke(width = 1f * resolutionScale)
+                                )
+                            }
+                        }
+                    }
 
                     if (hText.isNotEmpty()) {
                         val firstBaseline = blockTop - hMetrics.ascent

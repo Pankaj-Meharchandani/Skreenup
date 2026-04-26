@@ -59,6 +59,14 @@ enum class TextAlignLabel(val label: String) {
     RIGHT("Right")
 }
 
+@Immutable
+enum class TextBackgroundStyle {
+    NONE,
+    FILLED,
+    OUTLINED,
+    GLASS
+}
+
 @kotlinx.serialization.Serializable
 data class TextLayer(
     val id: String = java.util.UUID.randomUUID().toString(),
@@ -76,5 +84,10 @@ data class TextLayer(
     val headingBold: Boolean = true,
     val subheadingBold: Boolean = false,
     val textShadow: Boolean = true,
-    val zIndex: Int = 1
+    val zIndex: Int = 1,
+    val backgroundStyle: String = TextBackgroundStyle.NONE.name,
+    val backgroundColor: Int = 0xFF000000.toInt(),
+    val backgroundAlpha: Float = 0.5f,
+    val backgroundPadding: Float = 24f,
+    val backgroundCornerRadius: Float = 16f
 )

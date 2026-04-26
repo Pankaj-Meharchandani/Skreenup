@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.palette.graphics.Palette
 import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.models.CompositionAspectRatio
 import androidx.lifecycle.AndroidViewModel
@@ -53,6 +54,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _screenshotUri = MutableStateFlow<String?>(null)
     val screenshotUri: StateFlow<String?> = _screenshotUri.asStateFlow()
+
+    private val _smartPalette = MutableStateFlow<List<Color>>(emptyList())
+    val smartPalette: StateFlow<List<Color>> = _smartPalette.asStateFlow()
 
     // Background State
     private val _backgroundType = MutableStateFlow(BackgroundType.GRADIENT)
@@ -223,6 +227,37 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             bitmap?.let { bp ->
                 val extractedColor = extractProminentColor(bp)
                 setScreenBackgroundColor(Color(extractedColor))
+                extractSmartPalette(bp)
+            }
+        }
+    }
+
+    private fun extractSmartPalette(bitmap: Bitmap) {
+        Palette.from(bitmap).generate { palette ->
+            palette?.let {
+                val colors = mutableListOf<Color>()
+                
+                // Add swatches if available, limited to 6
+                it.vibrantSwatch?.rgb?.let { colors.add(Color(it)) }
+                it.darkVibrantSwatch?.rgb?.let { colors.add(Color(it)) }
+                it.lightVibrantSwatch?.rgb?.let { colors.add(Color(it)) }
+                it.mutedSwatch?.rgb?.let { colors.add(Color(it)) }
+                it.darkMutedSwatch?.rgb?.let { colors.add(Color(it)) }
+                it.lightMutedSwatch?.rgb?.let { colors.add(Color(it)) }
+
+                // If we don't have enough colors from swatches, add from top colors
+                if (colors.size < 4) {
+                    it.swatches.sortedByDescending { s -> s.population }
+                        .take(6)
+                        .forEach { swatch ->
+                            val color = Color(swatch.rgb)
+                            if (!colors.contains(color)) {
+                                colors.add(color)
+                            }
+                        }
+                }
+                
+                _smartPalette.value = colors.take(6)
             }
         }
     }
@@ -249,14 +284,14 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setBackgroundColor(color: Color) {
         _backgroundColor.value = color
-        _hexColorSolid.value = "#" + Integer.toHexString(color.toArgb()).uppercase().substring(2)
+        _hexColorSolid.value = "#" + String.format("%06X", 0xFFFFFF and color.toArgb())
         _isSaved.value = false
     }
 
     fun setGradientColors(colors: List<Color>) {
         _gradientColors.value = colors
-        _hexColorGradientStart.value = "#" + Integer.toHexString(colors[0].toArgb()).uppercase().substring(2)
-        _hexColorGradientEnd.value = "#" + Integer.toHexString(colors[1].toArgb()).uppercase().substring(2)
+        _hexColorGradientStart.value = "#" + String.format("%06X", 0xFFFFFF and colors[0].toArgb())
+        _hexColorGradientEnd.value = "#" + String.format("%06X", 0xFFFFFF and colors[1].toArgb())
         _isSaved.value = false
     }
 
@@ -368,7 +403,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setScreenBackgroundColor(color: Color) {
         _screenBackgroundColor.value = color
-        _hexColorScreen.value = "#" + Integer.toHexString(color.toArgb()).uppercase().substring(2)
+        _hexColorScreen.value = "#" + String.format("%06X", 0xFFFFFF and color.toArgb())
     }
 
     fun setHexColorScreen(value: String) {
@@ -571,6 +606,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
         _screenshot.value = null
         _screenshotUri.value = null
+        _smartPalette.value = emptyList()
     }
 
     fun resetBackgroundTab() {
@@ -791,6 +827,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             viewModelScope.launch {
                 val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), Uri.parse(uriStr))
                 _screenshot.value = bitmap?.asImageBitmap()
+                bitmap?.let { extractSmartPalette(it) }
             }
         }
 

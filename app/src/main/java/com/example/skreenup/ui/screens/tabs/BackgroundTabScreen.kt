@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -109,6 +110,8 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
     val hexColorSolid by viewModel.hexColorSolid.collectAsState()
     val hexColorStart by viewModel.hexColorGradientStart.collectAsState()
     val hexColorEnd by viewModel.hexColorGradientEnd.collectAsState()
+    
+    val smartPalette by viewModel.smartPalette.collectAsState()
 
     val scrollState = rememberScrollState()
     var showAllPresets by remember { mutableStateOf(false) }
@@ -135,6 +138,51 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
             title = "Background",
             onReset = { viewModel.resetBackgroundTab() }
         )
+
+        if (smartPalette.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.large)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("Smart Palette", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(smartPalette) { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(color)
+                                .clickable {
+                                    if (backgroundType != BackgroundType.SOLID && backgroundType != BackgroundType.GRADIENT) {
+                                        viewModel.setBackgroundType(BackgroundType.SOLID)
+                                    }
+                                    
+                                    if (backgroundType == BackgroundType.GRADIENT) {
+                                        // For gradient, we'll set the start color
+                                        val hex = "#" + String.format("%06X", 0xFFFFFF and color.toArgb())
+                                        viewModel.setHexColorGradientStart(hex)
+                                    } else {
+                                        viewModel.setBackgroundColor(color)
+                                    }
+                                }
+                        )
+                    }
+                }
+                Text(
+                    "Tap to match your background to the screenshot colors",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),

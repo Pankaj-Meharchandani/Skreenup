@@ -4,6 +4,7 @@ import android.app.Application
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -217,7 +218,45 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), uri)
             _screenshot.value = bitmap?.asImageBitmap()
+            
+            // Extract default screen color from the screenshot
+            bitmap?.let { bp ->
+                val extractedColor = extractProminentColor(bp)
+                setScreenBackgroundColor(Color(extractedColor))
+            }
         }
+    }
+
+    fun setBackgroundFromScreenshot() {
+        _screenshot.value?.let { imageBitmap ->
+            val bitmap = imageBitmap.asAndroidBitmap()
+            val extractedColor = extractProminentColor(bitmap)
+            setBackgroundColor(Color(extractedColor))
+            setBackgroundType(BackgroundType.SOLID)
+        }
+    }
+
+    fun setScreenColorFromScreenshot() {
+        _screenshot.value?.let { imageBitmap ->
+            val bitmap = imageBitmap.asAndroidBitmap()
+            val extractedColor = extractProminentColor(bitmap)
+            setScreenBackgroundColor(Color(extractedColor))
+        }
+    }
+
+    private fun extractProminentColor(bitmap: Bitmap): Int {
+        // We pick a few sample points that are likely to represent the app's background
+        // 1. Top center (often status bar/app bar)
+        // 2. Middle (often content background)
+        // 3. Bottom center (often navigation bar/content background)
+        val points = listOf(
+            Pair(bitmap.width / 2, bitmap.height / 20),
+            Pair(bitmap.width / 2, bitmap.height / 2),
+            Pair(bitmap.width / 2, bitmap.height - (bitmap.height / 20))
+        )
+        
+        // Return the color of the top point as default, as it's most common for "app color"
+        return bitmap.getPixel(points[0].first, points[0].second)
     }
 
     fun setBackgroundType(type: BackgroundType) {

@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Colorize
 import androidx.compose.material.icons.rounded.Collections
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Palette
@@ -155,7 +156,22 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
         when (backgroundType) {
             BackgroundType.SOLID -> {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text("Material Palette", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Material Palette", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        
+                        TextButton(
+                            onClick = { viewModel.setBackgroundFromScreenshot() },
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(Icons.Rounded.Colorize, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Match Screenshot")
+                        }
+                    }
                     ColorSelector(
                         selectedColor = backgroundColor,
                         onColorSelected = { viewModel.setBackgroundColor(it) }

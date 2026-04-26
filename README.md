@@ -1,4 +1,4 @@
-# Skreenup — Professional Screenshot Framing Made Simple
+# Skreenup - Professional Mockup Creation Made Simple
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/c6f07488-7694-4fff-b70e-dc0b8bd50a5d" width="128" height="128" alt="Skreenup Logo" />
@@ -9,7 +9,6 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.2.1-blue?style=for-the-badge" alt="Version" />
   <img src="https://img.shields.io/badge/Platform-Android-brightgreen?logo=android&logoColor=white&style=for-the-badge" alt="Platform" />
   <img src="https://img.shields.io/badge/Language-Kotlin-orange?logo=kotlin&logoColor=white&style=for-the-badge" alt="Language" />
   <img src="https://img.shields.io/badge/UI-Jetpack%20Compose-blue?logo=jetpackcompose&logoColor=white&style=for-the-badge" alt="UI" />
@@ -24,30 +23,57 @@
     <img src="https://github.com/user-attachments/assets/93a75138-fe93-443f-98fa-ba49022eed06"/> <br>
   <img src="https://github.com/user-attachments/assets/87745be3-abf8-46c0-b351-2cd0c4e604bf" width="30%"/> &nbsp;&nbsp;&nbsp;
   <img src="https://github.com/user-attachments/assets/25285631-dc95-42ee-998b-fa7980d874ce" width="30%"/>
-  </p>
+</p>
+
+---
 
 ## 🚀 Features
 
 ### 🖼️ Device Framing
-* **Multiple Device Frames:** Choose from a variety of Android and iOS device frames across different categories (Phone, Tablet, Laptop, etc.).
-* **Realistic Render:** High-quality device frames that adapt to your screenshot's aspect ratio.
+* **Multiple Device Frames:** Choose from a variety of Android, iOS, browser, and desktop frames across categories (Phone, Tablet, Laptop, Browser, etc.).
+* **Realistic Render:** High-quality device frames with reflections, shadows, and aspect-ratio awareness.
 * **Advanced Adjustments:** Fine-tune shadow intensity, softness, and toggle screen reflections.
-* **Frame Rotation:** Rotate the device frame to create dynamic, tilted mockups.
+* **Frame Rotation:** Rotate the device frame with snapping support to create dynamic, tilted mockups.
+* **Auto Screen Color:** Automatically detects and applies the dominant color from your screenshot to the device screen bezel.
 
 ### 🎨 Background Customization
 * **Solid Colors & Gradients:** Apply vibrant solid colors or beautiful linear gradients with a custom gradient builder.
-* **Image Blurs:** Use a blurred version of your own screenshot or a custom image as a background with adjustable blur levels.
+* **Image Blurs:** Use a blurred version of image as a background with adjustable blur levels.
 * **Import Gallery Image:** Use any image from your gallery as a custom background.
+* **Add Image via URL:** Fetch and use any image directly from a URL.
+* **Unsplash Backgrounds:** Browse and apply Unsplash images as backgrounds, visible live in the home preview.
+* **Background Presets:** Quickly apply curated background presets for fast results.
 
-### ✍️ Personalization & Branding
-* **Text Overlays:** Add headings and subheadings with various fonts, sizes, and alignments.
-* **Smart Watermarks:** Toggle a brand watermark that automatically adapts its color (Black/White) based on the background luminance for perfect visibility.
-* **Flexible Layouts:** Adjust the scale and position of both the device frame and text overlays independently.
-* **Layering Control:** Change the Z-Index of text to place it in front of or behind the device frame.
-* **Aspect Ratios:** Export in various formats optimized for social media (Square, Portrait, Story).
+### ✍️ Text & Overlays
+* **Multi-Text Support:** Add multiple independent text overlays on a single canvas.
+* **Heavy Customisation:** Control font, size, color, alignment, background, and more per text element.
+* **Edit in Preview:** Tap any text directly in the canvas to edit it inline.
+* **Remove Individually:** Dismiss any text overlay with a dedicated × button.
+* **Text Background:** Apply a background fill behind text for contrast and legibility.
+* **Smart Watermarks:** Toggle a brand watermark that automatically adapts its color (Black/White) based on background luminance.
+* **Layering Control:** Move text in front of or behind the device frame.
+* **Drag, Snap & Rotate:** Move text overlays freely with snapping to center and alignment guidelines. Rotate with a two-finger gesture.
 
-### 💾 Persistence
-* **Project History:** All your previous designs are automatically saved locally using Room Database, so you can resume editing later.
+### 💾 Templates & Presets
+* **Save Templates:** Save your designs as reusable templates from the home screen.
+* **Preset Gallery:** Pre-built layout and background presets to get started quickly.
+* **Full Reset:** Reset individual tabs or the entire canvas with a global reset button.
+
+### 📤 Export & Sharing
+* **Pixel-Accurate Export:** Export logic tuned for output that matches the canvas precisely.
+* **Multiple Aspect Ratios:** Square, Portrait, and Story formats optimized for social media.
+* **Share Flyout:** Multiple share options accessible via a flyout menu.
+
+### 🕓 History
+* **Project History:** All designs auto-saved locally via Room Database.
+* **Delete Entries:** Remove individual history items.
+
+### ⚙️ Settings & Onboarding
+* **Theme Setting:** Switch between Light, Dark, and System theme.
+* **First Launch Guide:** Step-by-step onboarding shown on first launch.
+* **In-App Release Notes:** Update dialog shows what's new on each version upgrade.
+
+---
 
 ## 🛠 Tech Stack
 
@@ -61,6 +87,8 @@
 | Image Loading | Coil |
 | Background Ops | Kotlin Coroutines & Flow |
 
+---
+
 ## 📂 Project Structure
 ```text
 app/src/main/java/com/example/skreenup/
@@ -71,10 +99,12 @@ app/src/main/java/com/example/skreenup/
 │   ├── components/      # Reusable UI components (Buttons, Tabs, etc.)
 │   ├── models/          # UI-specific data models
 │   ├── screens/         # Feature screens (Home, Editor, About)
-│   │   └── tabs/        # Editor tab screens (Background, Frame, etc.)
+│   │   └── tabs/        # Editor tab screens (Background, Frame, Text, etc.)
 │   └── theme/           # App's Design System (Colors, Typography, Shapes)
 └── MainActivity.kt      # Main entry point of the application
 ```
+
+---
 
 ## ⚙️ Getting Started
 
@@ -88,10 +118,14 @@ app/src/main/java/com/example/skreenup/
 2. Open in Android Studio.
 3. Sync Gradle and run on a device/emulator with API 30+.
 
+---
+
 ## 🛡 Permissions
 | Permission | Usage |
 |------------|-------|
-| `INTERNET` | Required for fetching images or updates (if applicable). |
+| `INTERNET` | Required for fetching Unsplash images and remote backgrounds. |
+
+---
 
 ## 📄 License
 This project is licensed under the **GNU General Public License v3.0**. See the [LICENSE](LICENSE) file for details.

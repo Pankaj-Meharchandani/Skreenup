@@ -232,13 +232,15 @@ fun SkreenupApp() {
     val settingsViewModel: SettingsViewModel = viewModel()
     val continueLastProject by settingsViewModel.continueLastProject.collectAsState()
     val settingsManager = com.example.skreenup.data.SettingsManager.getInstance(context)
+    val isFirstLaunch = remember { settingsManager.isFirstLaunch() }
     val hasLastProject = remember { settingsManager.getLastEditorConfig() != null }
     val lastScreen = remember { settingsManager.getLastVisitedScreen() }
 
-    val mainBackStack: NavBackStack<NavKey> = rememberNavBackStack(Home)
+    val mainBackStack: NavBackStack<NavKey> = rememberNavBackStack(if (isFirstLaunch) Onboarding else Home)
     val mainBackStackList: MutableList<NavKey> = mainBackStack
 
     LaunchedEffect(Unit) {
+        if (isFirstLaunch) return@LaunchedEffect
         if (startWithPreset) {
             mainBackStackList.add(Editor())
         } else if (continueLastProject && hasLastProject && lastScreen == "Editor") {
@@ -272,6 +274,15 @@ fun SkreenupApp() {
             rememberViewModelStoreNavEntryDecorator()
         ),
         entryProvider = entryProvider {
+            entry<Onboarding> {
+                OnboardingScreen(
+                    onFinished = {
+                        settingsManager.setFirstLaunchCompleted()
+                        mainBackStackList.clear()
+                        mainBackStackList.add(Home)
+                    }
+                )
+            }
             entry<Home> {
                 HomeScreen(
                     onNavigateToEditor = { presetId, projectId, staticTemplateId -> 

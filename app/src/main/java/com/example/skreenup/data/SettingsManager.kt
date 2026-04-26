@@ -126,6 +126,14 @@ class SettingsManager private constructor(context: Context) {
         return prefs.getString("custom_watermark", "Made with Skreenup") ?: "Made with Skreenup"
     }
 
+    fun isFirstLaunch(): Boolean {
+        return prefs.getBoolean("is_first_launch", true)
+    }
+
+    fun setFirstLaunchCompleted() {
+        prefs.edit().putBoolean("is_first_launch", false).apply()
+    }
+
     companion object {
         @Volatile
         private var INSTANCE: SettingsManager? = null

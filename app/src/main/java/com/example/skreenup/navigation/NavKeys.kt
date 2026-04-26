@@ -10,6 +10,9 @@ sealed interface SkreenupNavKey : NavKey
 object Home : SkreenupNavKey
 
 @Serializable
+object Onboarding : SkreenupNavKey
+
+@Serializable
 object Presets : SkreenupNavKey
 
 @Serializable

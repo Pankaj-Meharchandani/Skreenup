@@ -21,9 +21,10 @@
 
 ## 📸 Screenshots
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Pankaj-Meharchandani/Skreenup/main/screenshots/home.png" width="30%" alt="Home Screen" />
-  <img src="https://raw.githubusercontent.com/Pankaj-Meharchandani/Skreenup/main/screenshots/editor.png" width="30%" alt="Editor Screen" />
-</p>
+    <img src="https://github.com/user-attachments/assets/93a75138-fe93-443f-98fa-ba49022eed06"/> <br>
+  <img src="https://github.com/user-attachments/assets/87745be3-abf8-46c0-b351-2cd0c4e604bf" width="30%"/> &nbsp;&nbsp;&nbsp;
+  <img src="https://github.com/user-attachments/assets/25285631-dc95-42ee-998b-fa7980d874ce" width="30%"/>
+  </p>
 
 ## 🚀 Features
 

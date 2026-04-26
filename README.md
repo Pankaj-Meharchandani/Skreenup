@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Version-1.2.1-blue?style=for-the-badge" alt="Version" />
   <img src="https://img.shields.io/badge/Platform-Android-brightgreen?logo=android&logoColor=white&style=for-the-badge" alt="Platform" />
   <img src="https://img.shields.io/badge/Language-Kotlin-orange?logo=kotlin&logoColor=white&style=for-the-badge" alt="Language" />
   <img src="https://img.shields.io/badge/UI-Jetpack%20Compose-blue?logo=jetpackcompose&logoColor=white&style=for-the-badge" alt="UI" />
@@ -20,24 +21,29 @@
 
 ## 📸 Screenshots
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Pankaj-Meharchandani/Skreenup/main/screenshots/home.png" width="30%" alt="Home Screen" />
-  <img src="https://raw.githubusercontent.com/Pankaj-Meharchandani/Skreenup/main/screenshots/editor.png" width="30%" alt="Editor Screen" />
-</p>
+    <img src="https://github.com/user-attachments/assets/93a75138-fe93-443f-98fa-ba49022eed06"/> <br>
+  <img src="https://github.com/user-attachments/assets/87745be3-abf8-46c0-b351-2cd0c4e604bf" width="30%"/> &nbsp;&nbsp;&nbsp;
+  <img src="https://github.com/user-attachments/assets/25285631-dc95-42ee-998b-fa7980d874ce" width="30%"/>
+  </p>
 
 ## 🚀 Features
 
 ### 🖼️ Device Framing
-* **Multiple Device Frames:** Choose from a variety of Android and iOS device frames.
+* **Multiple Device Frames:** Choose from a variety of Android and iOS device frames across different categories (Phone, Tablet, Laptop, etc.).
 * **Realistic Render:** High-quality device frames that adapt to your screenshot's aspect ratio.
+* **Advanced Adjustments:** Fine-tune shadow intensity, softness, and toggle screen reflections.
+* **Frame Rotation:** Rotate the device frame to create dynamic, tilted mockups.
 
 ### 🎨 Background Customization
-* **Solid Colors & Gradients:** Apply vibrant solid colors or beautiful linear/radial gradients.
-* **Image Blurs:** Use a blurred version of your own screenshot or a custom image as a background.
-* **Patterns:** Choose from a set of curated patterns to add texture to your mockups.
+* **Solid Colors & Gradients:** Apply vibrant solid colors or beautiful linear gradients with a custom gradient builder.
+* **Image Blurs:** Use a blurred version of your own screenshot or a custom image as a background with adjustable blur levels.
+* **Import Gallery Image:** Use any image from your gallery as a custom background.
 
 ### ✍️ Personalization & Branding
-* **Custom Watermarks:** Add and customize your own watermark text to brand your mockups.
-* **Flexible Layouts:** Adjust the scale and position of the device frame within the canvas.
+* **Text Overlays:** Add headings and subheadings with various fonts, sizes, and alignments.
+* **Smart Watermarks:** Toggle a brand watermark that automatically adapts its color (Black/White) based on the background luminance for perfect visibility.
+* **Flexible Layouts:** Adjust the scale and position of both the device frame and text overlays independently.
+* **Layering Control:** Change the Z-Index of text to place it in front of or behind the device frame.
 * **Aspect Ratios:** Export in various formats optimized for social media (Square, Portrait, Story).
 
 ### 💾 Persistence

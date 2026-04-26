@@ -22,6 +22,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val continueLastProject: StateFlow<Boolean> = settingsManager.continueLastProject
     val useHaptics: StateFlow<Boolean> = settingsManager.useHaptics
     val defaultExportAction: StateFlow<com.example.skreenup.data.ExportAction> = settingsManager.defaultExportAction
+    val showWatermark: StateFlow<Boolean> = settingsManager.showWatermark
+    val customWatermark: StateFlow<String> = settingsManager.customWatermark
 
     private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
@@ -44,6 +46,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setDefaultExportAction(action: com.example.skreenup.data.ExportAction) {
         settingsManager.setDefaultExportAction(action)
+    }
+
+    fun setShowWatermark(show: Boolean) {
+        settingsManager.setShowWatermark(show)
+    }
+
+    fun setCustomWatermark(text: String) {
+        settingsManager.setCustomWatermark(text)
     }
 
     fun clearHistory() {

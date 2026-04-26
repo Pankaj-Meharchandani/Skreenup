@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -159,24 +160,28 @@ fun SkreenupApp() {
                         rotationDegrees = template.config.rotation,
                         screenshotRotation = template.config.screenshotRotation,
                         screenBackgroundColor = Color(template.config.screenBackgroundColor),
-                        heading = template.config.heading,
-                        subheading = template.config.subheading,
-                        headingFont = TextFont.valueOf(template.config.headingFont),
-                        subheadingFont = TextFont.valueOf(template.config.subheadingFont),
-                        headingSize = template.config.headingSize,
-                        subheadingSize = template.config.subheadingSize,
-                        textGap = template.config.textGap,
-                        textColor = Color(template.config.textColor),
-                        textOffsetX = template.config.textOffsetX,
-                        textOffsetY = template.config.textOffsetY,
-                        textAlignment = TextAlignLabel.valueOf(template.config.textAlign),
-                        headingBold = template.config.headingBold,
-                        subheadingBold = template.config.subheadingBold,
+                        textLayers = if (template.config.textLayers.isNotEmpty()) template.config.textLayers else listOf(
+                            com.example.skreenup.ui.models.TextLayer(
+                                heading = template.config.heading,
+                                subheading = template.config.subheading,
+                                headingFont = template.config.headingFont,
+                                subheadingFont = template.config.subheadingFont,
+                                headingSize = template.config.headingSize,
+                                subheadingSize = template.config.subheadingSize,
+                                textGap = template.config.textGap,
+                                offsetX = template.config.textOffsetX,
+                                offsetY = template.config.textOffsetY,
+                                textColor = if (template.config.textColor == -1) Color.White.toArgb() else template.config.textColor,
+                                textAlign = template.config.textAlign,
+                                headingBold = template.config.headingBold,
+                                subheadingBold = template.config.subheadingBold,
+                                textShadow = template.config.textShadow,
+                                zIndex = template.config.textZIndex
+                            )
+                        ),
                         showReflection = template.config.showReflection,
-                        showTextShadow = template.config.textShadow,
                         shadowIntensity = template.config.shadowIntensity,
                         shadowSoftness = template.config.shadowSoftness,
-                        textZIndex = template.config.textZIndex,
                         showWatermark = template.config.showWatermark,
                         watermarkText = template.config.watermarkText,
                         ignoreScreenshot = true
@@ -227,13 +232,15 @@ fun SkreenupApp() {
     val settingsViewModel: SettingsViewModel = viewModel()
     val continueLastProject by settingsViewModel.continueLastProject.collectAsState()
     val settingsManager = com.example.skreenup.data.SettingsManager.getInstance(context)
+    val isFirstLaunch = remember { settingsManager.isFirstLaunch() }
     val hasLastProject = remember { settingsManager.getLastEditorConfig() != null }
     val lastScreen = remember { settingsManager.getLastVisitedScreen() }
 
-    val mainBackStack: NavBackStack<NavKey> = rememberNavBackStack(Home)
+    val mainBackStack: NavBackStack<NavKey> = rememberNavBackStack(if (isFirstLaunch) Onboarding else Home)
     val mainBackStackList: MutableList<NavKey> = mainBackStack
 
     LaunchedEffect(Unit) {
+        if (isFirstLaunch) return@LaunchedEffect
         if (startWithPreset) {
             mainBackStackList.add(Editor())
         } else if (continueLastProject && hasLastProject && lastScreen == "Editor") {
@@ -267,6 +274,15 @@ fun SkreenupApp() {
             rememberViewModelStoreNavEntryDecorator()
         ),
         entryProvider = entryProvider {
+            entry<Onboarding> {
+                OnboardingScreen(
+                    onFinished = {
+                        settingsManager.setFirstLaunchCompleted()
+                        mainBackStackList.clear()
+                        mainBackStackList.add(Home)
+                    }
+                )
+            }
             entry<Home> {
                 HomeScreen(
                     onNavigateToEditor = { presetId, projectId, staticTemplateId -> 
@@ -392,21 +408,10 @@ fun EditorScreen(
     val screenshotRotation by editorViewModel.screenshotRotation.collectAsState()
     val rotation by editorViewModel.rotation.collectAsState()
 
-    val heading by editorViewModel.heading.collectAsState()
-    val subheading by editorViewModel.subheading.collectAsState()
-    val headingFont by editorViewModel.headingFont.collectAsState()
-    val subheadingFont by editorViewModel.subheadingFont.collectAsState()
-    val headingSize by editorViewModel.headingSize.collectAsState()
-    val subheadingSize by editorViewModel.subheadingSize.collectAsState()
-    val textGap by editorViewModel.textGap.collectAsState()
-    val textOffsetX by editorViewModel.textOffsetX.collectAsState()
-    val textOffsetY by editorViewModel.textOffsetY.collectAsState()
-    val textColor by editorViewModel.textColor.collectAsState()
-    val textAlign by editorViewModel.textAlign.collectAsState()
-    val headingBold by editorViewModel.headingBold.collectAsState()
-    val subheadingBold by editorViewModel.subheadingBold.collectAsState()
+    val textLayers by editorViewModel.textLayers.collectAsState()
+    val selectedTextLayerId by editorViewModel.selectedTextLayerId.collectAsState()
+    
     val showReflection by editorViewModel.showReflection.collectAsState()
-    val textShadow by editorViewModel.textShadow.collectAsState()
     val showWatermark by editorViewModel.showWatermark.collectAsState()
     val watermarkText by editorViewModel.watermarkText.collectAsState()
 
@@ -416,9 +421,7 @@ fun EditorScreen(
         backgroundImage, backgroundImageOffsetX, backgroundImageOffsetY, backgroundImageScale, backgroundImageBlur,
         screenBackgroundColor, scale, imageScale, aspectRatio, frameOffsetX, frameOffsetY,
         screenshotOffsetX, screenshotOffsetY, screenshotRotation, rotation,
-        heading, subheading, headingFont, subheadingFont, headingSize, subheadingSize,
-        textGap, textOffsetX, textOffsetY, textColor, textAlign, headingBold, subheadingBold,
-        showReflection, textShadow, showWatermark, watermarkText
+        textLayers, showReflection, showWatermark, watermarkText
     ) {
         editorViewModel.saveStateToPrefs()
     }
@@ -468,24 +471,10 @@ fun EditorScreen(
                                 rotationDegrees = rotation,
                                 screenshotRotation = screenshotRotation,
                                 screenBackgroundColor = screenBackgroundColor,
-                                heading = heading,
-                                subheading = subheading,
-                                headingFont = headingFont,
-                                subheadingFont = subheadingFont,
-                                headingSize = headingSize,
-                                subheadingSize = subheadingSize,
-                                textGap = textGap,
-                                textColor = textColor,
-                                textOffsetX = textOffsetX,
-                                textOffsetY = textOffsetY,
-                                textAlignment = textAlign,
-                                headingBold = headingBold,
-                                subheadingBold = subheadingBold,
+                                textLayers = textLayers,
                                 showReflection = showReflection,
-                                showTextShadow = textShadow,
                                 shadowIntensity = editorViewModel.shadowIntensity.value,
                                 shadowSoftness = editorViewModel.shadowSoftness.value,
-                                textZIndex = editorViewModel.textZIndex.value,
                                 showWatermark = showWatermark,
                                 watermarkText = watermarkText,
                                 ignoreScreenshot = true
@@ -528,24 +517,10 @@ fun EditorScreen(
                                 rotationDegrees = rotation,
                                 screenshotRotation = screenshotRotation,
                                 screenBackgroundColor = screenBackgroundColor,
-                                heading = heading,
-                                subheading = subheading,
-                                headingFont = headingFont,
-                                subheadingFont = subheadingFont,
-                                headingSize = headingSize,
-                                subheadingSize = subheadingSize,
-                                textGap = textGap,
-                                textColor = textColor,
-                                textOffsetX = textOffsetX,
-                                textOffsetY = textOffsetY,
-                                textAlignment = textAlign,
-                                headingBold = headingBold,
-                                subheadingBold = subheadingBold,
+                                textLayers = textLayers,
                                 showReflection = showReflection,
-                                showTextShadow = textShadow,
                                 shadowIntensity = editorViewModel.shadowIntensity.value,
                                 shadowSoftness = editorViewModel.shadowSoftness.value,
-                                textZIndex = editorViewModel.textZIndex.value,
                                 showWatermark = showWatermark,
                                 watermarkText = watermarkText,
                                 ignoreScreenshot = false
@@ -667,24 +642,11 @@ fun EditorScreen(
                     rotationDegrees = rotation,
                     screenshotRotation = screenshotRotation,
                     screenBackgroundColor = screenBackgroundColor,
-                    heading = heading,
-                    subheading = subheading,
-                    headingFont = headingFont,
-                    subheadingFont = subheadingFont,
-                    headingSize = headingSize,
-                    subheadingSize = subheadingSize,
-                    textGap = textGap,
-                    textColor = textColor,
-                    textOffsetX = textOffsetX,
-                    textOffsetY = textOffsetY,
-                    textAlign = textAlign,
-                    headingBold = headingBold,
-                    subheadingBold = subheadingBold,
+                    textLayers = textLayers,
+                    selectedTextLayerId = selectedTextLayerId,
                     showReflection = showReflection,
-                    showTextShadow = textShadow,
                     shadowIntensity = editorViewModel.shadowIntensity.collectAsState().value,
                     shadowSoftness = editorViewModel.shadowSoftness.collectAsState().value,
-                    textZIndex = editorViewModel.textZIndex.collectAsState().value,
                     showWatermark = showWatermark,
                     watermarkText = watermarkText,
                     onScaleChange = { editorViewModel.setScale(it) },
@@ -693,13 +655,12 @@ fun EditorScreen(
                         editorViewModel.setFrameOffsetX(x)
                         editorViewModel.setFrameOffsetY(y)
                     },
-                    onTextOffsetChange = { x, y ->
-                        editorViewModel.setTextOffsetX(x)
-                        editorViewModel.setTextOffsetY(y)
+                    onTextLayerUpdate = { id, update ->
+                        editorViewModel.selectTextLayer(id)
+                        editorViewModel.updateSelectedTextLayer(update)
                     },
-                    onHeadingSizeChange = { editorViewModel.setHeadingSize(it) },
-                    onSubheadingSizeChange = { editorViewModel.setSubheadingSize(it) },
-                    onTextZIndexChange = { editorViewModel.setTextZIndex(it) },
+                    onDeleteTextLayer = { editorViewModel.removeTextLayer(it) },
+                    onSelectTextLayer = { editorViewModel.selectTextLayer(it) },
                     onAddScreenshot = {
                         photoPickerLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -797,24 +758,10 @@ fun EditorScreen(
                                             rotationDegrees = rotation,
                                             screenshotRotation = screenshotRotation,
                                             screenBackgroundColor = screenBackgroundColor,
-                                            heading = heading,
-                                            subheading = subheading,
-                                            headingFont = headingFont,
-                                            subheadingFont = subheadingFont,
-                                            headingSize = headingSize,
-                                            subheadingSize = subheadingSize,
-                                            textGap = textGap,
-                                            textColor = textColor,
-                                            textOffsetX = textOffsetX,
-                                            textOffsetY = textOffsetY,
-                                            textAlignment = textAlign,
-                                            headingBold = headingBold,
-                                            subheadingBold = subheadingBold,
+                                            textLayers = textLayers,
                                             showReflection = showReflection,
-                                            showTextShadow = textShadow,
                                             shadowIntensity = editorViewModel.shadowIntensity.value,
                                             shadowSoftness = editorViewModel.shadowSoftness.value,
-                                            textZIndex = editorViewModel.textZIndex.value,
                                             showWatermark = showWatermark,
                                             watermarkText = watermarkText,
                                             ignoreScreenshot = false
@@ -867,24 +814,10 @@ fun EditorScreen(
                                         rotationDegrees = rotation,
                                         screenshotRotation = screenshotRotation,
                                         screenBackgroundColor = screenBackgroundColor,
-                                        heading = heading,
-                                        subheading = subheading,
-                                        headingFont = headingFont,
-                                        subheadingFont = subheadingFont,
-                                        headingSize = headingSize,
-                                        subheadingSize = subheadingSize,
-                                        textGap = textGap,
-                                        textColor = textColor,
-                                        textOffsetX = textOffsetX,
-                                        textOffsetY = textOffsetY,
-                                        textAlignment = textAlign,
-                                        headingBold = headingBold,
-                                        subheadingBold = subheadingBold,
+                                        textLayers = textLayers,
                                         showReflection = showReflection,
-                                        showTextShadow = textShadow,
                                         shadowIntensity = editorViewModel.shadowIntensity.value,
                                         shadowSoftness = editorViewModel.shadowSoftness.value,
-                                        textZIndex = editorViewModel.textZIndex.value,
                                         showWatermark = showWatermark,
                                         watermarkText = watermarkText,
                                         ignoreScreenshot = false
@@ -940,24 +873,10 @@ fun EditorScreen(
                                         rotationDegrees = rotation,
                                         screenshotRotation = screenshotRotation,
                                         screenBackgroundColor = screenBackgroundColor,
-                                        heading = heading,
-                                        subheading = subheading,
-                                        headingFont = headingFont,
-                                        subheadingFont = subheadingFont,
-                                        headingSize = headingSize,
-                                        subheadingSize = subheadingSize,
-                                        textGap = textGap,
-                                        textColor = textColor,
-                                        textOffsetX = textOffsetX,
-                                        textOffsetY = textOffsetY,
-                                        textAlignment = textAlign,
-                                        headingBold = headingBold,
-                                        subheadingBold = subheadingBold,
+                                        textLayers = textLayers,
                                         showReflection = showReflection,
-                                        showTextShadow = textShadow,
                                         shadowIntensity = editorViewModel.shadowIntensity.value,
                                         shadowSoftness = editorViewModel.shadowSoftness.value,
-                                        textZIndex = editorViewModel.textZIndex.value,
                                         showWatermark = showWatermark,
                                         watermarkText = watermarkText,
                                         ignoreScreenshot = false
@@ -1008,24 +927,10 @@ fun EditorScreen(
                                         rotationDegrees = rotation,
                                         screenshotRotation = screenshotRotation,
                                         screenBackgroundColor = screenBackgroundColor,
-                                        heading = heading,
-                                        subheading = subheading,
-                                        headingFont = headingFont,
-                                        subheadingFont = subheadingFont,
-                                        headingSize = headingSize,
-                                        subheadingSize = subheadingSize,
-                                        textGap = textGap,
-                                        textColor = textColor,
-                                        textOffsetX = textOffsetX,
-                                        textOffsetY = textOffsetY,
-                                        textAlignment = textAlign,
-                                        headingBold = headingBold,
-                                        subheadingBold = subheadingBold,
+                                        textLayers = textLayers,
                                         showReflection = showReflection,
-                                        showTextShadow = textShadow,
                                         shadowIntensity = editorViewModel.shadowIntensity.value,
                                         shadowSoftness = editorViewModel.shadowSoftness.value,
-                                        textZIndex = editorViewModel.textZIndex.value,
                                         showWatermark = showWatermark,
                                         watermarkText = watermarkText,
                                         ignoreScreenshot = false
@@ -1088,24 +993,10 @@ suspend fun captureToBitmap(
     rotationDegrees: Float = 0f,
     screenshotRotation: Float = 0f,
     screenBackgroundColor: Color = Color(0xFF2C2C2C),
-    heading: String = "",
-    subheading: String = "",
-    headingFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
-    subheadingFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
-    headingSize: Float = 60f,
-    subheadingSize: Float = 40f,
-    textGap: Float = 20f,
-    textColor: Color = Color.White,
-    textOffsetX: Float = 0f,
-    textOffsetY: Float = 0f,
-    textAlignment: com.example.skreenup.ui.models.TextAlignLabel = com.example.skreenup.ui.models.TextAlignLabel.CENTER,
-    headingBold: Boolean = true,
-    subheadingBold: Boolean = false,
+    textLayers: List<com.example.skreenup.ui.models.TextLayer> = emptyList(),
     showReflection: Boolean = true,
-    showTextShadow: Boolean = true,
     shadowIntensity: Float = 0.3f,
     shadowSoftness: Float = 1.0f,
-    textZIndex: Int = 1,
     showWatermark: Boolean = true,
     watermarkText: String = "Made with Skreenup",
     ignoreScreenshot: Boolean = false
@@ -1145,24 +1036,11 @@ suspend fun captureToBitmap(
                 rotationDegrees = rotationDegrees,
                 screenshotRotation = screenshotRotation,
                 screenBackgroundColor = screenBackgroundColor,
-                heading = heading,
-                subheading = subheading,
-                headingFont = headingFont,
-                subheadingFont = subheadingFont,
-                headingSize = headingSize,
-                subheadingSize = subheadingSize,
-                textGap = textGap,
-                textColor = textColor,
-                textOffsetX = textOffsetX,
-                textOffsetY = textOffsetY,
-                textAlignment = textAlignment,
-                headingBold = headingBold,
-                subheadingBold = subheadingBold,
+                textLayers = textLayers,
+                selectedTextLayerId = null,
                 showReflection = showReflection,
-                showTextShadow = showTextShadow,
                 shadowIntensity = shadowIntensity,
                 shadowSoftness = shadowSoftness,
-                textZIndex = textZIndex,
                 showWatermark = showWatermark,
                 watermarkText = watermarkText
             )

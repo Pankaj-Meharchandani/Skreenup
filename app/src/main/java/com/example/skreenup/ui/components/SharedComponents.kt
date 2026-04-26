@@ -302,7 +302,7 @@ fun SnappingSlider(
 }
 
 @Composable
-fun ColorSelector(selectedColor: Color, onColorSelected: (Color) -> Unit) {
+fun ColorSelector(selectedColor: Color, onColorSelected: (Color) -> Unit, label: String? = null) {
     val colors = listOf(
         Color(0xFF3F51B5), Color(0xFF006A6A), Color(0xFFBA1A1A), 
         Color(0xFF6750A4), Color(0xFF0061A4), Color(0xFF006E1C),
@@ -310,16 +310,21 @@ fun ColorSelector(selectedColor: Color, onColorSelected: (Color) -> Unit) {
         Color(0xFF000000), Color(0xFF2C2C2C), Color(0xFF424242)
     )
 
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(vertical = 4.dp)
-    ) {
-        items(colors) { color ->
-            ColorCircle(
-                color = color,
-                isSelected = selectedColor == color,
-                onClick = { onColorSelected(color) }
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (label != null) {
+            Text(label, style = MaterialTheme.typography.labelMedium)
+        }
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(vertical = 4.dp)
+        ) {
+            items(colors) { color ->
+                ColorCircle(
+                    color = color,
+                    isSelected = selectedColor == color,
+                    onClick = { onColorSelected(color) }
+                )
+            }
         }
     }
 }

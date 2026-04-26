@@ -5,20 +5,35 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import android.graphics.Typeface
+import android.graphics.Paint as NativePaint
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -37,6 +52,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -73,38 +90,24 @@ fun DeviceFrame(
     rotationDegrees: Float = 0f,
     screenshotRotation: Float = 0f,
     screenBackgroundColor: Color = Color(0xFF2C2C2C),
-    heading: String = "",
-    subheading: String = "",
-    headingFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
-    subheadingFont: com.example.skreenup.ui.models.TextFont = com.example.skreenup.ui.models.TextFont.POPPINS,
-    headingSize: Float = 60f,
-    subheadingSize: Float = 40f,
-    textGap: Float = 20f,
-    textColor: Color = Color.White,
-    textOffsetX: Float = 0f,
-    textOffsetY: Float = 0f,
-    textAlign: com.example.skreenup.ui.models.TextAlignLabel = com.example.skreenup.ui.models.TextAlignLabel.CENTER,
-    headingBold: Boolean = true,
-    subheadingBold: Boolean = false,
+    textLayers: List<com.example.skreenup.ui.models.TextLayer> = emptyList(),
+    selectedTextLayerId: String? = null,
     showReflection: Boolean = true,
-    showTextShadow: Boolean = true,
     shadowIntensity: Float = 0.3f,
     shadowSoftness: Float = 1.0f,
-    textZIndex: Int = 1,
     showWatermark: Boolean = true,
     watermarkText: String = "Made with Skreenup",
     onScaleChange: (Float) -> Unit = {},
     onRotationChange: (Float) -> Unit = {},
     onFrameOffsetChange: (Float, Float) -> Unit = { _, _ -> },
-    onTextOffsetChange: (Float, Float) -> Unit = { _, _ -> },
-    onHeadingSizeChange: (Float) -> Unit = {},
-    onSubheadingSizeChange: (Float) -> Unit = {},
-    onTextZIndexChange: (Int) -> Unit = {},
+    onTextLayerUpdate: (String, (com.example.skreenup.ui.models.TextLayer) -> com.example.skreenup.ui.models.TextLayer) -> Unit = { _, _ -> },
+    onDeleteTextLayer: (String) -> Unit = {},
+    onSelectTextLayer: (String?) -> Unit = {},
     onAddScreenshot: () -> Unit = {}
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     var activeTarget by remember { mutableStateOf<Target>(Target.NONE) }
-    var showZIndexDialog by remember { mutableStateOf(false) }
+    var isEditingTextId by remember { mutableStateOf<String?>(null) }
     
     // Internal trackers to manage "breakable" snapping
     var sessionPanX by remember { mutableStateOf(0f) }
@@ -117,17 +120,13 @@ fun DeviceFrame(
 
     // Use rememberUpdatedState to avoid restarting pointerInput when values change
     val currentScale by rememberUpdatedState(scale)
-    val currentHeadingSize by rememberUpdatedState(headingSize)
-    val currentSubheadingSize by rememberUpdatedState(subheadingSize)
     val currentRotation by rememberUpdatedState(rotationDegrees)
     val currentFrameOffsetX by rememberUpdatedState(frameOffsetX)
     val currentFrameOffsetY by rememberUpdatedState(frameOffsetY)
-    val currentTextOffsetX by rememberUpdatedState(textOffsetX)
-    val currentTextOffsetY by rememberUpdatedState(textOffsetY)
-    val currentHeading by rememberUpdatedState(heading)
-    val currentSubheading by rememberUpdatedState(subheading)
     val currentDevice by rememberUpdatedState(deviceModel)
     val currentRatio by rememberUpdatedState(aspectRatio)
+    val currentTextLayers by rememberUpdatedState(textLayers)
+    val currentSelectedId by rememberUpdatedState(selectedTextLayerId)
 
     // Calculate frame rect for hit-testing and prompt positioning
     val frameRect = remember(canvasSize, currentDevice, currentScale, currentFrameOffsetX, currentFrameOffsetY, currentRatio) {
@@ -174,9 +173,8 @@ fun DeviceFrame(
             .onSizeChanged { canvasSize = it }
             .pointerInput(canvasSize) {
                 detectTapGestures(
-                    onTap = { onAddScreenshot() },
-                    onLongPress = { offset ->
-                        val target = hitTest(
+                    onTap = { offset ->
+                        val hit = hitTest(
                             point = offset,
                             canvasSize = canvasSize,
                             aspectRatio = currentRatio,
@@ -184,13 +182,40 @@ fun DeviceFrame(
                             scale = currentScale,
                             frameOffsetX = currentFrameOffsetX,
                             frameOffsetY = currentFrameOffsetY,
-                            heading = currentHeading,
-                            subheading = currentSubheading,
-                            textOffsetX = currentTextOffsetX,
-                            textOffsetY = currentTextOffsetY
+                            textLayers = currentTextLayers,
+                            selectedId = currentSelectedId
                         )
-                        if (target == Target.TEXT) {
-                            showZIndexDialog = true
+                        when (hit) {
+                            is HitResult.Text -> {
+                                onSelectTextLayer(hit.id)
+                                isEditingTextId = null // Reset editing if just selecting
+                            }
+                            is HitResult.DeleteText -> {
+                                onDeleteTextLayer(hit.id)
+                                isEditingTextId = null
+                            }
+                            is HitResult.Frame -> onAddScreenshot()
+                            else -> {
+                                onSelectTextLayer(null)
+                                isEditingTextId = null
+                            }
+                        }
+                    },
+                    onDoubleTap = { offset ->
+                        val hit = hitTest(
+                            point = offset,
+                            canvasSize = canvasSize,
+                            aspectRatio = currentRatio,
+                            deviceModel = currentDevice,
+                            scale = currentScale,
+                            frameOffsetX = currentFrameOffsetX,
+                            frameOffsetY = currentFrameOffsetY,
+                            textLayers = currentTextLayers,
+                            selectedId = currentSelectedId
+                        )
+                        if (hit is HitResult.Text) {
+                            onSelectTextLayer(hit.id)
+                            isEditingTextId = hit.id
                         }
                     }
                 )
@@ -199,7 +224,7 @@ fun DeviceFrame(
                 detectTransformGestures { centroid, pan, zoom, rotationChange ->
                     // Determine target on first movement if not set
                     if (activeTarget == Target.NONE) {
-                        activeTarget = hitTest(
+                        val hit = hitTest(
                             point = centroid,
                             canvasSize = canvasSize,
                             aspectRatio = currentRatio,
@@ -207,43 +232,51 @@ fun DeviceFrame(
                             scale = currentScale,
                             frameOffsetX = currentFrameOffsetX,
                             frameOffsetY = currentFrameOffsetY,
-                            heading = currentHeading,
-                            subheading = currentSubheading,
-                            textOffsetX = currentTextOffsetX,
-                            textOffsetY = currentTextOffsetY
+                            textLayers = currentTextLayers
                         )
-                        // Initialize session tracking based on target
-                        when (activeTarget) {
-                            Target.FRAME -> {
+                        
+                        when (hit) {
+                            is HitResult.Frame -> {
+                                activeTarget = Target.FRAME
                                 sessionPanX = currentFrameOffsetX
                                 sessionPanY = currentFrameOffsetY
                                 sessionRotation = currentRotation
                             }
-                            Target.TEXT -> {
-                                sessionPanX = currentTextOffsetX
-                                sessionPanY = currentTextOffsetY
-                                sessionRotation = 0f // Text doesn't rotate in this impl
+                            is HitResult.Text -> {
+                                activeTarget = Target.TEXT
+                                onSelectTextLayer(hit.id)
+                                val layer = currentTextLayers.find { it.id == hit.id }
+                                sessionPanX = layer?.offsetX ?: 0f
+                                sessionPanY = layer?.offsetY ?: 0f
+                                sessionRotation = 0f
                             }
-                            else -> {
-                                sessionPanX = currentFrameOffsetX
-                                sessionPanY = currentFrameOffsetY
-                                sessionRotation = currentRotation
+                            is HitResult.DeleteText -> {
+                                activeTarget = Target.NONE
+                            }
+                            HitResult.NONE -> {
+                                activeTarget = Target.BACKGROUND
+                                sessionPanX = 0f
+                                sessionPanY = 0f
                             }
                         }
                     }
 
                     // 1. Handle Scale (Zoom)
                     if (zoom != 1f) {
-                        if (activeTarget == Target.TEXT) {
-                            onHeadingSizeChange((currentHeadingSize * zoom).coerceIn(10f, 300f))
-                            onSubheadingSizeChange((currentSubheadingSize * zoom).coerceIn(8f, 200f))
+                        if (activeTarget == Target.TEXT && currentSelectedId != null) {
+                            onTextLayerUpdate(currentSelectedId!!) { layer ->
+                                layer.copy(
+                                    headingSize = (layer.headingSize * zoom).coerceIn(10f, 300f),
+                                    subheadingSize = (layer.subheadingSize * zoom).coerceIn(8f, 200f)
+                                )
+                            }
                         } else {
                             onScaleChange((currentScale * zoom).coerceIn(0.1f, 2.0f))
                         }
                     }
 
                     // 2. Handle Rotation (Two fingers)
-                    if (rotationChange != 0f) {
+                    if (rotationChange != 0f && activeTarget == Target.FRAME) {
                         sessionRotation = (sessionRotation + rotationChange) % 360f
                         if (sessionRotation < 0) sessionRotation += 360f
                         
@@ -277,38 +310,28 @@ fun DeviceFrame(
 
                         when (activeTarget) {
                             Target.FRAME -> {
-                                // ── Professional "Breakable" Snap Logic ──
                                 val snapThreshold = 25f
-                                
                                 val snapX = kotlin.math.abs(sessionPanX) < snapThreshold
                                 val snapY = kotlin.math.abs(sessionPanY) < snapThreshold
-
                                 val finalX = if (snapX) 0f else sessionPanX
                                 val finalY = if (snapY) 0f else sessionPanY
-                                
                                 showSnapLineX = snapX
                                 showSnapLineY = snapY
-
                                 onFrameOffsetChange(finalX, finalY)
                             }
                             Target.TEXT -> {
-                                // ── Professional "Breakable" Snap Logic for Text ──
-                                val snapThreshold = 25f
-                                
-                                val snapX = kotlin.math.abs(sessionPanX) < snapThreshold
-                                val snapY = kotlin.math.abs(sessionPanY) < snapThreshold
-
-                                val finalX = if (snapX) 0f else sessionPanX
-                                val finalY = if (snapY) 0f else sessionPanY
-                                
-                                showSnapLineX = snapX
-                                showSnapLineY = snapY
-
-                                onTextOffsetChange(finalX, finalY)
+                                if (currentSelectedId != null) {
+                                    val snapThreshold = 25f
+                                    val snapX = kotlin.math.abs(sessionPanX) < snapThreshold
+                                    val snapY = kotlin.math.abs(sessionPanY) < snapThreshold
+                                    val finalX = if (snapX) 0f else sessionPanX
+                                    val finalY = if (snapY) 0f else sessionPanY
+                                    showSnapLineX = snapX
+                                    showSnapLineY = snapY
+                                    onTextLayerUpdate(currentSelectedId!!) { it.copy(offsetX = finalX, offsetY = finalY) }
+                                }
                             }
-                            else -> {
-                                onFrameOffsetChange(currentFrameOffsetX + dx, currentFrameOffsetY + dy)
-                            }
+                            else -> {}
                         }
                     }
                 }
@@ -350,50 +373,14 @@ fun DeviceFrame(
                 isExport = false,
                 rotationDegrees = rotationDegrees,
                 screenshotRotation = screenshotRotation,
-                heading = heading,
-                subheading = subheading,
-                headingFont = headingFont,
-                subheadingFont = subheadingFont,
-                headingSize = headingSize,
-                subheadingSize = subheadingSize,
-                textGap = textGap,
-                textColor = textColor,
-                textOffsetX = textOffsetX,
-                textOffsetY = textOffsetY,
-                textAlignment = textAlign,
-                headingBold = headingBold,
-                subheadingBold = subheadingBold,
+                textLayers = textLayers,
+                selectedTextLayerId = selectedTextLayerId,
+                editingTextLayerId = isEditingTextId,
                 showReflection = showReflection,
-                showTextShadow = showTextShadow,
                 shadowIntensity = shadowIntensity,
                 shadowSoftness = shadowSoftness,
-                textZIndex = textZIndex,
                 showWatermark = showWatermark,
                 watermarkText = watermarkText
-            )
-        }
-
-        if (showZIndexDialog) {
-            AlertDialog(
-                onDismissRequest = { showZIndexDialog = false },
-                title = { Text("Text Layering") },
-                text = { Text("Where do you want to place the text?") },
-                confirmButton = {
-                    TextButton(onClick = { 
-                        onTextZIndexChange(1)
-                        showZIndexDialog = false 
-                    }) {
-                        Text("Move to Front")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { 
-                        onTextZIndexChange(-1)
-                        showZIndexDialog = false 
-                    }) {
-                        Text("Move to Back")
-                    }
-                }
             )
         }
 
@@ -432,6 +419,164 @@ fun DeviceFrame(
                         strokeWidth = strokeWidth,
                         pathEffect = dashPathEffect
                     )
+                }
+            }
+        }
+
+        // ── Direct Edit Dialog (REMOVED) ──
+
+        // ── On-Screen Selection & Edit UI ──
+        if (selectedTextLayerId != null && canvasSize.width > 0) {
+            val layer = textLayers.find { it.id == selectedTextLayerId }
+            if (layer != null) {
+                val canvasWidth = canvasSize.width.toFloat()
+                val canvasHeight = canvasSize.height.toFloat()
+                val compWidth: Float
+                val compHeight: Float
+                if (canvasWidth / canvasHeight > aspectRatio.ratio) {
+                    compHeight = canvasHeight
+                    compWidth = compHeight * aspectRatio.ratio
+                } else {
+                    compWidth = canvasWidth
+                    compHeight = compWidth / aspectRatio.ratio
+                }
+                val compLeft = (canvasWidth - compWidth) / 2
+                val compTop = (canvasHeight - compHeight) / 2
+                val resScale = compWidth / 1000f
+
+                // Re-calculate bounds (same logic as renderer)
+                val hPaint = NativePaint().apply {
+                    textSize = layer.headingSize * resScale
+                    typeface = getNativeTypeface(layer.headingFont, layer.headingBold)
+                }
+                val sPaint = NativePaint().apply {
+                    textSize = layer.subheadingSize * resScale
+                    typeface = getNativeTypeface(layer.subheadingFont, layer.subheadingBold)
+                }
+
+                val hLines = layer.heading.split("\n")
+                val sLines = layer.subheading.split("\n")
+                
+                var maxW = 0f
+                hLines.forEach { maxW = maxOf(maxW, hPaint.measureText(it)) }
+                sLines.forEach { maxW = maxOf(maxW, sPaint.measureText(it)) }
+
+                val hSpacing = hPaint.fontSpacing
+                val sSpacing = sPaint.fontSpacing
+                val hMetrics = hPaint.fontMetrics
+                val sMetrics = sPaint.fontMetrics
+                
+                val hBlockH = if (layer.heading.isNotEmpty()) (hLines.size - 1) * hSpacing + (hMetrics.descent - hMetrics.ascent) else 0f
+                val sBlockH = if (layer.subheading.isNotEmpty()) (sLines.size - 1) * sSpacing + (sMetrics.descent - sMetrics.ascent) else 0f
+                val gap = layer.textGap * resScale
+                val totalH = hBlockH + (if (layer.heading.isNotEmpty() && layer.subheading.isNotEmpty()) gap else 0f) + sBlockH
+
+                val textCenterY = compTop + compHeight / 2 + (layer.offsetY * resScale)
+                val blockTop = textCenterY - (totalH / 2)
+
+                val horizontalMargin = 60f * resScale
+                val centerX = when (layer.textAlign) {
+                    "LEFT" -> compLeft + horizontalMargin + (layer.offsetX * resScale)
+                    "RIGHT" -> compLeft + compWidth - horizontalMargin + (layer.offsetX * resScale)
+                    else -> compLeft + compWidth / 2 + (layer.offsetX * resScale)
+                }
+
+                val paddingPx = 0f // No padding for closer alignment
+                
+                val rectLeft = when (layer.textAlign) {
+                    "LEFT" -> centerX - paddingPx
+                    "RIGHT" -> centerX - maxW - paddingPx
+                    else -> centerX - (maxW / 2) - paddingPx
+                }
+                val rectTop = blockTop - paddingPx
+                val rectW = maxW + (paddingPx * 2)
+                val rectH = totalH + (paddingPx * 2)
+
+                // Selection Box & Edit Fields
+                Box(
+                    modifier = Modifier
+                        .size(
+                            width = with(LocalDensity.current) { rectW.toDp() },
+                            height = with(LocalDensity.current) { rectH.toDp() }
+                        )
+                        .graphicsLayer {
+                            translationX = rectLeft
+                            translationY = rectTop
+                        }
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFFFA1E4E).copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(4.dp)
+                        )
+                ) {
+                    // Delete Button (X) - Top Left, bigger
+                    Box(
+                        modifier = Modifier
+                            .offset(x = (-20).dp, y = (-20).dp)
+                            .size(40.dp)
+                            .background(Color(0xFFFA1E4E), CircleShape)
+                            .clickable { onDeleteTextLayer(layer.id) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Rounded.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+                    }
+
+                    // Direct Edit Fields
+                    if (isEditingTextId == layer.id) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = when (layer.textAlign) {
+                                "LEFT" -> Alignment.Start
+                                "RIGHT" -> Alignment.End
+                                else -> Alignment.CenterHorizontally
+                            }
+                        ) {
+                            BasicTextField(
+                                value = layer.heading,
+                                onValueChange = { newVal -> onTextLayerUpdate(layer.id) { it.copy(heading = newVal) } },
+                                textStyle = TextStyle(
+                                    fontSize = with(LocalDensity.current) { (layer.headingSize * resScale).toSp() },
+                                    textAlign = when (layer.textAlign) {
+                                        "LEFT" -> androidx.compose.ui.text.style.TextAlign.Left
+                                        "RIGHT" -> androidx.compose.ui.text.style.TextAlign.Right
+                                        else -> androidx.compose.ui.text.style.TextAlign.Center
+                                    },
+                                    color = Color(layer.textColor),
+                                    fontWeight = if (layer.headingBold) FontWeight.Bold else FontWeight.Normal,
+                                    fontFamily = getComposeFontFamily(layer.headingFont),
+                                    shadow = if (layer.textShadow) Shadow(
+                                        color = Color.Black.copy(alpha = 0.5f),
+                                        offset = Offset(2f * resScale, 2f * resScale),
+                                        blurRadius = 10f * resScale
+                                    ) else null
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(with(LocalDensity.current) { gap.toDp() }))
+                            BasicTextField(
+                                value = layer.subheading,
+                                onValueChange = { newVal -> onTextLayerUpdate(layer.id) { it.copy(subheading = newVal) } },
+                                textStyle = TextStyle(
+                                    fontSize = with(LocalDensity.current) { (layer.subheadingSize * resScale).toSp() },
+                                    textAlign = when (layer.textAlign) {
+                                        "LEFT" -> androidx.compose.ui.text.style.TextAlign.Left
+                                        "RIGHT" -> androidx.compose.ui.text.style.TextAlign.Right
+                                        else -> androidx.compose.ui.text.style.TextAlign.Center
+                                    },
+                                    color = Color(layer.textColor).copy(alpha = 0.8f),
+                                    fontWeight = if (layer.subheadingBold) FontWeight.Bold else FontWeight.Normal,
+                                    fontFamily = getComposeFontFamily(layer.subheadingFont),
+                                    shadow = if (layer.textShadow) Shadow(
+                                        color = Color.Black.copy(alpha = 0.5f),
+                                        offset = Offset(2f * resScale, 2f * resScale),
+                                        blurRadius = 10f * resScale
+                                    ) else null
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -497,7 +642,14 @@ fun DeviceFrame(
     }
 }
 
-private enum class Target { NONE, FRAME, TEXT }
+private enum class Target { NONE, FRAME, TEXT, BACKGROUND }
+
+private sealed class HitResult {
+    object NONE : HitResult()
+    object Frame : HitResult()
+    data class Text(val id: String) : HitResult()
+    data class DeleteText(val id: String) : HitResult()
+}
 
 private fun hitTest(
     point: Offset,
@@ -507,14 +659,12 @@ private fun hitTest(
     scale: Float,
     frameOffsetX: Float,
     frameOffsetY: Float,
-    heading: String,
-    subheading: String,
-    textOffsetX: Float,
-    textOffsetY: Float
-): Target {
+    textLayers: List<com.example.skreenup.ui.models.TextLayer>,
+    selectedId: String? = null
+): HitResult {
     val canvasWidth = canvasSize.width.toFloat()
     val canvasHeight = canvasSize.height.toFloat()
-    if (canvasWidth <= 0 || canvasHeight <= 0) return Target.NONE
+    if (canvasWidth <= 0 || canvasHeight <= 0) return HitResult.NONE
 
     // 1. Calculate comp area (Same logic as MockupRenderer)
     val compWidth: Float
@@ -530,20 +680,73 @@ private fun hitTest(
     val compTop = (canvasHeight - compHeight) / 2
     val exportScaleFactor = compWidth / 1000f
 
-    // 2. Check Text Hit (Rough bounding box)
-    if (heading.isNotEmpty() || subheading.isNotEmpty()) {
-        val textCenterX = compLeft + compWidth / 2 + (textOffsetX * exportScaleFactor)
-        val textCenterY = compTop + compHeight / 2 + (textOffsetY * exportScaleFactor)
+    // 2. Check Text Hit (Rough bounding box) - Reverse order for top-most first
+    textLayers.asReversed().forEach { layer ->
+        val textCenterX = compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor)
+        val textCenterY = compTop + compHeight / 2 + (layer.offsetY * exportScaleFactor)
         
-        // Heuristic: touchable area for text
+        val hPaint = NativePaint().apply {
+            textSize = layer.headingSize * exportScaleFactor
+            typeface = getNativeTypeface(layer.headingFont, layer.headingBold)
+        }
+        val sPaint = NativePaint().apply {
+            textSize = layer.subheadingSize * exportScaleFactor
+            typeface = getNativeTypeface(layer.subheadingFont, layer.subheadingBold)
+        }
+
+        val hLines = layer.heading.split("\n")
+        val sLines = layer.subheading.split("\n")
+        
+        var maxW = 0f
+        hLines.forEach { maxW = maxOf(maxW, hPaint.measureText(it)) }
+        sLines.forEach { maxW = maxOf(maxW, sPaint.measureText(it)) }
+
+        val hSpacing = hPaint.fontSpacing
+        val sSpacing = sPaint.fontSpacing
+        val hMetrics = hPaint.fontMetrics
+        val sMetrics = sPaint.fontMetrics
+        
+        val hBlockH = if (layer.heading.isNotEmpty()) (hLines.size - 1) * hSpacing + (hMetrics.descent - hMetrics.ascent) else 0f
+        val sBlockH = if (layer.subheading.isNotEmpty()) (sLines.size - 1) * sSpacing + (sMetrics.descent - sMetrics.ascent) else 0f
+        val gap = layer.textGap * exportScaleFactor
+        val totalHeight = hBlockH + (if (layer.heading.isNotEmpty() && layer.subheading.isNotEmpty()) gap else 0f) + sBlockH
+        
+        val blockTop = textCenterY - (totalHeight / 2)
+        
+        val horizontalMargin = 60f * exportScaleFactor
+        val centerX = when (layer.textAlign) {
+            "LEFT" -> compLeft + horizontalMargin + (layer.offsetX * exportScaleFactor)
+            "RIGHT" -> compLeft + compWidth - horizontalMargin + (layer.offsetX * exportScaleFactor)
+            else -> compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor)
+        }
+
+        // Use a more accurate hit test
+        val hitPadding = 20f * exportScaleFactor
+        val rectLeft = when (layer.textAlign) {
+            "LEFT" -> centerX - hitPadding
+            "RIGHT" -> centerX - maxW - hitPadding
+            else -> centerX - (maxW / 2) - hitPadding
+        }
         val textHitRect = Rect(
-            left = textCenterX - 300f * exportScaleFactor,
-            right = textCenterX + 300f * exportScaleFactor,
-            top = textCenterY - 100f * exportScaleFactor,
-            bottom = textCenterY + 100f * exportScaleFactor
+            left = rectLeft,
+            right = rectLeft + maxW + (hitPadding * 2),
+            top = blockTop - hitPadding,
+            bottom = blockTop + totalHeight + hitPadding
         )
 
-        if (textHitRect.contains(point)) return Target.TEXT
+        if (textHitRect.contains(point)) {
+            // Check for delete button hit if selected
+            if (layer.id == selectedId) {
+                val padding = 12f * exportScaleFactor
+                val deleteRectTop = blockTop - padding
+                val deleteRectLeft = rectLeft
+                
+                val xSize = 40f * exportScaleFactor // Make it big for clicking
+                val xHitRect = Rect(Offset(deleteRectLeft - xSize/2, deleteRectTop - xSize/2), androidx.compose.ui.geometry.Size(xSize, xSize))
+                if (xHitRect.contains(point)) return HitResult.DeleteText(layer.id)
+            }
+            return HitResult.Text(layer.id)
+        }
     }
 
     // 3. Check Frame Hit
@@ -564,7 +767,44 @@ private fun hitTest(
     val frameTop = compTop + (compHeight - frameHeight) / 2 + currentFrameOffsetY
     
     val frameRect = Rect(Offset(frameLeft, frameTop), androidx.compose.ui.geometry.Size(frameWidth, frameHeight))
-    if (frameRect.contains(point)) return Target.FRAME
+    if (frameRect.contains(point)) return HitResult.Frame
 
-    return Target.NONE
+    return HitResult.NONE
+}
+
+private fun getNativeTypeface(fontName: String, isBold: Boolean): Typeface {
+    val style = if (isBold) Typeface.BOLD else Typeface.NORMAL
+    return when (fontName) {
+        "POPPINS" -> Typeface.create("sans-serif", style)
+        "INTER" -> Typeface.create("sans-serif-medium", style)
+        "MONTSERRAT" -> Typeface.create("sans-serif-light", style)
+        "BEBAS" -> Typeface.create("sans-serif-black", style)
+        "PACIFICO" -> Typeface.create("cursive", style)
+        "PLAYFAIR" -> Typeface.create("serif-monospace", style)
+        "TIMES" -> Typeface.create("serif", style)
+        "OSWALD" -> Typeface.create("sans-serif-condensed", style)
+        "RALEWAY" -> Typeface.create("sans-serif-thin", style)
+        "ANTON" -> Typeface.create("sans-serif-black", style)
+        "QUICKSAND" -> Typeface.create("sans-serif-light", style)
+        "LIBRE_BASKERVILLE" -> Typeface.create("serif", style)
+        else -> Typeface.create("sans-serif", style)
+    }
+}
+
+private fun getComposeFontFamily(fontName: String): FontFamily {
+    return when (fontName) {
+        "POPPINS" -> FontFamily.SansSerif
+        "INTER" -> FontFamily.SansSerif
+        "MONTSERRAT" -> FontFamily.SansSerif
+        "BEBAS" -> FontFamily.SansSerif
+        "PACIFICO" -> FontFamily.Cursive
+        "PLAYFAIR" -> FontFamily.Serif
+        "TIMES" -> FontFamily.Serif
+        "OSWALD" -> FontFamily.SansSerif
+        "RALEWAY" -> FontFamily.SansSerif
+        "ANTON" -> FontFamily.SansSerif
+        "QUICKSAND" -> FontFamily.SansSerif
+        "LIBRE_BASKERVILLE" -> FontFamily.Serif
+        else -> FontFamily.SansSerif
+    }
 }

@@ -139,6 +139,20 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
             onReset = { viewModel.resetBackgroundTab() }
         )
 
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(BackgroundType.entries) { type ->
+                FilterChip(
+                    selected = backgroundType == type,
+                    onClick = { viewModel.setBackgroundType(type) },
+                    label = { Text(type.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                    shape = MaterialTheme.shapes.large
+                )
+            }
+        }
+
         if (smartPalette.isNotEmpty()) {
             Column(
                 modifier = Modifier
@@ -160,19 +174,7 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
                                 .size(50.dp)
                                 .clip(MaterialTheme.shapes.medium)
                                 .background(color)
-                                .clickable {
-                                    if (backgroundType != BackgroundType.SOLID && backgroundType != BackgroundType.GRADIENT) {
-                                        viewModel.setBackgroundType(BackgroundType.SOLID)
-                                    }
-                                    
-                                    if (backgroundType == BackgroundType.GRADIENT) {
-                                        // For gradient, we'll set the start color
-                                        val hex = "#" + String.format("%06X", 0xFFFFFF and color.toArgb())
-                                        viewModel.setHexColorGradientStart(hex)
-                                    } else {
-                                        viewModel.setBackgroundColor(color)
-                                    }
-                                }
+                                .clickable { viewModel.applyColorFromPalette(color) }
                         )
                     }
                 }
@@ -180,20 +182,6 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
                     "Tap to match your background to the screenshot colors",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(BackgroundType.entries) { type ->
-                FilterChip(
-                    selected = backgroundType == type,
-                    onClick = { viewModel.setBackgroundType(type) },
-                    label = { Text(type.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                    shape = MaterialTheme.shapes.large
                 )
             }
         }

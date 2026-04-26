@@ -277,6 +277,38 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         return bitmap.getPixel(points[0].first, points[0].second)
     }
 
+    fun applyColorFromPalette(color: Color) {
+        if (_backgroundType.value != BackgroundType.SOLID && _backgroundType.value != BackgroundType.GRADIENT) {
+            _backgroundType.value = BackgroundType.SOLID
+        }
+
+        if (_backgroundType.value == BackgroundType.GRADIENT) {
+            // Create a gradient using the selected color and another from the palette
+            val palette = _smartPalette.value
+            val index = palette.indexOf(color)
+            
+            val secondaryColor = if (palette.size > 1) {
+                // Pick the next color in the palette, or the previous if it's the last one
+                if (index != -1 && index < palette.size - 1) {
+                    palette[index + 1]
+                } else {
+                    palette[0]
+                }
+            } else {
+                // Fallback: create a darker version of the same color
+                Color(
+                    red = (color.red * 0.7f).coerceIn(0f, 1f),
+                    green = (color.green * 0.7f).coerceIn(0f, 1f),
+                    blue = (color.blue * 0.7f).coerceIn(0f, 1f),
+                    alpha = color.alpha
+                )
+            }
+            setGradientColors(listOf(color, secondaryColor))
+        } else {
+            setBackgroundColor(color)
+        }
+    }
+
     fun setBackgroundType(type: BackgroundType) {
         _backgroundType.value = type
         _isSaved.value = false

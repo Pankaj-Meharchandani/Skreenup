@@ -309,19 +309,53 @@ object MockupRenderer {
                                 )
                             }
                             TextBackgroundStyle.GLASS.name -> {
-                                // Background with glass effect
+                                // Enhanced Glass Effect with complex gradients and highlights
+                                // 1. Main glass fill with light-reflecting gradient
                                 drawRoundRect(
-                                    color = Color.White.copy(alpha = 0.1f),
+                                    brush = Brush.linearGradient(
+                                        colors = listOf(
+                                            Color.White.copy(alpha = 0.15f),
+                                            Color.White.copy(alpha = 0.03f),
+                                            Color.White.copy(alpha = 0.08f)
+                                        ),
+                                        start = bgRect.topLeft,
+                                        end = bgRect.bottomRight
+                                    ),
                                     topLeft = bgRect.topLeft,
                                     size = bgRect.size,
                                     cornerRadius = CornerRadius(cornerRadius)
                                 )
+                                
+                                // 2. Top-down subtle highlight to simulate surface gloss
                                 drawRoundRect(
-                                    color = Color.White.copy(alpha = 0.2f),
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.White.copy(alpha = 0.1f),
+                                            Color.Transparent
+                                        ),
+                                        startY = bgRect.top,
+                                        endY = bgRect.top + bgRect.height * 0.4f
+                                    ),
+                                    topLeft = bgRect.topLeft,
+                                    size = bgRect.size,
+                                    cornerRadius = CornerRadius(cornerRadius)
+                                )
+
+                                // 3. Glass border with varying thickness/opacity for depth
+                                drawRoundRect(
+                                    brush = Brush.linearGradient(
+                                        colors = listOf(
+                                            Color.White.copy(alpha = 0.5f), // Top-left highlight
+                                            Color.White.copy(alpha = 0.1f), // Sides
+                                            Color.White.copy(alpha = 0.3f)  // Bottom-right edge
+                                        ),
+                                        start = bgRect.topLeft,
+                                        end = bgRect.bottomRight
+                                    ),
                                     topLeft = bgRect.topLeft,
                                     size = bgRect.size,
                                     cornerRadius = CornerRadius(cornerRadius),
-                                    style = Stroke(width = 1f * resolutionScale)
+                                    style = Stroke(width = 1.5f * resolutionScale)
                                 )
                             }
                         }

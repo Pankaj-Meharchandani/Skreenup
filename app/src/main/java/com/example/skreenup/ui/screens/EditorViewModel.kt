@@ -227,23 +227,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun setBackgroundFromScreenshot() {
-        _screenshot.value?.let { imageBitmap ->
-            val bitmap = imageBitmap.asAndroidBitmap()
-            val extractedColor = extractProminentColor(bitmap)
-            setBackgroundColor(Color(extractedColor))
-            setBackgroundType(BackgroundType.SOLID)
-        }
-    }
-
-    fun setScreenColorFromScreenshot() {
-        _screenshot.value?.let { imageBitmap ->
-            val bitmap = imageBitmap.asAndroidBitmap()
-            val extractedColor = extractProminentColor(bitmap)
-            setScreenBackgroundColor(Color(extractedColor))
-        }
-    }
-
     private fun extractProminentColor(bitmap: Bitmap): Int {
         // We pick a few sample points that are likely to represent the app's background
         // 1. Top center (often status bar/app bar)

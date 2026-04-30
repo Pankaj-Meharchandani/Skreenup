@@ -776,58 +776,6 @@ fun EditorScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            
-                            IconButton(
-                                onClick = {
-                                    scope.launch {
-                                        val bitmap = captureToBitmap(
-                                            density = Density(context),
-                                            screenshot = screenshot,
-                                            deviceModel = selectedDevice,
-                                            backgroundType = backgroundType,
-                                            backgroundColor = backgroundColor,
-                                            gradientColors = gradientColors,
-                                            backgroundImage = backgroundImage,
-                                            backgroundImageOffsetX = backgroundImageOffsetX,
-                                            backgroundImageOffsetY = backgroundImageOffsetY,
-                                            backgroundImageScale = backgroundImageScale,
-                                            backgroundImageBlur = backgroundImageBlur,
-                                            scale = scale,
-                                            imageScale = imageScale,
-                                            frameOffsetX = frameOffsetX,
-                                            frameOffsetY = frameOffsetY,
-                                            screenshotOffsetX = screenshotOffsetX,
-                                            screenshotOffsetY = screenshotOffsetY,
-                                            aspectRatio = aspectRatio,
-                                            rotationDegrees = rotation,
-                                            screenshotRotation = screenshotRotation,
-                                            screenBackgroundColor = screenBackgroundColor,
-                                            textLayers = textLayers,
-                                            showReflection = showReflection,
-                                            shadowIntensity = editorViewModel.shadowIntensity.value,
-                                            shadowSoftness = editorViewModel.shadowSoftness.value,
-                                            showWatermark = showWatermark,
-                                            watermarkText = watermarkText,
-                                            ignoreScreenshot = false
-                                        )
-                                        shareImage(context, bitmap)
-                                    }
-                                },
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .size(48.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.surfaceVariant,
-                                        androidx.compose.foundation.shape.CircleShape
-                                    )
-                            ) {
-                                Icon(
-                                    Icons.Rounded.Share,
-                                    contentDescription = "Quick Share",
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
                         }
 
                         Spacer(Modifier.height(24.dp))

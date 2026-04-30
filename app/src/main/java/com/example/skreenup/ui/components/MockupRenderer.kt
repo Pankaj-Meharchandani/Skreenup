@@ -309,14 +309,16 @@ object MockupRenderer {
                                 )
                             }
                             TextBackgroundStyle.GLASS.name -> {
-                                // Enhanced Glass Effect with complex gradients and highlights
+                                // Enhanced Glass Effect using user-selected color
+                                val glassColor = Color(layer.backgroundColor)
+                                
                                 // 1. Main glass fill with light-reflecting gradient
                                 drawRoundRect(
                                     brush = Brush.linearGradient(
                                         colors = listOf(
-                                            Color.White.copy(alpha = 0.15f),
-                                            Color.White.copy(alpha = 0.03f),
-                                            Color.White.copy(alpha = 0.08f)
+                                            glassColor.copy(alpha = 0.15f),
+                                            glassColor.copy(alpha = 0.03f),
+                                            glassColor.copy(alpha = 0.08f)
                                         ),
                                         start = bgRect.topLeft,
                                         end = bgRect.bottomRight
@@ -330,7 +332,7 @@ object MockupRenderer {
                                 drawRoundRect(
                                     brush = Brush.verticalGradient(
                                         colors = listOf(
-                                            Color.White.copy(alpha = 0.1f),
+                                            glassColor.copy(alpha = 0.1f),
                                             Color.Transparent
                                         ),
                                         startY = bgRect.top,
@@ -345,9 +347,9 @@ object MockupRenderer {
                                 drawRoundRect(
                                     brush = Brush.linearGradient(
                                         colors = listOf(
-                                            Color.White.copy(alpha = 0.5f), // Top-left highlight
-                                            Color.White.copy(alpha = 0.1f), // Sides
-                                            Color.White.copy(alpha = 0.3f)  // Bottom-right edge
+                                            glassColor.copy(alpha = 0.5f), // Top-left highlight
+                                            glassColor.copy(alpha = 0.1f), // Sides
+                                            glassColor.copy(alpha = 0.3f)  // Bottom-right edge
                                         ),
                                         start = bgRect.topLeft,
                                         end = bgRect.bottomRight

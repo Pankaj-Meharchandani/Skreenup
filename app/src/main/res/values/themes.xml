@@ -1,4 +1,4 @@
 <resources>
 
-    <style name="Theme.Skreenup" parent="Theme.AppCompat.DayNight.NoActionBar" />
+    <style name="Theme.Skreenup" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
 </resources>

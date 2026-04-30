@@ -105,11 +105,15 @@ class MainActivity : AppCompatActivity(), SimpleDialog.OnDialogResultListener {
             }
 
             // Sync AppCompat theme with Compose theme
-            LaunchedEffect(isDarkTheme) {
-                AppCompatDelegate.setDefaultNightMode(
-                    if (isDarkTheme) AppCompatDelegate.MODE_NIGHT_YES 
-                    else AppCompatDelegate.MODE_NIGHT_NO
-                )
+            LaunchedEffect(theme) {
+                val mode = when (theme) {
+                    AppTheme.LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+                    AppTheme.DARK -> AppCompatDelegate.MODE_NIGHT_YES
+                    AppTheme.SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+                }
+                if (AppCompatDelegate.getDefaultNightMode() != mode) {
+                    AppCompatDelegate.setDefaultNightMode(mode)
+                }
             }
 
             SkreenupTheme(darkTheme = isDarkTheme) {

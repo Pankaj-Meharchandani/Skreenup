@@ -53,7 +53,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     "gradient_start" -> setGradientColors(listOf(Color(color), gradientColors.value[1]))
                     "gradient_end" -> setGradientColors(listOf(gradientColors.value[0], Color(color)))
                     "screen_color" -> setScreenBackgroundColor(Color(color))
-                    "text_color" -> setTextColor(Color(color))
+                    "text_color" -> setTextColor(Color(color).copy(alpha = 1f))
                     "text_bg_color" -> setTextBackgroundColor(Color(color))
                 }
             }
@@ -786,7 +786,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _textGap.value = config.textGap
             _textOffsetX.value = config.textOffsetX
             _textOffsetY.value = config.textOffsetY
-            _textColor.value = Color(config.textColor)
+            val colorVal = if (config.textColor == -1) Color.White.toArgb() else config.textColor
+            _textColor.value = Color(colorVal)
             _textAlign.value = TextAlignLabel.valueOf(config.textAlign)
             _textShadow.value = config.textShadow
             _headingFont.value = TextFont.valueOf(config.headingFont)
@@ -811,7 +812,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 textGap = config.textGap,
                 offsetX = config.textOffsetX,
                 offsetY = config.textOffsetY,
-                textColor = if (config.textColor == -1) Color.White.toArgb() else config.textColor,
+                textColor = colorVal,
                 textAlign = config.textAlign,
                 textShadow = config.textShadow,
                 headingFont = config.headingFont,

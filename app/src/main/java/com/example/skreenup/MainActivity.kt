@@ -11,49 +11,27 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
+import eltos.simpledialogfragment.SimpleDialog
+import eltos.simpledialogfragment.color.SimpleColorDialog
+import eltos.simpledialogfragment.color.SimpleColorWheelDialog
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.isImeVisible
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.rounded.Bookmark
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material.icons.rounded.Save
-import androidx.compose.material.icons.rounded.Layers
-import androidx.compose.material.icons.rounded.Visibility
-import androidx.compose.material.icons.rounded.VisibilityOff
-import androidx.compose.material.icons.rounded.KeyboardArrowUp
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.rounded.DragHandle
-import sh.calvin.reorderable.*
-import com.example.skreenup.ui.models.TextLayer
-import androidx.compose.material.icons.rounded.Smartphone
-import androidx.compose.material.icons.rounded.TextFields
-import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -103,11 +81,14 @@ import android.content.ClipboardManager
 import android.content.ClipData
 import androidx.core.content.FileProvider
 import com.example.skreenup.data.ExportAction
+import com.example.skreenup.ui.components.ColorPickerBus
+import com.example.skreenup.ui.models.TextLayer
+import sh.calvin.reorderable.*
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity(), SimpleDialog.OnDialogResultListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -125,6 +106,20 @@ class MainActivity : ComponentActivity() {
                 SkreenupApp()
             }
         }
+    }
+
+    override fun onResult(tag: String, result: Int, data: Bundle): Boolean {
+        if (result == SimpleDialog.OnDialogResultListener.BUTTON_POSITIVE) {
+            val color = if (data.containsKey(SimpleColorWheelDialog.COLOR)) {
+                data.getInt(SimpleColorWheelDialog.COLOR)
+            } else {
+                data.getInt(SimpleColorDialog.COLOR)
+            }
+            lifecycleScope.launch {
+                ColorPickerBus.emit(tag, color)
+            }
+        }
+        return true
     }
 }
 

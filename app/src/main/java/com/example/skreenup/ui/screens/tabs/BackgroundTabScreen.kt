@@ -35,7 +35,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.screens.EditorViewModel
-import com.example.skreenup.ui.components.ColorSelector
+import com.example.skreenup.ui.components.ColorPickerButton
 import com.example.skreenup.ui.components.SnappingSlider
 import com.example.skreenup.ui.components.drawScrollbar
 import com.example.skreenup.ui.components.TabHeader
@@ -106,10 +106,6 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
     val backgroundImageOffsetY by viewModel.backgroundImageOffsetY.collectAsState()
     val backgroundImageScale by viewModel.backgroundImageScale.collectAsState()
     val backgroundImageBlur by viewModel.backgroundImageBlur.collectAsState()
-    
-    val hexColorSolid by viewModel.hexColorSolid.collectAsState()
-    val hexColorStart by viewModel.hexColorGradientStart.collectAsState()
-    val hexColorEnd by viewModel.hexColorGradientEnd.collectAsState()
     
     val smartPalette by viewModel.smartPalette.collectAsState()
 
@@ -191,20 +187,10 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
         when (backgroundType) {
             BackgroundType.SOLID -> {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text("Material Palette", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                    ColorSelector(
-                        selectedColor = backgroundColor,
-                        onColorSelected = { viewModel.setBackgroundColor(it) }
-                    )
-                    
-                    OutlinedTextField(
-                        value = hexColorSolid,
-                        onValueChange = { viewModel.setHexColorSolid(it) },
-                        label = { Text("Manual Hex Code") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        leadingIcon = { Icon(Icons.Rounded.Palette, contentDescription = null) },
-                        shape = MaterialTheme.shapes.medium
+                    ColorPickerButton(
+                        color = backgroundColor,
+                        tag = "background_solid",
+                        label = "Background Color"
                     )
                 }
             }
@@ -214,41 +200,32 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Top,
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(gradientColors[0]))
-                            OutlinedTextField(
-                                value = hexColorStart,
-                                onValueChange = { viewModel.setHexColorGradientStart(it) },
-                                label = { Text("Start") },
-                                singleLine = true,
-                                shape = MaterialTheme.shapes.medium
-                            )
-                        }
+                        ColorPickerButton(
+                            color = gradientColors[0],
+                            tag = "gradient_start",
+                            showLabel = false,
+                            modifier = Modifier.weight(1f)
+                        )
 
                         Icon(
                             imageVector = Icons.Rounded.SwapHoriz,
                             contentDescription = "Swap Colors",
                             modifier = Modifier
-                                .padding(top = 8.dp)
                                 .clip(CircleShape)
                                 .clickable { viewModel.swapGradientColors() }
                                 .padding(8.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
 
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(gradientColors[1]))
-                            OutlinedTextField(
-                                value = hexColorEnd,
-                                onValueChange = { viewModel.setHexColorGradientEnd(it) },
-                                label = { Text("End") },
-                                singleLine = true,
-                                shape = MaterialTheme.shapes.medium
-                            )
-                        }
+                        ColorPickerButton(
+                            color = gradientColors[1],
+                            tag = "gradient_end",
+                            showLabel = false,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }

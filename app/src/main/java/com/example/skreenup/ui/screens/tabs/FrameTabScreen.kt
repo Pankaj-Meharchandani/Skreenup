@@ -45,8 +45,7 @@ import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.DeviceModels
 import com.example.skreenup.ui.screens.EditorViewModel
 import com.example.skreenup.ui.components.drawScrollbar
-import com.example.skreenup.ui.components.ColorSelector
-
+import com.example.skreenup.ui.components.ColorPickerButton
 import com.example.skreenup.ui.components.TabHeader
 
 @Composable
@@ -54,7 +53,6 @@ fun FrameTabScreen(viewModel: EditorViewModel) {
     val selectedDevice by viewModel.selectedDevice.collectAsState()
     val showReflection by viewModel.showReflection.collectAsState()
     val screenBackgroundColor by viewModel.screenBackgroundColor.collectAsState()
-    val hexColorScreen by viewModel.hexColorScreen.collectAsState()
     var selectedCategory by remember { mutableStateOf(selectedDevice.category) }
     val scrollState = rememberScrollState()
 
@@ -133,19 +131,9 @@ fun FrameTabScreen(viewModel: EditorViewModel) {
                 fontWeight = FontWeight.ExtraBold
             )
 
-            ColorSelector(
-                selectedColor = screenBackgroundColor,
-                onColorSelected = { viewModel.setScreenBackgroundColor(it) }
-            )
-
-            OutlinedTextField(
-                value = hexColorScreen,
-                onValueChange = { viewModel.setHexColorScreen(it) },
-                label = { Text("Manual Hex Code") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                leadingIcon = { Icon(Icons.Rounded.Palette, contentDescription = null) },
-                shape = MaterialTheme.shapes.medium
+            ColorPickerButton(
+                color = screenBackgroundColor,
+                tag = "screen_color"
             )
         }
 

@@ -44,6 +44,7 @@ datastorePreferences = "1.1.7"
 material = "1.4.0"
 paletteKtx = "1.0.0"
 reorderable = "3.1.0"
+simpleDialogFragments = "3.8.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -97,6 +98,7 @@ androidx-datastore-preferences = { group = "androidx.datastore", name = "datasto
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-palette-ktx = { group = "androidx.palette", name = "palette-ktx", version.ref = "paletteKtx" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
+simple-dialog-fragments = { group = "io.github.eltos", name = "simpledialogfragments", version = "3.10" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

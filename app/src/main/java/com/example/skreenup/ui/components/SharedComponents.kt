@@ -28,10 +28,78 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.skreenup.ui.screens.SettingsViewModel
+import eltos.simpledialogfragment.color.SimpleColorWheelDialog
+
+@Composable
+fun ColorPickerButton(
+    color: Color,
+    tag: String,
+    label: String? = null,
+    modifier: Modifier = Modifier,
+    showLabel: Boolean = true
+) {
+    val context = LocalContext.current
+    val activity = context as? FragmentActivity
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (label != null) {
+            Text(label, style = MaterialTheme.typography.labelMedium)
+        }
+        
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .clickable {
+                    activity?.let {
+                        SimpleColorWheelDialog.build()
+                            .color(color.toArgb())
+                            .alpha(true)
+                            .show(it, tag)
+                    }
+                }
+                .padding(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(color)
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), CircleShape)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = "#" + String.format("%06X", 0xFFFFFF and color.toArgb()).uppercase(),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (showLabel) {
+                    Text(
+                        text = "Pick Color",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun GradientBackground() {
@@ -299,50 +367,6 @@ fun SnappingSlider(
             modifier = Modifier.fillMaxWidth()
         )
     }
-}
-
-@Composable
-fun ColorSelector(selectedColor: Color, onColorSelected: (Color) -> Unit, label: String? = null) {
-    val colors = listOf(
-        Color(0xFF3F51B5), Color(0xFF006A6A), Color(0xFFBA1A1A), 
-        Color(0xFF6750A4), Color(0xFF0061A4), Color(0xFF006E1C),
-        Color(0xFF7D5260), Color(0xFF1B1B1F), Color(0xFFFFFFFF),
-        Color(0xFF000000), Color(0xFF2C2C2C), Color(0xFF424242)
-    )
-
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (label != null) {
-            Text(label, style = MaterialTheme.typography.labelMedium)
-        }
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(vertical = 4.dp)
-        ) {
-            items(colors) { color ->
-                ColorCircle(
-                    color = color,
-                    isSelected = selectedColor == color,
-                    onClick = { onColorSelected(color) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ColorCircle(color: Color, isSelected: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(52.dp)
-            .clip(CircleShape)
-            .background(color)
-            .border(
-                width = if (isSelected) 3.dp else 1.dp,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                shape = CircleShape
-            )
-            .clickable(onClick = onClick)
-    )
 }
 
 fun Modifier.drawScrollbar(state: ScrollState): Modifier = drawWithContent {

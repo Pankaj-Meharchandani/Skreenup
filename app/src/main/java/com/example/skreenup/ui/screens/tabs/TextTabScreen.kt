@@ -249,7 +249,11 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                     }
                 }
 
-                ColorSelector(selectedColor = textColor, onColorSelected = { viewModel.setTextColor(it) })
+                ColorPickerButton(
+                    color = textColor,
+                    tag = "text_color",
+                    label = "Text Color"
+                )
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
@@ -272,9 +276,9 @@ fun TextTabScreen(viewModel: EditorViewModel) {
 
                 if (textBackgroundStyle != TextBackgroundStyle.NONE) {
                     if (textBackgroundStyle != TextBackgroundStyle.GLASS) {
-                        ColorSelector(
-                            selectedColor = textBackgroundColor,
-                            onColorSelected = { viewModel.setTextBackgroundColor(it) },
+                        ColorPickerButton(
+                            color = textBackgroundColor,
+                            tag = "text_bg_color",
                             label = "Background Color"
                         )
                         

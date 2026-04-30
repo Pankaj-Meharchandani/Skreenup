@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 import com.example.skreenup.data.SettingsManager
+import com.example.skreenup.ui.components.ColorPickerBus
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -43,6 +44,21 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val presetDao = db.presetDao()
     private val projectDao = db.projectDao()
     private val settingsManager = SettingsManager.getInstance(application)
+
+    init {
+        viewModelScope.launch {
+            ColorPickerBus.events.collect { (tag, color) ->
+                when (tag) {
+                    "background_solid" -> setBackgroundColor(Color(color))
+                    "gradient_start" -> setGradientColors(listOf(Color(color), gradientColors.value[1]))
+                    "gradient_end" -> setGradientColors(listOf(gradientColors.value[0], Color(color)))
+                    "screen_color" -> setScreenBackgroundColor(Color(color))
+                    "text_color" -> setTextColor(Color(color))
+                    "text_bg_color" -> setTextBackgroundColor(Color(color))
+                }
+            }
+        }
+    }
 
     private var initialConfig: EditorConfig? = null
 

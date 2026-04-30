@@ -252,7 +252,8 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                 ColorPickerButton(
                     color = textColor,
                     tag = "text_color",
-                    label = "Text Color"
+                    label = "Text Color",
+                    allowAlpha = true
                 )
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

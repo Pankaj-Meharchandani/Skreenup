@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.skreenup.ui.screens.SettingsViewModel
-import eltos.simpledialogfragment.color.SimpleColorWheelDialog
+import eltos.simpledialogfragment.color.SimpleColorDialog
 
 @Composable
 fun ColorPickerButton(
@@ -43,7 +43,8 @@ fun ColorPickerButton(
     tag: String,
     label: String? = null,
     modifier: Modifier = Modifier,
-    showLabel: Boolean = true
+    showLabel: Boolean = true,
+    allowAlpha: Boolean = false
 ) {
     val context = LocalContext.current
     val activity = context as? FragmentActivity
@@ -66,9 +67,11 @@ fun ColorPickerButton(
                 )
                 .clickable {
                     activity?.let {
-                        SimpleColorWheelDialog.build()
-                            .color(color.toArgb())
-                            .alpha(true)
+                        SimpleColorDialog.build()
+                            .colorPreset(color.toArgb())
+                            .allowCustom(true)
+                            .gridNumColumn(6)
+                            .setupColorWheelAlpha(allowAlpha)
                             .show(it, tag)
                     }
                 }
@@ -83,8 +86,13 @@ fun ColorPickerButton(
             )
             Spacer(Modifier.width(12.dp))
             Column {
+                val hexCode = if (allowAlpha) {
+                    String.format("%08X", color.toArgb()).uppercase()
+                } else {
+                    String.format("%06X", 0xFFFFFF and color.toArgb()).uppercase()
+                }
                 Text(
-                    text = "#" + String.format("%06X", 0xFFFFFF and color.toArgb()).uppercase(),
+                    text = "#$hexCode",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface

@@ -80,6 +80,7 @@ import kotlinx.coroutines.withContext
 import android.content.ClipboardManager
 import android.content.ClipData
 import androidx.core.content.FileProvider
+import androidx.appcompat.app.AppCompatDelegate
 import com.example.skreenup.data.ExportAction
 import com.example.skreenup.ui.components.ColorPickerBus
 import com.example.skreenup.ui.models.TextLayer
@@ -100,6 +101,14 @@ class MainActivity : FragmentActivity(), SimpleDialog.OnDialogResultListener {
                 AppTheme.LIGHT -> false
                 AppTheme.DARK -> true
                 AppTheme.SYSTEM -> isSystemInDarkTheme()
+            }
+
+            // Sync AppCompat theme with Compose theme
+            LaunchedEffect(isDarkTheme) {
+                AppCompatDelegate.setDefaultNightMode(
+                    if (isDarkTheme) AppCompatDelegate.MODE_NIGHT_YES 
+                    else AppCompatDelegate.MODE_NIGHT_NO
+                )
             }
 
             SkreenupTheme(darkTheme = isDarkTheme) {

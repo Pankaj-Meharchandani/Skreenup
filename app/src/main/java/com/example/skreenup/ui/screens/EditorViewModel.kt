@@ -794,8 +794,38 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _headingBold.value = config.headingBold
             _subheadingBold.value = config.subheadingBold
             _textZIndex.value = config.textZIndex
+            _textBackgroundStyle.value = TextBackgroundStyle.NONE
+            _textBackgroundColor.value = Color.Black
+            _textBackgroundAlpha.value = 0.5f
+            _textBackgroundPadding.value = 24f
+            _textBackgroundCornerRadius.value = 16f
             _showWatermark.value = if (config.watermarkText == "Made with Skreenup") settingsManager.showWatermark.value else config.showWatermark
             _watermarkText.value = if (config.watermarkText == "Made with Skreenup") settingsManager.customWatermark.value else config.watermarkText
+            
+            // Sync with text layers
+            updateSelectedTextLayer { it.copy(
+                heading = config.heading,
+                subheading = config.subheading,
+                headingSize = config.headingSize,
+                subheadingSize = config.subheadingSize,
+                textGap = config.textGap,
+                offsetX = config.textOffsetX,
+                offsetY = config.textOffsetY,
+                textColor = if (config.textColor == -1) Color.White.toArgb() else config.textColor,
+                textAlign = config.textAlign,
+                textShadow = config.textShadow,
+                headingFont = config.headingFont,
+                subheadingFont = config.subheadingFont,
+                headingBold = config.headingBold,
+                subheadingBold = config.subheadingBold,
+                zIndex = config.textZIndex,
+                backgroundStyle = TextBackgroundStyle.NONE.name,
+                backgroundColor = Color.Black.toArgb(),
+                backgroundAlpha = 0.5f,
+                backgroundPadding = 24f,
+                backgroundCornerRadius = 16f,
+                isVisible = true
+            ) }
         } ?: run {
             _heading.value = ""
             _subheading.value = ""
@@ -819,6 +849,31 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _textBackgroundCornerRadius.value = 16f
             _showWatermark.value = settingsManager.showWatermark.value
             _watermarkText.value = settingsManager.customWatermark.value
+
+            // Sync with text layers
+            updateSelectedTextLayer { it.copy(
+                heading = "",
+                subheading = "",
+                headingSize = 60f,
+                subheadingSize = 40f,
+                textGap = 20f,
+                offsetX = 0f,
+                offsetY = 0f,
+                textColor = Color.White.toArgb(),
+                textAlign = TextAlignLabel.CENTER.name,
+                textShadow = true,
+                headingFont = TextFont.POPPINS.name,
+                subheadingFont = TextFont.POPPINS.name,
+                headingBold = true,
+                subheadingBold = false,
+                zIndex = 1,
+                backgroundStyle = TextBackgroundStyle.NONE.name,
+                backgroundColor = Color.Black.toArgb(),
+                backgroundAlpha = 0.5f,
+                backgroundPadding = 24f,
+                backgroundCornerRadius = 16f,
+                isVisible = true
+            ) }
         }
     }
 

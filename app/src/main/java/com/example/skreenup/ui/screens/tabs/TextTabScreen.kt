@@ -252,8 +252,7 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                 ColorPickerButton(
                     color = textColor,
                     tag = "text_color",
-                    label = "Text Color",
-                    allowAlpha = true
+                    label = "Text Color"
                 )
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -276,13 +275,13 @@ fun TextTabScreen(viewModel: EditorViewModel) {
                 }
 
                 if (textBackgroundStyle != TextBackgroundStyle.NONE) {
+                    ColorPickerButton(
+                        color = textBackgroundColor,
+                        tag = "text_bg_color",
+                        label = "Background Color"
+                    )
+                    
                     if (textBackgroundStyle != TextBackgroundStyle.GLASS) {
-                        ColorPickerButton(
-                            color = textBackgroundColor,
-                            tag = "text_bg_color",
-                            label = "Background Color"
-                        )
-                        
                         AdjustmentItem(
                             label = "Background Opacity",
                             value = textBackgroundAlpha,

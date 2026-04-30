@@ -12,6 +12,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.fragment.app.FragmentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import eltos.simpledialogfragment.SimpleDialog
 import eltos.simpledialogfragment.color.SimpleColorDialog
@@ -89,7 +90,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
 
-class MainActivity : FragmentActivity(), SimpleDialog.OnDialogResultListener {
+class MainActivity : AppCompatActivity(), SimpleDialog.OnDialogResultListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

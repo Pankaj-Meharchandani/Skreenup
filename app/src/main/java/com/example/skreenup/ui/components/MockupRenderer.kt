@@ -1375,42 +1375,45 @@ object MockupRenderer {
         }
     }
 
-    private fun getDrawStyle(layer: OverlayLayer, resScale: Float): androidx.compose.ui.graphics.drawscope.DrawStyle {
-        // thickness 1-2 = thin outline, increasing = thicker stroke, max (50) = solid fill
-        val maxThickness = 50f
-        return if (layer.thickness >= maxThickness) Fill else Stroke(width = layer.thickness * resScale)
-    }
-
     private fun drawShape(drawScope: DrawScope, layer: OverlayLayer, cx: Float, cy: Float, size: Float, resScale: Float) {
         val color = Color(layer.color).copy(alpha = layer.alpha)
-        val style = getDrawStyle(layer, resScale)
         val rect = Rect(Offset(cx - size / 2, cy - size / 2), Size(size, size))
-
-        when (layer.shape) {
-            DecorationShape.CIRCLE -> drawScope.drawCircle(color = color, radius = size / 2, center = Offset(cx, cy), style = style)
-            DecorationShape.RECTANGLE -> drawScope.drawRoundRect(color = color, topLeft = rect.topLeft, size = rect.size, cornerRadius = CornerRadius(layer.cornerRadius * resScale), style = style)
-            DecorationShape.HEART -> {
-                val heartPath = createHeartPath(cx, cy, size)
-                drawScope.drawPath(path = heartPath, color = color, style = style)
-            }
+        
+        val shapePath = when (layer.shape) {
+            DecorationShape.CIRCLE -> Path().apply { addOval(rect) }
+            DecorationShape.RECTANGLE -> Path().apply { addRoundRect(RoundRect(rect, CornerRadius(layer.cornerRadius * resScale))) }
+            DecorationShape.HEART -> createHeartPath(cx, cy, size)
             else -> {
                 val poly = when (layer.shape) {
-                    DecorationShape.SQUIRCLE -> RoundedPolygon(numVertices = 4, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale / size))
+                    DecorationShape.SQUIRCLE -> RoundedPolygon(numVertices = 4, centerX = cx, centerY = cy, radius = size / 1.414f, rounding = CornerRounding(layer.cornerRadius * resScale / size))
                     DecorationShape.TRIANGLE -> RoundedPolygon(numVertices = 3, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale / size))
                     DecorationShape.STAR -> RoundedPolygon.star(numVerticesPerRadius = 5, centerX = cx, centerY = cy, radius = size / 2, innerRadius = size / 4, rounding = CornerRounding(layer.cornerRadius * resScale / size))
                     DecorationShape.PENTAGON -> RoundedPolygon(numVertices = 5, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale / size))
                     DecorationShape.HEXAGON -> RoundedPolygon(numVertices = 6, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale / size))
                     else -> RoundedPolygon.circle(centerX = cx, centerY = cy, radius = size / 2)
                 }
-                drawScope.drawPath(path = poly.toPath().asComposePath(), color = color, style = style)
+                poly.toPath().asComposePath()
+            }
+        }
+
+        drawScope.withTransform({
+            if (layer.shape == DecorationShape.SQUIRCLE) rotate(45f, Offset(cx, cy))
+        }) {
+            if (layer.thickness >= 50f) {
+                drawPath(path = shapePath, color = color, style = Fill)
+            } else {
+                clipPath(shapePath) {
+                    drawPath(path = shapePath, color = color, style = Stroke(width = layer.thickness * 2 * resScale))
+                }
             }
         }
     }
 
     private fun drawArrow(drawScope: DrawScope, layer: OverlayLayer, cx: Float, cy: Float, size: Float, resScale: Float) {
         val color = Color(layer.color).copy(alpha = layer.alpha)
-        val strokeWidth = layer.thickness.coerceAtMost(20f) * resScale
-        val headSize = layer.arrowHeadSize * resScale
+        val thicknessVal = layer.thickness
+        val strokeWidth = thicknessVal * resScale
+        val headSize = (layer.arrowHeadSize + thicknessVal * 0.5f) * resScale
         
         val startX = cx - size / 2
         val endX = cx + size / 2
@@ -1427,36 +1430,40 @@ object MockupRenderer {
         drawScope.drawPath(path = path, color = color, style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
         
         // Arrow head — compute tip direction from curvature
-        val tipY = if (layer.curvature != 0f) {
-            // Tangent at end of quadratic bezier: direction from control point to end
-            val ctrlY = cy - (layer.curvature * resScale)
-            // The tangent at t=1 is (endX - cx, cy - ctrlY), so the arriving angle
-            val dy = cy - ctrlY
-            dy
+        val dy = if (layer.curvature != 0f) {
+            // Tangent at end of quadratic bezier (t=1) is 2 * (P2 - P1)
+            // P1.y = cy - curvature, P2.y = cy. So P2.y - P1.y = curvature.
+            layer.curvature * resScale
         } else 0f
-        val tipAngle = kotlin.math.atan2(-tipY, endX - cx)
+        val tipAngle = kotlin.math.atan2(dy, endX - cx)
         
         val headPath = Path().apply {
+            val angle = tipAngle.toFloat()
             moveTo(
-                endX - headSize * kotlin.math.cos(tipAngle - 0.5f),
-                cy - headSize * kotlin.math.sin(tipAngle - 0.5f)
+                endX - headSize * kotlin.math.cos(angle - 0.6f),
+                cy - headSize * kotlin.math.sin(angle - 0.6f)
             )
             lineTo(endX, cy)
             lineTo(
-                endX - headSize * kotlin.math.cos(tipAngle + 0.5f),
-                cy - headSize * kotlin.math.sin(tipAngle + 0.5f)
+                endX - headSize * kotlin.math.cos(angle + 0.6f),
+                cy - headSize * kotlin.math.sin(angle + 0.6f)
             )
         }
-        drawScope.drawPath(path = headPath, color = color, style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
+        
+        if (thicknessVal >= 25f) {
+            // For thick arrows, fill the head
+            headPath.close()
+            drawScope.drawPath(path = headPath, color = color, style = Fill)
+        } else {
+            drawScope.drawPath(path = headPath, color = color, style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
+        }
     }
 
     private fun drawBubble(drawScope: DrawScope, layer: OverlayLayer, cx: Float, cy: Float, size: Float, resScale: Float) {
         val color = Color(layer.color).copy(alpha = layer.alpha)
-        val style = getDrawStyle(layer, resScale)
         val rect = Rect(Offset(cx - size / 2, cy - size / 2), Size(size, size * 0.7f))
-        val corner = size * 0.35f  // Chat bubble: heavily rounded
-
-        val path = Path().apply {
+        val shapePath = Path().apply {
+            val corner = size * 0.35f
             addRoundRect(RoundRect(rect, CornerRadius(corner)))
             // Tail
             val tailW = 12f * resScale
@@ -1466,7 +1473,14 @@ object MockupRenderer {
             lineTo(cx + tailW * 0.5f, rect.bottom)
             close()
         }
-        drawScope.drawPath(path = path, color = color, style = style)
+
+        if (layer.thickness >= 50f) {
+            drawScope.drawPath(path = shapePath, color = color, style = Fill)
+        } else {
+            drawScope.clipPath(shapePath) {
+                drawPath(path = shapePath, color = color, style = Stroke(width = layer.thickness * 2 * resScale))
+            }
+        }
     }
 
     private fun createHeartPath(cx: Float, cy: Float, size: Float): Path {

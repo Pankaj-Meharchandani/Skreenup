@@ -77,7 +77,7 @@ enum class OverlayType {
 
 @Immutable
 enum class DecorationShape {
-    SQUIRCLE,
+    SQUARE,
     CIRCLE,
     RECTANGLE,
     TRIANGLE,

@@ -1377,19 +1377,29 @@ object MockupRenderer {
 
     private fun drawShape(drawScope: DrawScope, layer: OverlayLayer, cx: Float, cy: Float, size: Float, resScale: Float) {
         val color = Color(layer.color).copy(alpha = layer.alpha)
-        val rect = Rect(Offset(cx - size / 2, cy - size / 2), Size(size, size))
         
         val shapePath = when (layer.shape) {
-            DecorationShape.CIRCLE -> Path().apply { addOval(rect) }
-            DecorationShape.RECTANGLE -> Path().apply { addRoundRect(RoundRect(rect, CornerRadius(layer.cornerRadius * resScale))) }
+            DecorationShape.CIRCLE -> {
+                val rect = Rect(Offset(cx - size / 2, cy - size / 2), Size(size, size))
+                Path().apply { addOval(rect) }
+            }
+            DecorationShape.SQUARE -> {
+                val rect = Rect(Offset(cx - size / 2, cy - size / 2), Size(size, size))
+                Path().apply { addRoundRect(RoundRect(rect, CornerRadius(layer.cornerRadius * resScale))) }
+            }
+            DecorationShape.RECTANGLE -> {
+                val w = size * 1.3f
+                val h = size * 0.8f
+                val rect = Rect(Offset(cx - w / 2, cy - h / 2), Size(w, h))
+                Path().apply { addRoundRect(RoundRect(rect, CornerRadius(layer.cornerRadius * resScale))) }
+            }
             DecorationShape.HEART -> createHeartPath(cx, cy, size)
             else -> {
                 val poly = when (layer.shape) {
-                    DecorationShape.SQUIRCLE -> RoundedPolygon(numVertices = 4, centerX = cx, centerY = cy, radius = size / 1.414f, rounding = CornerRounding(layer.cornerRadius * resScale / size))
-                    DecorationShape.TRIANGLE -> RoundedPolygon(numVertices = 3, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale / size))
-                    DecorationShape.STAR -> RoundedPolygon.star(numVerticesPerRadius = 5, centerX = cx, centerY = cy, radius = size / 2, innerRadius = size / 4, rounding = CornerRounding(layer.cornerRadius * resScale / size))
-                    DecorationShape.PENTAGON -> RoundedPolygon(numVertices = 5, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale / size))
-                    DecorationShape.HEXAGON -> RoundedPolygon(numVertices = 6, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale / size))
+                    DecorationShape.TRIANGLE -> RoundedPolygon(numVertices = 3, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale))
+                    DecorationShape.STAR -> RoundedPolygon.star(numVerticesPerRadius = 5, centerX = cx, centerY = cy, radius = size / 2, innerRadius = size / 4, rounding = CornerRounding(layer.cornerRadius * resScale))
+                    DecorationShape.PENTAGON -> RoundedPolygon(numVertices = 5, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale))
+                    DecorationShape.HEXAGON -> RoundedPolygon(numVertices = 6, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale))
                     else -> RoundedPolygon.circle(centerX = cx, centerY = cy, radius = size / 2)
                 }
                 poly.toPath().asComposePath()
@@ -1397,7 +1407,7 @@ object MockupRenderer {
         }
 
         drawScope.withTransform({
-            if (layer.shape == DecorationShape.SQUIRCLE) rotate(45f, Offset(cx, cy))
+            // Any specific global transforms
         }) {
             if (layer.thickness >= 50f) {
                 drawPath(path = shapePath, color = color, style = Fill)
@@ -1463,7 +1473,7 @@ object MockupRenderer {
         val color = Color(layer.color).copy(alpha = layer.alpha)
         val rect = Rect(Offset(cx - size / 2, cy - size / 2), Size(size, size * 0.7f))
         val shapePath = Path().apply {
-            val corner = size * 0.35f
+            val corner = layer.cornerRadius * resScale
             addRoundRect(RoundRect(rect, CornerRadius(corner)))
             // Tail
             val tailW = 12f * resScale

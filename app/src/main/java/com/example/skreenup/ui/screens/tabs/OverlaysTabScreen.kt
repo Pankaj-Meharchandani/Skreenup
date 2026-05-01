@@ -205,6 +205,7 @@ fun DecorationsTabContent(viewModel: EditorViewModel, overlays: List<OverlayLaye
     val selectedId by viewModel.selectedOverlayId.collectAsState()
     val selectedShape by viewModel.selectedShape.collectAsState()
     val thickness by viewModel.thickness.collectAsState()
+    val cornerRadius by viewModel.cornerRadius.collectAsState()
     val curvature by viewModel.curvature.collectAsState()
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -241,6 +242,10 @@ fun DecorationsTabContent(viewModel: EditorViewModel, overlays: List<OverlayLaye
                 AdjustmentItem(label = "Curvature", value = curvature, onValueChange = { viewModel.setDecorationCurvature(it) }, valueRange = -100f..100f, showAsRaw = true, icon = Icons.Rounded.Redo)
             }
             
+            if (selectedOverlay?.type == OverlayType.SHAPE || selectedOverlay?.type == OverlayType.BUBBLE) {
+                AdjustmentItem(label = "Corner Radius", value = cornerRadius, onValueChange = { viewModel.setDecorationCornerRadius(it) }, valueRange = 0f..100f, showAsRaw = true, icon = Icons.Rounded.RoundedCorner)
+            }
+
             AdjustmentItem(
                 label = "Thickness",
                 value = thickness,
@@ -306,7 +311,7 @@ fun FontPicker(selectedFont: TextFont, onFontSelected: (TextFont) -> Unit) {
 
 fun getShapeIcon(shape: DecorationShape): androidx.compose.ui.graphics.vector.ImageVector {
     return when (shape) {
-        DecorationShape.SQUIRCLE -> Icons.Rounded.CropDin
+        DecorationShape.SQUARE -> Icons.Rounded.Square
         DecorationShape.CIRCLE -> Icons.Rounded.Circle
         DecorationShape.RECTANGLE -> Icons.Rounded.Rectangle
         DecorationShape.TRIANGLE -> Icons.Rounded.ChangeHistory

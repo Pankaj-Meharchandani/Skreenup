@@ -1494,22 +1494,44 @@ object MockupRenderer {
     }
 
     private fun createHeartPath(cx: Float, cy: Float, size: Float): Path {
-        val w = size
-        val h = size
+        val s = size / 16f
         return Path().apply {
-            // Start at the bottom tip
-            moveTo(cx, cy + h * 0.35f)
-            // Left side curve
+            moveTo(cx - 6.757f * s, cy + 0.243f * s)
+            lineTo(cx, cy + 7f * s)
+            lineTo(cx + 6.757f * s, cy + 0.243f * s)
             cubicTo(
-                cx - w * 0.45f, cy + h * 0.1f,   // control 1
-                cx - w * 0.55f, cy - h * 0.25f,   // control 2
-                cx, cy - h * 0.15f                  // end (top dip)
+                cx + 7.553f * s, cy - 0.553f * s,
+                cx + 8f * s, cy - 1.632f * s,
+                cx + 8f * s, cy - 2.757f * s
             )
-            // Right side curve
+            lineTo(cx + 8f * s, cy - 2.948f * s)
             cubicTo(
-                cx + w * 0.55f, cy - h * 0.25f,   // control 1
-                cx + w * 0.45f, cy + h * 0.1f,    // control 2
-                cx, cy + h * 0.35f                  // end (bottom tip)
+                cx + 8f * s, cy - 5.186f * s,
+                cx + 6.186f * s, cy - 7f * s,
+                cx + 3.948f * s, cy - 7f * s
+            )
+            cubicTo(
+                cx + 2.717f * s, cy - 7f * s,
+                cx + 1.552f * s, cy - 6.440f * s,
+                cx + 0.783f * s, cy - 5.479f * s
+            )
+            lineTo(cx, cy - 4.5f * s)
+            lineTo(cx - 0.783f * s, cy - 5.479f * s)
+            cubicTo(
+                cx - 1.552f * s, cy - 6.440f * s,
+                cx - 2.717f * s, cy - 7f * s,
+                cx - 3.948f * s, cy - 7f * s
+            )
+            cubicTo(
+                cx - 6.186f * s, cy - 7f * s,
+                cx - 8f * s, cy - 5.186f * s,
+                cx - 8f * s, cy - 2.948f * s
+            )
+            lineTo(cx - 8f * s, cy - 2.757f * s)
+            cubicTo(
+                cx - 8f * s, cy - 1.632f * s,
+                cx - 7.553f * s, cy - 0.553f * s,
+                cx - 6.757f * s, cy + 0.243f * s
             )
             close()
         }

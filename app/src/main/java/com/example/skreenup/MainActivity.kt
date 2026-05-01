@@ -11,7 +11,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.fragment.app.FragmentActivity
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import eltos.simpledialogfragment.SimpleDialog
@@ -21,7 +20,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -69,8 +67,6 @@ import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.models.CompositionAspectRatio
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.DeviceModels
-import com.example.skreenup.ui.models.TextAlignLabel
-import com.example.skreenup.ui.models.TextFont
 import com.example.skreenup.ui.screens.*
 import com.example.skreenup.ui.screens.tabs.AdjustTabScreen
 import com.example.skreenup.ui.screens.tabs.BackgroundTabScreen
@@ -90,7 +86,6 @@ import com.example.skreenup.data.ExportAction
 import com.example.skreenup.ui.components.ColorPickerBus
 import com.example.skreenup.ui.models.OverlayLayer
 import com.example.skreenup.ui.models.OverlayType
-import com.example.skreenup.ui.models.DecorationShape
 import sh.calvin.reorderable.*
 import java.io.File
 import java.io.FileOutputStream
@@ -643,7 +638,7 @@ fun EditorScreen(
                                 tabBackStackList.add(TextTab)
                             }
                         },
-                        icon = { Icon(Icons.Rounded.AutoAwesome, contentDescription = "Overlays") },
+                        icon = { Icon(Icons.Rounded.TextFields, contentDescription = "Overlays") },
                         label = { Text("Overlays") }
                     )
             }

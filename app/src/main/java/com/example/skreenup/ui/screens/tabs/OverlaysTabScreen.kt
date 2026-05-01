@@ -45,7 +45,6 @@ fun OverlaysTabScreen(viewModel: EditorViewModel) {
     val selectedShape by viewModel.selectedShape.collectAsState()
     val thickness by viewModel.thickness.collectAsState()
     val cornerRadius by viewModel.cornerRadius.collectAsState()
-    val isFilled by viewModel.isFilled.collectAsState()
     val arrowHeadSize by viewModel.arrowHeadSize.collectAsState()
     val curvature by viewModel.curvature.collectAsState()
     
@@ -213,14 +212,14 @@ fun DecorationsTabContent(viewModel: EditorViewModel, overlays: List<OverlayLaye
         
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(DecorationShape.entries) { shape ->
-                val type = when {
-                    shape.name.contains("ARROW") -> OverlayType.ARROW
-                    shape.name.contains("CHAT") -> OverlayType.BUBBLE
+                val type = when (shape) {
+                    DecorationShape.ARROW -> OverlayType.ARROW
+                    DecorationShape.CHAT_BUBBLE -> OverlayType.BUBBLE
                     else -> OverlayType.SHAPE
                 }
                 
                 OutlinedCard(
-                    onClick = { viewModel.addOverlay(OverlayLayer(type = type, shape = shape)) },
+                    onClick = { viewModel.addOverlay(OverlayLayer(type = type, shape = shape, thickness = 4f)) },
                     modifier = Modifier.size(80.dp),
                     colors = CardDefaults.outlinedCardColors(
                         containerColor = if (selectedShape == shape && selectedId != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
@@ -242,11 +241,19 @@ fun DecorationsTabContent(viewModel: EditorViewModel, overlays: List<OverlayLaye
                 AdjustmentItem(label = "Curvature", value = curvature, onValueChange = { viewModel.setDecorationCurvature(it) }, valueRange = -100f..100f, showAsRaw = true, icon = Icons.Rounded.Redo)
             }
             
-            AdjustmentItem(label = "Thickness", value = thickness, onValueChange = { viewModel.setDecorationThickness(it) }, valueRange = 1f..20f, showAsRaw = true, icon = Icons.Rounded.LineWeight)
+            AdjustmentItem(
+                label = "Thickness",
+                value = thickness,
+                onValueChange = { viewModel.setDecorationThickness(it) },
+                valueRange = 1f..50f,
+                showAsRaw = true,
+                icon = Icons.Rounded.LineWeight,
+                hintPoints = listOf(1f, 4f, 10f, 25f, 50f)
+            )
             
             CommonOverlayControls(viewModel)
         } else {
-            Text("Select a decoration to edit", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Tap a shape to add it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -299,16 +306,16 @@ fun FontPicker(selectedFont: TextFont, onFontSelected: (TextFont) -> Unit) {
 
 fun getShapeIcon(shape: DecorationShape): androidx.compose.ui.graphics.vector.ImageVector {
     return when (shape) {
+        DecorationShape.SQUIRCLE -> Icons.Rounded.CropDin
         DecorationShape.CIRCLE -> Icons.Rounded.Circle
         DecorationShape.RECTANGLE -> Icons.Rounded.Rectangle
         DecorationShape.TRIANGLE -> Icons.Rounded.ChangeHistory
         DecorationShape.STAR -> Icons.Rounded.Star
+        DecorationShape.PENTAGON -> Icons.Rounded.Pentagon
+        DecorationShape.HEXAGON -> Icons.Rounded.Hexagon
         DecorationShape.HEART -> Icons.Rounded.Favorite
-        DecorationShape.ARROW_STRAIGHT -> Icons.Rounded.TrendingFlat
-        DecorationShape.ARROW_CURVED -> Icons.Rounded.Redo
-        DecorationShape.CHAT_ROUND -> Icons.Rounded.ChatBubble
-        DecorationShape.CHAT_SQUARE -> Icons.Rounded.Chat
-        else -> Icons.Rounded.Category
+        DecorationShape.CHAT_BUBBLE -> Icons.Rounded.ChatBubble
+        DecorationShape.ARROW -> Icons.Rounded.TrendingFlat
     }
 }
 

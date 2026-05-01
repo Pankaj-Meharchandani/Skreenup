@@ -1375,14 +1375,24 @@ object MockupRenderer {
         }
     }
 
+    private fun getDrawStyle(layer: OverlayLayer, resScale: Float): androidx.compose.ui.graphics.drawscope.DrawStyle {
+        // thickness 1-2 = thin outline, increasing = thicker stroke, max (50) = solid fill
+        val maxThickness = 50f
+        return if (layer.thickness >= maxThickness) Fill else Stroke(width = layer.thickness * resScale)
+    }
+
     private fun drawShape(drawScope: DrawScope, layer: OverlayLayer, cx: Float, cy: Float, size: Float, resScale: Float) {
         val color = Color(layer.color).copy(alpha = layer.alpha)
-        val style = if (layer.isFilled) Fill else Stroke(width = layer.thickness * resScale)
+        val style = getDrawStyle(layer, resScale)
         val rect = Rect(Offset(cx - size / 2, cy - size / 2), Size(size, size))
 
         when (layer.shape) {
             DecorationShape.CIRCLE -> drawScope.drawCircle(color = color, radius = size / 2, center = Offset(cx, cy), style = style)
             DecorationShape.RECTANGLE -> drawScope.drawRoundRect(color = color, topLeft = rect.topLeft, size = rect.size, cornerRadius = CornerRadius(layer.cornerRadius * resScale), style = style)
+            DecorationShape.HEART -> {
+                val heartPath = createHeartPath(cx, cy, size)
+                drawScope.drawPath(path = heartPath, color = color, style = style)
+            }
             else -> {
                 val poly = when (layer.shape) {
                     DecorationShape.SQUIRCLE -> RoundedPolygon(numVertices = 4, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale / size))
@@ -1390,7 +1400,6 @@ object MockupRenderer {
                     DecorationShape.STAR -> RoundedPolygon.star(numVerticesPerRadius = 5, centerX = cx, centerY = cy, radius = size / 2, innerRadius = size / 4, rounding = CornerRounding(layer.cornerRadius * resScale / size))
                     DecorationShape.PENTAGON -> RoundedPolygon(numVertices = 5, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale / size))
                     DecorationShape.HEXAGON -> RoundedPolygon(numVertices = 6, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale / size))
-                    DecorationShape.HEART -> createHeartPolygon(cx, cy, size)
                     else -> RoundedPolygon.circle(centerX = cx, centerY = cy, radius = size / 2)
                 }
                 drawScope.drawPath(path = poly.toPath().asComposePath(), color = color, style = style)
@@ -1400,7 +1409,7 @@ object MockupRenderer {
 
     private fun drawArrow(drawScope: DrawScope, layer: OverlayLayer, cx: Float, cy: Float, size: Float, resScale: Float) {
         val color = Color(layer.color).copy(alpha = layer.alpha)
-        val strokeWidth = layer.thickness * resScale
+        val strokeWidth = layer.thickness.coerceAtMost(20f) * resScale
         val headSize = layer.arrowHeadSize * resScale
         
         val startX = cx - size / 2
@@ -1408,7 +1417,7 @@ object MockupRenderer {
         
         val path = Path().apply {
             moveTo(startX, cy)
-            if (layer.shape == DecorationShape.ARROW_CURVED) {
+            if (layer.curvature != 0f) {
                 quadraticTo(cx, cy - (layer.curvature * resScale), endX, cy)
             } else {
                 lineTo(endX, cy)
@@ -1417,43 +1426,69 @@ object MockupRenderer {
         
         drawScope.drawPath(path = path, color = color, style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
         
-        // Arrow head
+        // Arrow head — compute tip direction from curvature
+        val tipY = if (layer.curvature != 0f) {
+            // Tangent at end of quadratic bezier: direction from control point to end
+            val ctrlY = cy - (layer.curvature * resScale)
+            // The tangent at t=1 is (endX - cx, cy - ctrlY), so the arriving angle
+            val dy = cy - ctrlY
+            dy
+        } else 0f
+        val tipAngle = kotlin.math.atan2(-tipY, endX - cx)
+        
         val headPath = Path().apply {
-            moveTo(endX - headSize, cy - headSize / 1.5f)
+            moveTo(
+                endX - headSize * kotlin.math.cos(tipAngle - 0.5f),
+                cy - headSize * kotlin.math.sin(tipAngle - 0.5f)
+            )
             lineTo(endX, cy)
-            lineTo(endX - headSize, cy + headSize / 1.5f)
+            lineTo(
+                endX - headSize * kotlin.math.cos(tipAngle + 0.5f),
+                cy - headSize * kotlin.math.sin(tipAngle + 0.5f)
+            )
         }
         drawScope.drawPath(path = headPath, color = color, style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
 
     private fun drawBubble(drawScope: DrawScope, layer: OverlayLayer, cx: Float, cy: Float, size: Float, resScale: Float) {
         val color = Color(layer.color).copy(alpha = layer.alpha)
+        val style = getDrawStyle(layer, resScale)
         val rect = Rect(Offset(cx - size / 2, cy - size / 2), Size(size, size * 0.7f))
-        val corner = layer.cornerRadius * resScale
+        val corner = size * 0.35f  // Chat bubble: heavily rounded
 
         val path = Path().apply {
             addRoundRect(RoundRect(rect, CornerRadius(corner)))
             // Tail
-            moveTo(cx - 10f * resScale, rect.bottom)
-            lineTo(cx, rect.bottom + 15f * resScale)
-            lineTo(cx + 10f * resScale, rect.bottom)
+            val tailW = 12f * resScale
+            val tailH = 18f * resScale
+            moveTo(cx - tailW, rect.bottom)
+            lineTo(cx - tailW * 0.5f, rect.bottom + tailH)
+            lineTo(cx + tailW * 0.5f, rect.bottom)
             close()
         }
-        drawScope.drawPath(path = path, color = color)
+        drawScope.drawPath(path = path, color = color, style = style)
     }
 
-    private fun createHeartPolygon(cx: Float, cy: Float, size: Float): RoundedPolygon {
-        // Simplified heart using a few points
-        return RoundedPolygon(
-            floatArrayOf(
-                cx, cy + size/2,
-                cx - size/2, cy - size/4,
-                cx - size/4, cy - size/2,
-                cx, cy - size/4,
-                cx + size/4, cy - size/2,
-                cx + size/2, cy - size/4
+    private fun createHeartPath(cx: Float, cy: Float, size: Float): Path {
+        val w = size
+        val h = size
+        return Path().apply {
+            // Start at the bottom tip
+            moveTo(cx, cy + h * 0.35f)
+            // Left side curve
+            cubicTo(
+                cx - w * 0.45f, cy + h * 0.1f,   // control 1
+                cx - w * 0.55f, cy - h * 0.25f,   // control 2
+                cx, cy - h * 0.15f                  // end (top dip)
             )
-        )
+            // Right side curve
+            cubicTo(
+                cx + w * 0.55f, cy - h * 0.25f,   // control 1
+                cx + w * 0.45f, cy + h * 0.1f,    // control 2
+                cx, cy + h * 0.35f                  // end (bottom tip)
+            )
+            close()
+        }
     }
 
     private fun applyBlurToBitmap(source: android.graphics.Bitmap, blurRadius: Float): android.graphics.Bitmap? {

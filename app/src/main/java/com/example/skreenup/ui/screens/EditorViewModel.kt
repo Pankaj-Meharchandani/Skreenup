@@ -183,9 +183,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _cornerRadius = MutableStateFlow(16f)
     val cornerRadius: StateFlow<Float> = _cornerRadius.asStateFlow()
 
-    private val _isFilled = MutableStateFlow(true)
-    val isFilled: StateFlow<Boolean> = _isFilled.asStateFlow()
-
     private val _arrowHeadSize = MutableStateFlow(20f)
     val arrowHeadSize: StateFlow<Float> = _arrowHeadSize.asStateFlow()
 
@@ -539,7 +536,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 _selectedShape.value = layer.shape
                 _thickness.value = layer.thickness
                 _cornerRadius.value = layer.cornerRadius
-                _isFilled.value = layer.isFilled
                 _arrowHeadSize.value = layer.arrowHeadSize
                 _curvature.value = layer.curvature
                 _activeOverlayTab.value = OverlayTab.DECORATIONS
@@ -724,12 +720,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun setDecorationCornerRadius(value: Float) {
         _cornerRadius.value = value
         updateSelectedOverlay { it.copy(cornerRadius = value) }
-        _isSaved.value = false
-    }
-
-    fun setDecorationFilled(value: Boolean) {
-        _isFilled.value = value
-        updateSelectedOverlay { it.copy(isFilled = value) }
         _isSaved.value = false
     }
 

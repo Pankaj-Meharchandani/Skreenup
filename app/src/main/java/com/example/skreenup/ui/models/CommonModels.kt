@@ -85,10 +85,8 @@ enum class DecorationShape {
     PENTAGON,
     HEXAGON,
     HEART,
-    CHAT_ROUND,
-    CHAT_SQUARE,
-    ARROW_STRAIGHT,
-    ARROW_CURVED
+    CHAT_BUBBLE,
+    ARROW
 }
 
 @kotlinx.serialization.Serializable
@@ -113,7 +111,6 @@ data class OverlayLayer(
     val shape: DecorationShape = DecorationShape.CIRCLE,
     val thickness: Float = 4f,
     val cornerRadius: Float = 16f,
-    val isFilled: Boolean = true,
     val arrowHeadSize: Float = 20f,
     val curvature: Float = 0f, // For curved arrows
 

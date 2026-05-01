@@ -20,6 +20,7 @@ import eltos.simpledialogfragment.color.SimpleColorWheelDialog
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -39,6 +40,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -641,7 +643,7 @@ fun EditorScreen(
                                 tabBackStackList.add(TextTab)
                             }
                         },
-                        icon = { Icon(Icons.Rounded.Layers, contentDescription = "Overlays") },
+                        icon = { Icon(Icons.Rounded.AutoAwesome, contentDescription = "Overlays") },
                         label = { Text("Overlays") }
                     )
             }
@@ -708,19 +710,31 @@ fun EditorScreen(
 
                 // Floating Layers Button
                 Surface(
+                    onClick = { showLayersSheet = true },
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(top = 8.dp, end = 12.dp),
+                        .padding(top = 12.dp, end = 12.dp),
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-                    tonalElevation = 2.dp
+                    tonalElevation = 2.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                 ) {
-                    IconButton(onClick = { showLayersSheet = true }) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Icon(
                             Icons.Rounded.Layers, 
-                            contentDescription = "Layers",
-                            modifier = Modifier.size(24.dp),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "Layers",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }

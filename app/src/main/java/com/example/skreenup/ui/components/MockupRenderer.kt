@@ -36,6 +36,16 @@ import android.graphics.BlurMaskFilter
 import android.graphics.Paint as NativePaint
 
 object MockupRenderer {
+    // Caching for performance during animations/interaction
+    private var lastBlurSource: ImageBitmap? = null
+    private var lastBlurRadius: Float = -1f
+    private var cachedBlurredBitmap: ImageBitmap? = null
+
+    private var lastShadowIntensity: Float = -1f
+    private var lastShadowSoftness: Float = -1f
+    private var lastPixelScale: Float = -1f
+    private val shadowPaints = arrayOfNulls<NativePaint>(3)
+
     fun DrawScope.drawMockup(
         screenshot: ImageBitmap?,
         deviceModel: DeviceModel,
@@ -128,8 +138,21 @@ object MockupRenderer {
                         val useBlur = backgroundImageBlur > 0
 
                         val imageToDraw = if (useBlur) {
-                            applyBlurToBitmap(backgroundImage.asAndroidBitmap(), backgroundImageBlur)
-                                ?.asImageBitmap() ?: backgroundImage
+                            if (backgroundImage === lastBlurSource && backgroundImageBlur == lastBlurRadius && cachedBlurredBitmap != null) {
+                                cachedBlurredBitmap!!
+                            } else {
+                                // Recycle old blurred bitmap if it exists
+                                // cachedBlurredBitmap?.asAndroidBitmap()?.recycle() 
+                                // ^ Careful with recycling if it might still be in use by another frame
+                                
+                                val blurred = applyBlurToBitmap(backgroundImage.asAndroidBitmap(), backgroundImageBlur)
+                                    ?.asImageBitmap() ?: backgroundImage
+                                
+                                lastBlurSource = backgroundImage
+                                lastBlurRadius = backgroundImageBlur
+                                cachedBlurredBitmap = blurred
+                                blurred
+                            }
                         } else {
                             backgroundImage
                         }
@@ -500,36 +523,58 @@ object MockupRenderer {
         // ── 3. Realistic Multi-layered Soft Shadow ──
         // We use the native canvas for BlurMaskFilter which provides much more realistic shadows
         if (shadowIntensity > 0) {
-            val shadowPaint = NativePaint().apply {
-                color = android.graphics.Color.BLACK
-                isAntiAlias = true
+            val needsNewPaints = shadowIntensity != lastShadowIntensity || 
+                                shadowSoftness != lastShadowSoftness || 
+                                pixelScale != lastPixelScale ||
+                                shadowPaints[0] == null
+
+            if (needsNewPaints) {
+                lastShadowIntensity = shadowIntensity
+                lastShadowSoftness = shadowSoftness
+                lastPixelScale = pixelScale
+
+                // Layer 1: Ambient Occlusion (Close, dark)
+                shadowPaints[0] = NativePaint().apply {
+                    color = android.graphics.Color.BLACK
+                    isAntiAlias = true
+                    alpha = (255 * shadowIntensity * 0.8f).toInt()
+                    maskFilter = BlurMaskFilter((2 * pixelScale * shadowSoftness).coerceAtLeast(0.1f), BlurMaskFilter.Blur.NORMAL)
+                }
+
+                // Layer 2: Main Drop Shadow
+                shadowPaints[1] = NativePaint().apply {
+                    color = android.graphics.Color.BLACK
+                    isAntiAlias = true
+                    alpha = (255 * shadowIntensity * 0.4f).toInt()
+                    maskFilter = BlurMaskFilter((10 * pixelScale * shadowSoftness).coerceAtLeast(0.1f), BlurMaskFilter.Blur.NORMAL)
+                }
+
+                // Layer 3: Distant Soft Shadow
+                shadowPaints[2] = NativePaint().apply {
+                    color = android.graphics.Color.BLACK
+                    isAntiAlias = true
+                    alpha = (255 * shadowIntensity * 0.2f).toInt()
+                    maskFilter = BlurMaskFilter((25 * pixelScale * shadowSoftness).coerceAtLeast(0.1f), BlurMaskFilter.Blur.NORMAL)
+                }
             }
 
-            // Layer 1: Ambient Occlusion (Close, dark)
-            shadowPaint.alpha = (255 * shadowIntensity * 0.8f).toInt()
-            shadowPaint.maskFilter = BlurMaskFilter((2 * pixelScale * shadowSoftness).coerceAtLeast(0.1f), BlurMaskFilter.Blur.NORMAL)
+            // Draw shadow layers using cached paints
             drawContext.canvas.nativeCanvas.drawRoundRect(
                 frameLeft, frameTop + 1 * pixelScale,
                 frameLeft + frameWidth, frameTop + frameHeight + 1 * pixelScale,
-                cornerRadiusPx, cornerRadiusPx, shadowPaint
+                cornerRadiusPx, cornerRadiusPx, shadowPaints[0]!!
             )
 
-            // Layer 2: Main Drop Shadow
-            shadowPaint.alpha = (255 * shadowIntensity * 0.4f).toInt()
-            shadowPaint.maskFilter = BlurMaskFilter((10 * pixelScale * shadowSoftness).coerceAtLeast(0.1f), BlurMaskFilter.Blur.NORMAL)
             drawContext.canvas.nativeCanvas.drawRoundRect(
                 frameLeft + 4 * pixelScale, frameTop + 8 * pixelScale,
                 frameLeft + frameWidth + 4 * pixelScale, frameTop + frameHeight + 8 * pixelScale,
-                cornerRadiusPx, cornerRadiusPx, shadowPaint
+                cornerRadiusPx, cornerRadiusPx, shadowPaints[1]!!
             )
 
-            // Layer 3: Distant Soft Shadow
-            shadowPaint.alpha = (255 * shadowIntensity * 0.2f).toInt()
-            shadowPaint.maskFilter = BlurMaskFilter((25 * pixelScale * shadowSoftness).coerceAtLeast(0.1f), BlurMaskFilter.Blur.NORMAL)
             drawContext.canvas.nativeCanvas.drawRoundRect(
                 frameLeft + 10 * pixelScale, frameTop + 20 * pixelScale,
                 frameLeft + frameWidth + 10 * pixelScale, frameTop + frameHeight + 20 * pixelScale,
-                cornerRadiusPx, cornerRadiusPx, shadowPaint
+                cornerRadiusPx, cornerRadiusPx, shadowPaints[2]!!
             )
         }
 

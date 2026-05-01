@@ -27,6 +27,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -292,6 +294,15 @@ fun SkreenupApp() {
             if (mainBackStackList.size > 1) {
                 mainBackStackList.removeAt(mainBackStackList.size - 1)
             }
+        },
+        transitionSpec = {
+            (slideInHorizontally { it } + fadeIn()).togetherWith(slideOutHorizontally { -it } + fadeOut())
+        },
+        popTransitionSpec = {
+            (slideInHorizontally { -it } + fadeIn()).togetherWith(slideOutHorizontally { it } + fadeOut())
+        },
+        predictivePopTransitionSpec = {
+            (slideInHorizontally { -it } + fadeIn()).togetherWith(slideOutHorizontally { it } + fadeOut())
         },
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
@@ -720,6 +731,9 @@ fun EditorScreen(
                     if (tabBackStackList.size > 1) {
                         tabBackStackList.removeAt(tabBackStackList.size - 1)
                     }
+                },
+                transitionSpec = {
+                    fadeIn(tween(200)).togetherWith(fadeOut(tween(200)))
                 },
                 entryDecorators = listOf(
                     rememberSaveableStateHolderNavEntryDecorator(),

@@ -1,6 +1,7 @@
 package com.example.skreenup.data
 
-import com.example.skreenup.ui.models.TextLayer
+import com.example.skreenup.ui.models.OverlayLayer
+import com.example.skreenup.ui.models.OverlayType
 import com.example.skreenup.ui.models.TextAlignLabel
 import com.example.skreenup.ui.models.TextFont
 import com.example.skreenup.ui.models.TextBackgroundStyle
@@ -11,7 +12,7 @@ data class TextTemplate(
     val id: String,
     val name: String,
     val description: String,
-    val layer: TextLayer
+    val layer: OverlayLayer
 )
 
 val PRESET_TEXT_TEMPLATES = listOf(
@@ -19,7 +20,8 @@ val PRESET_TEXT_TEMPLATES = listOf(
         id = "modern_hero",
         name = "Modern Hero",
         description = "Clean and versatile",
-        layer = TextLayer(
+        layer = OverlayLayer(
+            type = OverlayType.TEXT,
             heading = "Modern Design",
             subheading = "Perfect for any app showcase",
             headingFont = TextFont.POPPINS.name,
@@ -35,7 +37,8 @@ val PRESET_TEXT_TEMPLATES = listOf(
         id = "impact_bold",
         name = "Impact Bold",
         description = "Grab attention fast",
-        layer = TextLayer(
+        layer = OverlayLayer(
+            type = OverlayType.TEXT,
             heading = "BOLD IMPACT",
             subheading = "Make a strong statement",
             headingFont = TextFont.ANTON.name,
@@ -51,7 +54,8 @@ val PRESET_TEXT_TEMPLATES = listOf(
         id = "elegant_serif",
         name = "Elegant Serif",
         description = "Premium look",
-        layer = TextLayer(
+        layer = OverlayLayer(
+            type = OverlayType.TEXT,
             heading = "Elegant Style",
             subheading = "Luxurious feel for high-end products",
             headingFont = TextFont.PLAYFAIR.name,
@@ -67,7 +71,8 @@ val PRESET_TEXT_TEMPLATES = listOf(
         id = "minimal_clean",
         name = "Minimal Clean",
         description = "Focus on clarity",
-        layer = TextLayer(
+        layer = OverlayLayer(
+            type = OverlayType.TEXT,
             heading = "Simple",
             subheading = "Minimalism at its best",
             headingFont = TextFont.MONTSERRAT.name,
@@ -83,7 +88,8 @@ val PRESET_TEXT_TEMPLATES = listOf(
         id = "bebas_stack",
         name = "Bebas Stack",
         description = "Professional title",
-        layer = TextLayer(
+        layer = OverlayLayer(
+            type = OverlayType.TEXT,
             heading = "DISPLAY\nTITLE",
             subheading = "Condensed typography style",
             headingFont = TextFont.BEBAS.name,
@@ -99,7 +105,8 @@ val PRESET_TEXT_TEMPLATES = listOf(
         id = "glass_badge",
         name = "Glass Badge",
         description = "Modern translucent feel",
-        layer = TextLayer(
+        layer = OverlayLayer(
+            type = OverlayType.TEXT,
             heading = "NEW FEATURE",
             subheading = "Check out the latest update",
             headingFont = TextFont.INTER.name,
@@ -117,7 +124,8 @@ val PRESET_TEXT_TEMPLATES = listOf(
         id = "filled_label",
         name = "Filled Label",
         description = "High contrast tag",
-        layer = TextLayer(
+        layer = OverlayLayer(
+            type = OverlayType.TEXT,
             heading = "GET STARTED",
             subheading = "Quick setup guide",
             headingFont = TextFont.POPPINS.name,
@@ -126,7 +134,7 @@ val PRESET_TEXT_TEMPLATES = listOf(
             subheadingSize = 22f,
             textGap = 8f,
             headingBold = true,
-            textColor = 0xFFFFFFFF.toInt(),
+            color = 0xFFFFFFFF.toInt(),
             backgroundStyle = TextBackgroundStyle.FILLED.name,
             backgroundColor = 0xFF3F51B5.toInt(),
             backgroundAlpha = 1.0f,

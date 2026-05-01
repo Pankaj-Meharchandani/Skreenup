@@ -21,7 +21,9 @@ import com.example.skreenup.ui.models.DeviceModels
 import com.example.skreenup.ui.models.TextFont
 import com.example.skreenup.ui.models.TextAlignLabel
 import com.example.skreenup.ui.models.TextBackgroundStyle
-import com.example.skreenup.ui.models.TextLayer
+import com.example.skreenup.ui.models.OverlayLayer
+import com.example.skreenup.ui.models.OverlayType
+import com.example.skreenup.ui.models.DecorationShape
 import kotlinx.coroutines.Dispatchers
 import com.example.skreenup.data.Project
 import com.example.skreenup.data.Preset
@@ -53,8 +55,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     "gradient_start" -> setGradientColors(listOf(Color(color), gradientColors.value[1]))
                     "gradient_end" -> setGradientColors(listOf(gradientColors.value[0], Color(color)))
                     "screen_color" -> setScreenBackgroundColor(Color(color))
-                    "text_color" -> setTextColor(Color(color).copy(alpha = 1f))
-                    "text_bg_color" -> setTextBackgroundColor(Color(color))
+                    "text_color" -> setOverlayColor(Color(color).copy(alpha = 1f))
+                    "text_bg_color" -> setOverlayBackgroundColor(Color(color))
                 }
             }
         }
@@ -105,13 +107,18 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _screenBackgroundColor = MutableStateFlow(Color(0xFF2C2C2C))
     val screenBackgroundColor: StateFlow<Color> = _screenBackgroundColor.asStateFlow()
 
-    // Text State
-    private val _textLayers = MutableStateFlow<List<TextLayer>>(emptyList())
-    val textLayers: StateFlow<List<TextLayer>> = _textLayers.asStateFlow()
+    // Overlay State
+    private val _overlayLayers = MutableStateFlow<List<OverlayLayer>>(emptyList())
+    val overlayLayers: StateFlow<List<OverlayLayer>> = _overlayLayers.asStateFlow()
 
-    private val _selectedTextLayerId = MutableStateFlow<String?>(null)
-    val selectedTextLayerId: StateFlow<String?> = _selectedTextLayerId.asStateFlow()
+    private val _selectedOverlayId = MutableStateFlow<String?>(null)
+    val selectedOverlayId: StateFlow<String?> = _selectedOverlayId.asStateFlow()
 
+    enum class OverlayTab { TEXT, DECORATIONS }
+    private val _activeOverlayTab = MutableStateFlow(OverlayTab.TEXT)
+    val activeOverlayTab: StateFlow<OverlayTab> = _activeOverlayTab.asStateFlow()
+
+    // Text State (Synced with selected overlay if type is TEXT)
     private val _heading = MutableStateFlow("")
     val heading: StateFlow<String> = _heading.asStateFlow()
 
@@ -165,6 +172,34 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _subheadingBold = MutableStateFlow(false)
     val subheadingBold: StateFlow<Boolean> = _subheadingBold.asStateFlow()
+
+    // Decoration State (Synced with selected overlay if type is SHAPE/ARROW/BUBBLE)
+    private val _selectedShape = MutableStateFlow(DecorationShape.CIRCLE)
+    val selectedShape: StateFlow<DecorationShape> = _selectedShape.asStateFlow()
+
+    private val _thickness = MutableStateFlow(4f)
+    val thickness: StateFlow<Float> = _thickness.asStateFlow()
+
+    private val _cornerRadius = MutableStateFlow(16f)
+    val cornerRadius: StateFlow<Float> = _cornerRadius.asStateFlow()
+
+    private val _isFilled = MutableStateFlow(true)
+    val isFilled: StateFlow<Boolean> = _isFilled.asStateFlow()
+
+    private val _arrowHeadSize = MutableStateFlow(20f)
+    val arrowHeadSize: StateFlow<Float> = _arrowHeadSize.asStateFlow()
+
+    private val _curvature = MutableStateFlow(0f)
+    val curvature: StateFlow<Float> = _curvature.asStateFlow()
+
+    private val _overlayScale = MutableStateFlow(1f)
+    val overlayScale: StateFlow<Float> = _overlayScale.asStateFlow()
+
+    private val _overlayRotation = MutableStateFlow(0f)
+    val overlayRotation: StateFlow<Float> = _overlayRotation.asStateFlow()
+
+    private val _overlayAlpha = MutableStateFlow(1f)
+    val overlayAlpha: StateFlow<Float> = _overlayAlpha.asStateFlow()
 
     // Adjust State
     private val _scale = MutableStateFlow(0.8f)
@@ -462,67 +497,87 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         parseHexColor(value)?.let { _screenBackgroundColor.value = it }
     }
 
-    // Text Layer Management
-    fun addTextLayer(layer: TextLayer = TextLayer()) {
-        _textLayers.value = _textLayers.value + layer
-        _selectedTextLayerId.value = layer.id
+    // Overlay Management
+    fun addOverlay(layer: OverlayLayer = OverlayLayer()) {
+        _overlayLayers.value = _overlayLayers.value + layer
+        _selectedOverlayId.value = layer.id
         updateZIndices()
         _isSaved.value = false
     }
 
-    fun removeTextLayer(id: String) {
-        _textLayers.value = _textLayers.value.filter { it.id != id }
-        if (_selectedTextLayerId.value == id) {
-            _selectedTextLayerId.value = _textLayers.value.lastOrNull()?.id
+    fun removeOverlay(id: String) {
+        _overlayLayers.value = _overlayLayers.value.filter { it.id != id }
+        if (_selectedOverlayId.value == id) {
+            _selectedOverlayId.value = _overlayLayers.value.lastOrNull()?.id
+            _selectedOverlayId.value?.let { selectOverlay(it) } ?: run {
+                // Clear state if no overlay selected
+            }
         }
         updateZIndices()
         _isSaved.value = false
     }
 
-    fun selectTextLayer(id: String?) {
-        _selectedTextLayerId.value = id
-        val layer = _textLayers.value.find { it.id == id }
+    fun selectOverlay(id: String?) {
+        _selectedOverlayId.value = id
+        val layer = _overlayLayers.value.find { it.id == id }
         if (layer != null) {
-            _heading.value = layer.heading
-            _subheading.value = layer.subheading
-            _headingFont.value = try { TextFont.valueOf(layer.headingFont) } catch(e: Exception) { TextFont.POPPINS }
-            _subheadingFont.value = try { TextFont.valueOf(layer.subheadingFont) } catch(e: Exception) { TextFont.POPPINS }
-            _headingSize.value = layer.headingSize
-            _subheadingSize.value = layer.subheadingSize
-            _textGap.value = layer.textGap
+            // Update UI state from layer
+            if (layer.type == OverlayType.TEXT) {
+                _heading.value = layer.heading
+                _subheading.value = layer.subheading
+                _headingFont.value = try { TextFont.valueOf(layer.headingFont) } catch(e: Exception) { TextFont.POPPINS }
+                _subheadingFont.value = try { TextFont.valueOf(layer.subheadingFont) } catch(e: Exception) { TextFont.POPPINS }
+                _headingSize.value = layer.headingSize
+                _subheadingSize.value = layer.subheadingSize
+                _textGap.value = layer.textGap
+                _textAlign.value = try { TextAlignLabel.valueOf(layer.textAlign) } catch(e: Exception) { TextAlignLabel.CENTER }
+                _headingBold.value = layer.headingBold
+                _subheadingBold.value = layer.subheadingBold
+                _textShadow.value = layer.textShadow
+                _activeOverlayTab.value = OverlayTab.TEXT
+            } else {
+                _selectedShape.value = layer.shape
+                _thickness.value = layer.thickness
+                _cornerRadius.value = layer.cornerRadius
+                _isFilled.value = layer.isFilled
+                _arrowHeadSize.value = layer.arrowHeadSize
+                _curvature.value = layer.curvature
+                _activeOverlayTab.value = OverlayTab.DECORATIONS
+            }
+            
             _textOffsetX.value = layer.offsetX
             _textOffsetY.value = layer.offsetY
-            _textColor.value = Color(layer.textColor)
-            _textAlign.value = try { TextAlignLabel.valueOf(layer.textAlign) } catch(e: Exception) { TextAlignLabel.CENTER }
+            _overlayScale.value = layer.scale
+            _overlayRotation.value = layer.rotation
+            _textColor.value = Color(layer.color)
+            _overlayAlpha.value = layer.alpha
+            
             _textBackgroundStyle.value = try { TextBackgroundStyle.valueOf(layer.backgroundStyle) } catch(e: Exception) { TextBackgroundStyle.NONE }
             _textBackgroundColor.value = Color(layer.backgroundColor)
             _textBackgroundAlpha.value = layer.backgroundAlpha
             _textBackgroundPadding.value = layer.backgroundPadding
             _textBackgroundCornerRadius.value = layer.backgroundCornerRadius
-            _headingBold.value = layer.headingBold
-            _subheadingBold.value = layer.subheadingBold
-            _textShadow.value = layer.textShadow
             _textZIndex.value = layer.zIndex
         }
     }
 
-    fun setTextLayerZIndex(id: String, zIndex: Int) {
-        _textLayers.value = _textLayers.value.map {
+    fun setOverlayZIndex(id: String, zIndex: Int) {
+        _overlayLayers.value = _overlayLayers.value.map {
             if (it.id == id) it.copy(zIndex = zIndex) else it
         }
         _isSaved.value = false
     }
 
-    fun updateSelectedTextLayer(update: (TextLayer) -> TextLayer) {
-        val selectedId = _selectedTextLayerId.value ?: return
-        _textLayers.value = _textLayers.value.map {
+    fun updateSelectedOverlay(update: (OverlayLayer) -> OverlayLayer) {
+        val selectedId = _selectedOverlayId.value ?: return
+        _overlayLayers.value = _overlayLayers.value.map {
             if (it.id == selectedId) update(it) else it
         }
         _isSaved.value = false
     }
 
-    fun setTextLayerVisibility(id: String, visible: Boolean) {
-        _textLayers.value = _textLayers.value.map {
+    fun setOverlayVisibility(id: String, visible: Boolean) {
+        _overlayLayers.value = _overlayLayers.value.map {
             if (it.id == id) it.copy(isVisible = visible) else it
         }
         _isSaved.value = false
@@ -535,16 +590,16 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun updateZIndices() {
-        val pos = if (_deviceFramePosition.value == -1) _textLayers.value.size else _deviceFramePosition.value
-        _textLayers.value = _textLayers.value.mapIndexed { index, layer ->
+        val pos = if (_deviceFramePosition.value == -1) _overlayLayers.value.size else _deviceFramePosition.value
+        _overlayLayers.value = _overlayLayers.value.mapIndexed { index, layer ->
             val newZ = if (index < pos) 1 else -1
             layer.copy(zIndex = newZ)
         }
     }
 
     fun moveLayer(fromIndex: Int, toIndex: Int) {
-        val devicePos = if (_deviceFramePosition.value == -1) _textLayers.value.size else _deviceFramePosition.value
-        val list = _textLayers.value.toMutableList<Any>()
+        val devicePos = if (_deviceFramePosition.value == -1) _overlayLayers.value.size else _deviceFramePosition.value
+        val list = _overlayLayers.value.toMutableList<Any>()
         list.add(devicePos, "DEVICE")
         
         if (fromIndex in list.indices && toIndex in list.indices) {
@@ -552,126 +607,182 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             list.add(toIndex, item)
             
             // Re-separate
-            val newTextLayers = mutableListOf<TextLayer>()
+            val newLayers = mutableListOf<OverlayLayer>()
             var newDevicePos = -1
             list.forEachIndexed { idx, it ->
-                if (it is TextLayer) {
-                    newTextLayers.add(it)
+                if (it is OverlayLayer) {
+                    newLayers.add(it)
                 } else {
                     newDevicePos = idx
                 }
             }
-            _textLayers.value = newTextLayers
+            _overlayLayers.value = newLayers
             _deviceFramePosition.value = newDevicePos
             updateZIndices()
             _isSaved.value = false
         }
     }
 
-    fun moveTextLayer(fromIndex: Int, toIndex: Int) {
-        val list = _textLayers.value.toMutableList()
+    fun moveOverlay(fromIndex: Int, toIndex: Int) {
+        val list = _overlayLayers.value.toMutableList()
         if (fromIndex in list.indices && toIndex in list.indices) {
             val item = list.removeAt(fromIndex)
             list.add(toIndex, item)
-            _textLayers.value = list
+            _overlayLayers.value = list
             updateZIndices()
             _isSaved.value = false
         }
     }
 
+    fun setOverlayTab(tab: OverlayTab) {
+        _activeOverlayTab.value = tab
+    }
+
     // Text Setters
     fun setHeading(value: String) { 
         _heading.value = value 
-        updateSelectedTextLayer { it.copy(heading = value) }
+        updateSelectedOverlay { it.copy(heading = value) }
         _isSaved.value = false
     }
     fun setSubheading(value: String) { 
         _subheading.value = value 
-        updateSelectedTextLayer { it.copy(subheading = value) }
+        updateSelectedOverlay { it.copy(subheading = value) }
         _isSaved.value = false
     }
     fun setHeadingFont(value: TextFont) { 
         _headingFont.value = value 
-        updateSelectedTextLayer { it.copy(headingFont = value.name) }
+        updateSelectedOverlay { it.copy(headingFont = value.name) }
     }
     fun setSubheadingFont(value: TextFont) { 
         _subheadingFont.value = value 
-        updateSelectedTextLayer { it.copy(subheadingFont = value.name) }
+        updateSelectedOverlay { it.copy(subheadingFont = value.name) }
     }
     fun setHeadingSize(value: Float) { 
         _headingSize.value = value 
-        updateSelectedTextLayer { it.copy(headingSize = value) }
+        updateSelectedOverlay { it.copy(headingSize = value) }
         _isSaved.value = false
     }
     fun setSubheadingSize(value: Float) { 
         _subheadingSize.value = value 
-        updateSelectedTextLayer { it.copy(subheadingSize = value) }
+        updateSelectedOverlay { it.copy(subheadingSize = value) }
         _isSaved.value = false
     }
     fun setTextGap(value: Float) { 
         _textGap.value = value 
-        updateSelectedTextLayer { it.copy(textGap = value) }
+        updateSelectedOverlay { it.copy(textGap = value) }
         _isSaved.value = false
     }
-    fun setTextOffsetX(value: Float) {
+    fun setOverlayOffsetX(value: Float) {
         _textOffsetX.value = value
-        updateSelectedTextLayer { it.copy(offsetX = value) }
+        updateSelectedOverlay { it.copy(offsetX = value) }
         _isSaved.value = false
     }
-    fun setTextOffsetY(value: Float) {
+    fun setOverlayOffsetY(value: Float) {
         _textOffsetY.value = value
-        updateSelectedTextLayer { it.copy(offsetY = value) }
+        updateSelectedOverlay { it.copy(offsetY = value) }
         _isSaved.value = false
     }
-    fun setTextColor(color: Color) { 
+    fun setOverlayScale(value: Float) {
+        _overlayScale.value = value
+        updateSelectedOverlay { it.copy(scale = value) }
+        _isSaved.value = false
+    }
+    fun setOverlayRotation(value: Float) {
+        _overlayRotation.value = value
+        updateSelectedOverlay { it.copy(rotation = value) }
+        _isSaved.value = false
+    }
+    fun setOverlayAlpha(value: Float) {
+        _overlayAlpha.value = value
+        updateSelectedOverlay { it.copy(alpha = value) }
+        _isSaved.value = false
+    }
+    fun setOverlayColor(color: Color) { 
         _textColor.value = color 
-        updateSelectedTextLayer { it.copy(textColor = color.toArgb()) }
+        updateSelectedOverlay { it.copy(color = color.toArgb()) }
         _isSaved.value = false
     }
     fun setTextAlign(value: TextAlignLabel) { 
         _textAlign.value = value 
-        updateSelectedTextLayer { it.copy(textAlign = value.name) }
+        updateSelectedOverlay { it.copy(textAlign = value.name) }
         _isSaved.value = false
     }
 
-    fun setTextBackgroundStyle(value: TextBackgroundStyle) {
+    // Decoration Setters
+    fun setDecorationShape(value: DecorationShape) {
+        _selectedShape.value = value
+        updateSelectedOverlay { it.copy(shape = value) }
+        _isSaved.value = false
+    }
+
+    fun setDecorationThickness(value: Float) {
+        _thickness.value = value
+        updateSelectedOverlay { it.copy(thickness = value) }
+        _isSaved.value = false
+    }
+
+    fun setDecorationCornerRadius(value: Float) {
+        _cornerRadius.value = value
+        updateSelectedOverlay { it.copy(cornerRadius = value) }
+        _isSaved.value = false
+    }
+
+    fun setDecorationFilled(value: Boolean) {
+        _isFilled.value = value
+        updateSelectedOverlay { it.copy(isFilled = value) }
+        _isSaved.value = false
+    }
+
+    fun setArrowHeadSize(value: Float) {
+        _arrowHeadSize.value = value
+        updateSelectedOverlay { it.copy(arrowHeadSize = value) }
+        _isSaved.value = false
+    }
+
+    fun setDecorationCurvature(value: Float) {
+        _curvature.value = value
+        updateSelectedOverlay { it.copy(curvature = value) }
+        _isSaved.value = false
+    }
+
+    fun setOverlayBackgroundStyle(value: TextBackgroundStyle) {
         _textBackgroundStyle.value = value
-        updateSelectedTextLayer { it.copy(backgroundStyle = value.name) }
+        updateSelectedOverlay { it.copy(backgroundStyle = value.name) }
         _isSaved.value = false
     }
 
-    fun setTextBackgroundColor(color: Color) {
+    fun setOverlayBackgroundColor(color: Color) {
         _textBackgroundColor.value = color
-        updateSelectedTextLayer { it.copy(backgroundColor = color.toArgb()) }
+        updateSelectedOverlay { it.copy(backgroundColor = color.toArgb()) }
         _isSaved.value = false
     }
 
-    fun setTextBackgroundAlpha(value: Float) {
+    fun setOverlayBackgroundAlpha(value: Float) {
         _textBackgroundAlpha.value = value
-        updateSelectedTextLayer { it.copy(backgroundAlpha = value) }
+        updateSelectedOverlay { it.copy(backgroundAlpha = value) }
         _isSaved.value = false
     }
 
-    fun setTextBackgroundPadding(value: Float) {
+    fun setOverlayBackgroundPadding(value: Float) {
         _textBackgroundPadding.value = value
-        updateSelectedTextLayer { it.copy(backgroundPadding = value) }
+        updateSelectedOverlay { it.copy(backgroundPadding = value) }
         _isSaved.value = false
     }
 
-    fun setTextBackgroundCornerRadius(value: Float) {
+    fun setOverlayBackgroundCornerRadius(value: Float) {
         _textBackgroundCornerRadius.value = value
-        updateSelectedTextLayer { it.copy(backgroundCornerRadius = value) }
+        updateSelectedOverlay { it.copy(backgroundCornerRadius = value) }
         _isSaved.value = false
     }
 
     fun setHeadingBold(value: Boolean) { 
         _headingBold.value = value 
-        updateSelectedTextLayer { it.copy(headingBold = value) }
+        updateSelectedOverlay { it.copy(headingBold = value) }
         _isSaved.value = false
     }
     fun setSubheadingBold(value: Boolean) { 
         _subheadingBold.value = value 
-        updateSelectedTextLayer { it.copy(subheadingBold = value) }
+        updateSelectedOverlay { it.copy(subheadingBold = value) }
         _isSaved.value = false
     }
 
@@ -692,13 +803,13 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setTextShadow(value: Boolean) { 
         _textShadow.value = value 
-        updateSelectedTextLayer { it.copy(textShadow = value) }
+        updateSelectedOverlay { it.copy(textShadow = value) }
         _isSaved.value = false
     }
 
-    fun setTextZIndex(value: Int) { 
+    fun setOverlayZIndex(value: Int) { 
         _textZIndex.value = value 
-        updateSelectedTextLayer { it.copy(zIndex = value) }
+        updateSelectedOverlay { it.copy(zIndex = value) }
         _isSaved.value = false
     }
 
@@ -804,7 +915,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _watermarkText.value = if (config.watermarkText == "Made with Skreenup") settingsManager.customWatermark.value else config.watermarkText
             
             // Sync with text layers
-            updateSelectedTextLayer { it.copy(
+            updateSelectedOverlay { it.copy(
                 heading = config.heading,
                 subheading = config.subheading,
                 headingSize = config.headingSize,
@@ -812,7 +923,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 textGap = config.textGap,
                 offsetX = config.textOffsetX,
                 offsetY = config.textOffsetY,
-                textColor = colorVal,
+                color = colorVal,
                 textAlign = config.textAlign,
                 textShadow = config.textShadow,
                 headingFont = config.headingFont,
@@ -852,7 +963,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _watermarkText.value = settingsManager.customWatermark.value
 
             // Sync with text layers
-            updateSelectedTextLayer { it.copy(
+            updateSelectedOverlay { it.copy(
                 heading = "",
                 subheading = "",
                 headingSize = 60f,
@@ -860,7 +971,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 textGap = 20f,
                 offsetX = 0f,
                 offsetY = 0f,
-                textColor = Color.White.toArgb(),
+                color = Color.White.toArgb(),
                 textAlign = TextAlignLabel.CENTER.name,
                 textShadow = true,
                 headingFont = TextFont.POPPINS.name,
@@ -956,7 +1067,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             backgroundImageScale = _backgroundImageScale.value,
             backgroundImageBlur = _backgroundImageBlur.value,
             screenBackgroundColor = _screenBackgroundColor.value.toArgb(),
-            textLayers = _textLayers.value,
+            textLayers = _overlayLayers.value,
             // Legacy support
             heading = _heading.value,
             subheading = _subheading.value,
@@ -1026,11 +1137,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _screenBackgroundColor.value = Color(config.screenBackgroundColor)
 
         if (config.textLayers.isNotEmpty()) {
-            _textLayers.value = config.textLayers
-            config.textLayers.firstOrNull()?.let { selectTextLayer(it.id) }
+            _overlayLayers.value = config.textLayers
+            config.textLayers.firstOrNull()?.let { selectOverlay(it.id) }
         } else {
             // Migration from legacy
-            val legacyLayer = TextLayer(
+            val legacyLayer = OverlayLayer(
                 heading = config.heading,
                 subheading = config.subheading,
                 headingFont = config.headingFont,
@@ -1040,15 +1151,15 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 textGap = config.textGap,
                 offsetX = config.textOffsetX,
                 offsetY = config.textOffsetY,
-                textColor = if (config.textColor == -1) Color.White.toArgb() else config.textColor,
+                color = if (config.textColor == -1) Color.White.toArgb() else config.textColor,
                 textAlign = config.textAlign,
                 headingBold = config.headingBold,
                 subheadingBold = config.subheadingBold,
                 textShadow = config.textShadow,
                 zIndex = config.textZIndex
             )
-            _textLayers.value = listOf(legacyLayer)
-            selectTextLayer(legacyLayer.id)
+            _overlayLayers.value = listOf(legacyLayer)
+            selectOverlay(legacyLayer.id)
         }
 
         _scale.value = config.scale

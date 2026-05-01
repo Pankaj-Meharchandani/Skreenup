@@ -67,9 +67,36 @@ enum class TextBackgroundStyle {
     GLASS
 }
 
+@Immutable
+enum class OverlayType {
+    TEXT,
+    SHAPE,
+    ARROW,
+    BUBBLE
+}
+
+@Immutable
+enum class DecorationShape {
+    SQUIRCLE,
+    CIRCLE,
+    RECTANGLE,
+    TRIANGLE,
+    STAR,
+    PENTAGON,
+    HEXAGON,
+    HEART,
+    CHAT_ROUND,
+    CHAT_SQUARE,
+    ARROW_STRAIGHT,
+    ARROW_CURVED
+}
+
 @kotlinx.serialization.Serializable
-data class TextLayer(
+data class OverlayLayer(
     val id: String = java.util.UUID.randomUUID().toString(),
+    val type: OverlayType = OverlayType.TEXT,
+    
+    // Text specific
     val heading: String = "",
     val subheading: String = "",
     val headingFont: String = TextFont.POPPINS.name,
@@ -77,15 +104,30 @@ data class TextLayer(
     val headingSize: Float = 60f,
     val subheadingSize: Float = 40f,
     val textGap: Float = 20f,
-    val offsetX: Float = 0f,
-    val offsetY: Float = 0f,
-    val textColor: Int = 0xFFFFFFFF.toInt(),
     val textAlign: String = TextAlignLabel.CENTER.name,
     val headingBold: Boolean = true,
     val subheadingBold: Boolean = false,
     val textShadow: Boolean = true,
+
+    // Decoration specific (Shape, Arrow, Bubble)
+    val shape: DecorationShape = DecorationShape.CIRCLE,
+    val thickness: Float = 4f,
+    val cornerRadius: Float = 16f,
+    val isFilled: Boolean = true,
+    val arrowHeadSize: Float = 20f,
+    val curvature: Float = 0f, // For curved arrows
+
+    // Shared properties
+    val offsetX: Float = 0f,
+    val offsetY: Float = 0f,
+    val rotation: Float = 0f,
+    val scale: Float = 1f,
+    val color: Int = 0xFFFFFFFF.toInt(),
+    val alpha: Float = 1f,
     val zIndex: Int = 1,
     val isVisible: Boolean = true,
+    
+    // Background (mostly for text/bubbles)
     val backgroundStyle: String = TextBackgroundStyle.NONE.name,
     val backgroundColor: Int = 0xFF000000.toInt(),
     val backgroundAlpha: Float = 0.5f,

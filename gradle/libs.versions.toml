@@ -32,6 +32,7 @@ material = "1.13.0"
 paletteKtx = "1.0.0"
 reorderable = "3.1.0"
 simpleDialogFragments = "3.8.4"
+androidxGraphicsShapes = "1.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -73,6 +74,7 @@ material = { group = "com.google.android.material", name = "material", version.r
 androidx-palette-ktx = { group = "androidx.palette", name = "palette-ktx", version.ref = "paletteKtx" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
 simple-dialog-fragments = { group = "io.github.eltos", name = "simpledialogfragments", version = "3.10" }
+androidx-graphics-shapes = { group = "androidx.graphics", name = "graphics-shapes", version.ref = "androidxGraphicsShapes" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

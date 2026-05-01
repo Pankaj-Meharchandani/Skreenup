@@ -15,7 +15,7 @@ data class EditorConfig(
     val backgroundImageScale: Float = 1.0f,
     val backgroundImageBlur: Float = 0f,
     val screenBackgroundColor: Int,
-    val textLayers: List<TextLayer> = emptyList(),
+    val textLayers: List<OverlayLayer> = emptyList(),
     // Legacy fields for migration
     val heading: String = "",
     val subheading: String = "",

@@ -27,13 +27,24 @@ import com.example.skreenup.ui.models.CompositionAspectRatio
 import com.example.skreenup.ui.models.CutoutType
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.FrameType
-import com.example.skreenup.ui.models.TextFont
-import com.example.skreenup.ui.models.TextAlignLabel
-import com.example.skreenup.ui.models.TextLayer
+import com.example.skreenup.ui.models.OverlayLayer
+import com.example.skreenup.ui.models.OverlayType
+import com.example.skreenup.ui.models.DecorationShape
 import com.example.skreenup.ui.models.TextBackgroundStyle
 import android.graphics.Typeface
 import android.graphics.BlurMaskFilter
+import android.graphics.Matrix
 import android.graphics.Paint as NativePaint
+import androidx.graphics.shapes.RoundedPolygon
+import androidx.graphics.shapes.star
+import androidx.graphics.shapes.circle
+import androidx.graphics.shapes.pill
+import androidx.graphics.shapes.rectangle
+import androidx.graphics.shapes.toPath
+import androidx.graphics.shapes.CornerRounding
+import androidx.compose.ui.graphics.asComposePath
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 
 object MockupRenderer {
     // Caching for performance during animations/interaction
@@ -68,7 +79,7 @@ object MockupRenderer {
         isExport: Boolean = false,
         rotationDegrees: Float = 0f,
         screenshotRotation: Float = 0f,
-        textLayers: List<TextLayer> = emptyList(),
+        textLayers: List<OverlayLayer> = emptyList(),
         selectedTextLayerId: String? = null,
         editingTextLayerId: String? = null,
         showReflection: Boolean = true,
@@ -203,224 +214,23 @@ object MockupRenderer {
         val pivotX = frameLeft + frameWidth / 2
         val pivotY = frameTop + (frameHeight + chassisTotalHeight) / 2
 
-        // ── 3. Helper for Drawing Text ──
-        val drawTextContent = { zIndexFilter: Int ->
+        // ── 3. Helper for Drawing Overlays ──
+        val drawOverlayContent = { zIndexFilter: Int ->
             textLayers.filter { 
                 val zMatch = if (zIndexFilter < 0) it.zIndex < 0 else it.zIndex >= 0
                 zMatch && it.id != editingTextLayerId && it.isVisible
             }.reversed().forEach { layer ->
-                val hText = layer.heading.trim()
-                val sText = layer.subheading.trim()
-
-                if (hText.isNotEmpty() || sText.isNotEmpty()) {
-                    val finalTextColor = layer.textColor
-
-                    fun createPaint(fontName: String, size: Float, isBold: Boolean): android.graphics.Paint {
-                        val style = if (isBold) Typeface.BOLD else Typeface.NORMAL
-                        val tf = when (fontName) {
-                            "POPPINS" -> Typeface.create("sans-serif", style)
-                            "INTER" -> Typeface.create("sans-serif-medium", style)
-                            "MONTSERRAT" -> Typeface.create("sans-serif-light", style)
-                            "BEBAS" -> Typeface.create("sans-serif-black", style)
-                            "PACIFICO" -> Typeface.create("cursive", style)
-                            "PLAYFAIR" -> Typeface.create("serif-monospace", style)
-                            "TIMES" -> Typeface.create("serif", style)
-                            "OSWALD" -> Typeface.create("sans-serif-condensed", style)
-                            "RALEWAY" -> Typeface.create("sans-serif-thin", style)
-                            "ANTON" -> Typeface.create("sans-serif-black", style)
-                            "QUICKSAND" -> Typeface.create("sans-serif-light", style)
-                            "LIBRE_BASKERVILLE" -> Typeface.create("serif", style)
-                            else -> Typeface.create("sans-serif", style)
-                        }
-                        return android.graphics.Paint().apply {
-                            color = finalTextColor
-                            typeface = tf
-                            textSize = size * resolutionScale
-                            isAntiAlias = true
-                            this.textAlign = when (layer.textAlign) {
-                                "LEFT" -> NativePaint.Align.LEFT
-                                "RIGHT" -> NativePaint.Align.RIGHT
-                                else -> NativePaint.Align.CENTER
-                            }
-                            if (layer.textShadow) {
-                                setShadowLayer(10f * resolutionScale, 2f * resolutionScale, 2f * resolutionScale, Color.Black.copy(alpha = 0.5f).toArgb())
-                            }
-                        }
-                    }
-
-                    val hPaint = createPaint(layer.headingFont, layer.headingSize, layer.headingBold)
-                    val sPaint = createPaint(layer.subheadingFont, layer.subheadingSize, layer.subheadingBold)
-
-                    // Standardized horizontal margin (6% of design space)
-                    val horizontalMargin = 60f * resolutionScale
-                    
-                    val centerX = when (layer.textAlign) {
-                        "LEFT" -> compLeft + horizontalMargin + (layer.offsetX * resolutionScale)
-                        "RIGHT" -> compLeft + compWidth - horizontalMargin + (layer.offsetX * resolutionScale)
-                        else -> compLeft + compWidth / 2 + (layer.offsetX * resolutionScale)
-                    }
-
-                    val hMetrics = hPaint.fontMetrics
-                    val sMetrics = sPaint.fontMetrics
-
-                    val headingLineHeight = hPaint.fontSpacing
-                    val subheadingLineHeight = sPaint.fontSpacing
-                    val gap = layer.textGap * resolutionScale
-
-                    val headingLinesInitial = hText.split("\n")
-                    val subheadingLinesInitial = sText.split("\n")
-
-                    val headingBlockHeight = if (hText.isNotEmpty()) {
-                        (headingLinesInitial.size - 1) * headingLineHeight + (hMetrics.descent - hMetrics.ascent)
-                    } else 0f
-
-                    val subheadingBlockHeight = if (sText.isNotEmpty()) {
-                        (subheadingLinesInitial.size - 1) * subheadingLineHeight + (sMetrics.descent - sMetrics.ascent)
-                    } else 0f
-
-                    val totalTextHeight = headingBlockHeight + (if (hText.isNotEmpty() && sText.isNotEmpty()) gap else 0f) + subheadingBlockHeight
-
-                    val blockTop = compTop + compHeight / 2 + (layer.offsetY * resolutionScale) - (totalTextHeight / 2)
-
-                    // ── Draw Text Background ──
-                    if (layer.backgroundStyle != TextBackgroundStyle.NONE.name) {
-                        val padding = layer.backgroundPadding * resolutionScale
-                        val cornerRadius = layer.backgroundCornerRadius * resolutionScale
-                        
-                        // Calculate max width for background
-                        var maxWidth = 0f
-                        headingLinesInitial.forEach { line ->
-                            maxWidth = maxOf(maxWidth, hPaint.measureText(line))
-                        }
-                        subheadingLinesInitial.forEach { line ->
-                            maxWidth = maxOf(maxWidth, sPaint.measureText(line))
-                        }
-
-                        val bgRect = when (layer.textAlign) {
-                            "LEFT" -> Rect(
-                                offset = Offset(centerX - padding, blockTop - padding),
-                                size = Size(maxWidth + padding * 2, totalTextHeight + padding * 2)
-                            )
-                            "RIGHT" -> Rect(
-                                offset = Offset(centerX - maxWidth - padding, blockTop - padding),
-                                size = Size(maxWidth + padding * 2, totalTextHeight + padding * 2)
-                            )
-                            else -> Rect(
-                                offset = Offset(centerX - maxWidth / 2 - padding, blockTop - padding),
-                                size = Size(maxWidth + padding * 2, totalTextHeight + padding * 2)
-                            )
-                        }
-
-                        val bgColor = Color(layer.backgroundColor).copy(alpha = layer.backgroundAlpha)
-                        
-                        when (layer.backgroundStyle) {
-                            TextBackgroundStyle.FILLED.name -> {
-                                drawRoundRect(
-                                    color = bgColor,
-                                    topLeft = bgRect.topLeft,
-                                    size = bgRect.size,
-                                    cornerRadius = CornerRadius(cornerRadius)
-                                )
-                            }
-                            TextBackgroundStyle.OUTLINED.name -> {
-                                drawRoundRect(
-                                    color = bgColor,
-                                    topLeft = bgRect.topLeft,
-                                    size = bgRect.size,
-                                    cornerRadius = CornerRadius(cornerRadius),
-                                    style = Stroke(width = 2f * resolutionScale)
-                                )
-                            }
-                            TextBackgroundStyle.GLASS.name -> {
-                                // Enhanced Glass Effect using user-selected color
-                                val glassColor = Color(layer.backgroundColor)
-                                
-                                // 1. Main glass fill with light-reflecting gradient
-                                drawRoundRect(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(
-                                            glassColor.copy(alpha = 0.15f),
-                                            glassColor.copy(alpha = 0.03f),
-                                            glassColor.copy(alpha = 0.08f)
-                                        ),
-                                        start = bgRect.topLeft,
-                                        end = bgRect.bottomRight
-                                    ),
-                                    topLeft = bgRect.topLeft,
-                                    size = bgRect.size,
-                                    cornerRadius = CornerRadius(cornerRadius)
-                                )
-                                
-                                // 2. Top-down subtle highlight to simulate surface gloss
-                                drawRoundRect(
-                                    brush = Brush.verticalGradient(
-                                        colors = listOf(
-                                            glassColor.copy(alpha = 0.1f),
-                                            Color.Transparent
-                                        ),
-                                        startY = bgRect.top,
-                                        endY = bgRect.top + bgRect.height * 0.4f
-                                    ),
-                                    topLeft = bgRect.topLeft,
-                                    size = bgRect.size,
-                                    cornerRadius = CornerRadius(cornerRadius)
-                                )
-
-                                // 3. Glass border with varying thickness/opacity for depth
-                                drawRoundRect(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(
-                                            glassColor.copy(alpha = 0.5f), // Top-left highlight
-                                            glassColor.copy(alpha = 0.1f), // Sides
-                                            glassColor.copy(alpha = 0.3f)  // Bottom-right edge
-                                        ),
-                                        start = bgRect.topLeft,
-                                        end = bgRect.bottomRight
-                                    ),
-                                    topLeft = bgRect.topLeft,
-                                    size = bgRect.size,
-                                    cornerRadius = CornerRadius(cornerRadius),
-                                    style = Stroke(width = 1.5f * resolutionScale)
-                                )
-                            }
-                        }
-                    }
-
-                    if (hText.isNotEmpty()) {
-                        val firstBaseline = blockTop - hMetrics.ascent
-                        headingLinesInitial.forEachIndexed { index, line ->
-                            drawContext.canvas.nativeCanvas.drawText(
-                                line,
-                                centerX,
-                                firstBaseline + (index * headingLineHeight),
-                                hPaint
-                            )
-                        }
-                    }
-
-                    if (sText.isNotEmpty()) {
-                        val subBlockTop = if (hText.isNotEmpty()) {
-                            blockTop + headingBlockHeight + gap
-                        } else {
-                            blockTop
-                        }
-                        val firstSubBaseline = subBlockTop - sMetrics.ascent
-                        subheadingLinesInitial.forEachIndexed { index, line ->
-                            drawContext.canvas.nativeCanvas.drawText(
-                                line,
-                                centerX,
-                                firstSubBaseline + (index * subheadingLineHeight),
-                                sPaint
-                            )
-                        }
-                    }
+                if (layer.type == OverlayType.TEXT) {
+                    drawTextOverlay(this, layer, compLeft, compTop, compWidth, compHeight, resolutionScale)
+                } else {
+                    drawDecorationOverlay(this, layer, compLeft, compTop, compWidth, compHeight, resolutionScale)
                 }
             }
         }
 
         // ── 4. Draw Content based on Z-Index ──
         clipPath(Path().apply { addRect(compRect) }) {
-            drawTextContent(-1) // Draw back layers
+            drawOverlayContent(-1) // Draw back layers
         }
 
         // Wrap all device drawing in a rotation transform
@@ -450,7 +260,7 @@ object MockupRenderer {
         }
 
         clipPath(Path().apply { addRect(compRect) }) {
-            drawTextContent(1) // Draw front layers
+            drawOverlayContent(1) // Draw front layers
         }
 
         // 5. Draw Watermark
@@ -1402,6 +1212,250 @@ object MockupRenderer {
      * Works on ALL API levels, on both software and hardware canvases.
      * Increasing passes improves quality; radius controls strength.
      */
+    private fun drawTextOverlay(
+        drawScope: DrawScope,
+        layer: OverlayLayer,
+        compLeft: Float,
+        compTop: Float,
+        compWidth: Float,
+        compHeight: Float,
+        resolutionScale: Float
+    ) {
+        with(drawScope) {
+            val hText = layer.heading.trim()
+            val sText = layer.subheading.trim()
+
+            if (hText.isEmpty() && sText.isEmpty()) return
+
+            val finalTextColor = layer.color
+
+            fun createPaint(fontName: String, size: Float, isBold: Boolean): android.graphics.Paint {
+                val style = if (isBold) Typeface.BOLD else Typeface.NORMAL
+                val tf = when (fontName) {
+                    "POPPINS" -> Typeface.create("sans-serif", style)
+                    "INTER" -> Typeface.create("sans-serif-medium", style)
+                    "MONTSERRAT" -> Typeface.create("sans-serif-light", style)
+                    "BEBAS" -> Typeface.create("sans-serif-black", style)
+                    "PACIFICO" -> Typeface.create("cursive", style)
+                    "PLAYFAIR" -> Typeface.create("serif-monospace", style)
+                    "TIMES" -> Typeface.create("serif", style)
+                    "OSWALD" -> Typeface.create("sans-serif-condensed", style)
+                    "RALEWAY" -> Typeface.create("sans-serif-thin", style)
+                    "ANTON" -> Typeface.create("sans-serif-black", style)
+                    "QUICKSAND" -> Typeface.create("sans-serif-light", style)
+                    "LIBRE_BASKERVILLE" -> Typeface.create("serif", style)
+                    else -> Typeface.create("sans-serif", style)
+                }
+                return android.graphics.Paint().apply {
+                    color = finalTextColor
+                    typeface = tf
+                    textSize = size * resolutionScale * layer.scale
+                    isAntiAlias = true
+                    alpha = (layer.alpha * 255).toInt()
+                    this.textAlign = when (layer.textAlign) {
+                        "LEFT" -> NativePaint.Align.LEFT
+                        "RIGHT" -> NativePaint.Align.RIGHT
+                        else -> NativePaint.Align.CENTER
+                    }
+                    if (layer.textShadow) {
+                        setShadowLayer(10f * resolutionScale, 2f * resolutionScale, 2f * resolutionScale, Color.Black.copy(alpha = 0.5f).toArgb())
+                    }
+                }
+            }
+
+            val hPaint = createPaint(layer.headingFont, layer.headingSize, layer.headingBold)
+            val sPaint = createPaint(layer.subheadingFont, layer.subheadingSize, layer.subheadingBold)
+
+            // Standardized horizontal margin (6% of design space)
+            val horizontalMargin = 60f * resolutionScale
+            
+            val centerX = when (layer.textAlign) {
+                "LEFT" -> compLeft + horizontalMargin + (layer.offsetX * resolutionScale)
+                "RIGHT" -> compLeft + compWidth - horizontalMargin + (layer.offsetX * resolutionScale)
+                else -> compLeft + compWidth / 2 + (layer.offsetX * resolutionScale)
+            }
+
+            val hMetrics = hPaint.fontMetrics
+            val sMetrics = sPaint.fontMetrics
+
+            val headingLineHeight = hPaint.fontSpacing
+            val subheadingLineHeight = sPaint.fontSpacing
+            val gap = layer.textGap * resolutionScale * layer.scale
+
+            val headingLinesInitial = hText.split("\n")
+            val subheadingLinesInitial = sText.split("\n")
+
+            val headingBlockHeight = if (hText.isNotEmpty()) {
+                (headingLinesInitial.size - 1) * headingLineHeight + (hMetrics.descent - hMetrics.ascent)
+            } else 0f
+
+            val subheadingBlockHeight = if (sText.isNotEmpty()) {
+                (subheadingLinesInitial.size - 1) * subheadingLineHeight + (sMetrics.descent - sMetrics.ascent)
+            } else 0f
+
+            val totalTextHeight = headingBlockHeight + (if (hText.isNotEmpty() && sText.isNotEmpty()) gap else 0f) + subheadingBlockHeight
+
+            val blockTop = compTop + compHeight / 2 + (layer.offsetY * resolutionScale) - (totalTextHeight / 2)
+
+            withTransform({
+                rotate(degrees = layer.rotation, pivot = Offset(centerX, blockTop + totalTextHeight / 2))
+            }) {
+                // ── Draw Text Background ──
+                if (layer.backgroundStyle != TextBackgroundStyle.NONE.name) {
+                    val padding = layer.backgroundPadding * resolutionScale
+                    val cornerRadius = layer.backgroundCornerRadius * resolutionScale
+                    
+                    // Calculate max width for background
+                    var maxWidth = 0f
+                    headingLinesInitial.forEach { line -> maxWidth = maxOf(maxWidth, hPaint.measureText(line)) }
+                    subheadingLinesInitial.forEach { line -> maxWidth = maxOf(maxWidth, sPaint.measureText(line)) }
+
+                    val bgRect = when (layer.textAlign) {
+                        "LEFT" -> Rect(offset = Offset(centerX - padding, blockTop - padding), size = Size(maxWidth + padding * 2, totalTextHeight + padding * 2))
+                        "RIGHT" -> Rect(offset = Offset(centerX - maxWidth - padding, blockTop - padding), size = Size(maxWidth + padding * 2, totalTextHeight + padding * 2))
+                        else -> Rect(offset = Offset(centerX - maxWidth / 2 - padding, blockTop - padding), size = Size(maxWidth + padding * 2, totalTextHeight + padding * 2))
+                    }
+
+                    val bgColor = Color(layer.backgroundColor).copy(alpha = layer.backgroundAlpha)
+                    
+                    when (layer.backgroundStyle) {
+                        TextBackgroundStyle.FILLED.name -> drawRoundRect(color = bgColor, topLeft = bgRect.topLeft, size = bgRect.size, cornerRadius = CornerRadius(cornerRadius))
+                        TextBackgroundStyle.OUTLINED.name -> drawRoundRect(color = bgColor, topLeft = bgRect.topLeft, size = bgRect.size, cornerRadius = CornerRadius(cornerRadius), style = Stroke(width = 2f * resolutionScale))
+                        TextBackgroundStyle.GLASS.name -> {
+                            val glassColor = Color(layer.backgroundColor)
+                            drawRoundRect(brush = Brush.linearGradient(colors = listOf(glassColor.copy(alpha = 0.15f), glassColor.copy(alpha = 0.03f), glassColor.copy(alpha = 0.08f)), start = bgRect.topLeft, end = bgRect.bottomRight), topLeft = bgRect.topLeft, size = bgRect.size, cornerRadius = CornerRadius(cornerRadius))
+                            drawRoundRect(brush = Brush.verticalGradient(colors = listOf(glassColor.copy(alpha = 0.1f), Color.Transparent), startY = bgRect.top, endY = bgRect.top + bgRect.height * 0.4f), topLeft = bgRect.topLeft, size = bgRect.size, cornerRadius = CornerRadius(cornerRadius))
+                            drawRoundRect(brush = Brush.linearGradient(colors = listOf(glassColor.copy(alpha = 0.5f), glassColor.copy(alpha = 0.1f), glassColor.copy(alpha = 0.3f)), start = bgRect.topLeft, end = bgRect.bottomRight), topLeft = bgRect.topLeft, size = bgRect.size, cornerRadius = CornerRadius(cornerRadius), style = Stroke(width = 1.5f * resolutionScale))
+                        }
+                    }
+                }
+
+                if (hText.isNotEmpty()) {
+                    val firstBaseline = blockTop - hMetrics.ascent
+                    headingLinesInitial.forEachIndexed { index, line ->
+                        drawContext.canvas.nativeCanvas.drawText(line, centerX, firstBaseline + (index * headingLineHeight), hPaint)
+                    }
+                }
+
+                if (sText.isNotEmpty()) {
+                    val subBlockTop = if (hText.isNotEmpty()) blockTop + headingBlockHeight + gap else blockTop
+                    val firstSubBaseline = subBlockTop - sMetrics.ascent
+                    subheadingLinesInitial.forEachIndexed { index, line ->
+                        drawContext.canvas.nativeCanvas.drawText(line, centerX, firstSubBaseline + (index * subheadingLineHeight), sPaint)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun drawDecorationOverlay(
+        drawScope: DrawScope,
+        layer: OverlayLayer,
+        compLeft: Float,
+        compTop: Float,
+        compWidth: Float,
+        compHeight: Float,
+        resolutionScale: Float
+    ) {
+        with(drawScope) {
+            val centerX = compLeft + compWidth / 2 + (layer.offsetX * resolutionScale)
+            val centerY = compTop + compHeight / 2 + (layer.offsetY * resolutionScale)
+            val size = 150f * resolutionScale * layer.scale
+            
+            withTransform({
+                rotate(degrees = layer.rotation, pivot = Offset(centerX, centerY))
+            }) {
+                when (layer.type) {
+                    OverlayType.SHAPE -> drawShape(this, layer, centerX, centerY, size, resolutionScale)
+                    OverlayType.ARROW -> drawArrow(this, layer, centerX, centerY, size, resolutionScale)
+                    OverlayType.BUBBLE -> drawBubble(this, layer, centerX, centerY, size, resolutionScale)
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    private fun drawShape(drawScope: DrawScope, layer: OverlayLayer, cx: Float, cy: Float, size: Float, resScale: Float) {
+        val color = Color(layer.color).copy(alpha = layer.alpha)
+        val style = if (layer.isFilled) Fill else Stroke(width = layer.thickness * resScale)
+        val rect = Rect(Offset(cx - size / 2, cy - size / 2), Size(size, size))
+
+        when (layer.shape) {
+            DecorationShape.CIRCLE -> drawScope.drawCircle(color = color, radius = size / 2, center = Offset(cx, cy), style = style)
+            DecorationShape.RECTANGLE -> drawScope.drawRoundRect(color = color, topLeft = rect.topLeft, size = rect.size, cornerRadius = CornerRadius(layer.cornerRadius * resScale), style = style)
+            else -> {
+                val poly = when (layer.shape) {
+                    DecorationShape.SQUIRCLE -> RoundedPolygon(numVertices = 4, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale / size))
+                    DecorationShape.TRIANGLE -> RoundedPolygon(numVertices = 3, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale / size))
+                    DecorationShape.STAR -> RoundedPolygon.star(numVerticesPerRadius = 5, centerX = cx, centerY = cy, radius = size / 2, innerRadius = size / 4, rounding = CornerRounding(layer.cornerRadius * resScale / size))
+                    DecorationShape.PENTAGON -> RoundedPolygon(numVertices = 5, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale / size))
+                    DecorationShape.HEXAGON -> RoundedPolygon(numVertices = 6, centerX = cx, centerY = cy, radius = size / 2, rounding = CornerRounding(layer.cornerRadius * resScale / size))
+                    DecorationShape.HEART -> createHeartPolygon(cx, cy, size)
+                    else -> RoundedPolygon.circle(centerX = cx, centerY = cy, radius = size / 2)
+                }
+                drawScope.drawPath(path = poly.toPath().asComposePath(), color = color, style = style)
+            }
+        }
+    }
+
+    private fun drawArrow(drawScope: DrawScope, layer: OverlayLayer, cx: Float, cy: Float, size: Float, resScale: Float) {
+        val color = Color(layer.color).copy(alpha = layer.alpha)
+        val strokeWidth = layer.thickness * resScale
+        val headSize = layer.arrowHeadSize * resScale
+        
+        val startX = cx - size / 2
+        val endX = cx + size / 2
+        
+        val path = Path().apply {
+            moveTo(startX, cy)
+            if (layer.shape == DecorationShape.ARROW_CURVED) {
+                quadraticTo(cx, cy - (layer.curvature * resScale), endX, cy)
+            } else {
+                lineTo(endX, cy)
+            }
+        }
+        
+        drawScope.drawPath(path = path, color = color, style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
+        
+        // Arrow head
+        val headPath = Path().apply {
+            moveTo(endX - headSize, cy - headSize / 1.5f)
+            lineTo(endX, cy)
+            lineTo(endX - headSize, cy + headSize / 1.5f)
+        }
+        drawScope.drawPath(path = headPath, color = color, style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+
+    private fun drawBubble(drawScope: DrawScope, layer: OverlayLayer, cx: Float, cy: Float, size: Float, resScale: Float) {
+        val color = Color(layer.color).copy(alpha = layer.alpha)
+        val rect = Rect(Offset(cx - size / 2, cy - size / 2), Size(size, size * 0.7f))
+        val corner = layer.cornerRadius * resScale
+
+        val path = Path().apply {
+            addRoundRect(RoundRect(rect, CornerRadius(corner)))
+            // Tail
+            moveTo(cx - 10f * resScale, rect.bottom)
+            lineTo(cx, rect.bottom + 15f * resScale)
+            lineTo(cx + 10f * resScale, rect.bottom)
+            close()
+        }
+        drawScope.drawPath(path = path, color = color)
+    }
+
+    private fun createHeartPolygon(cx: Float, cy: Float, size: Float): RoundedPolygon {
+        // Simplified heart using a few points
+        return RoundedPolygon(
+            floatArrayOf(
+                cx, cy + size/2,
+                cx - size/2, cy - size/4,
+                cx - size/4, cy - size/2,
+                cx, cy - size/4,
+                cx + size/4, cy - size/2,
+                cx + size/2, cy - size/4
+            )
+        )
+    }
+
     private fun applyBlurToBitmap(source: android.graphics.Bitmap, blurRadius: Float): android.graphics.Bitmap? {
         if (blurRadius <= 0f) return source
         return try {

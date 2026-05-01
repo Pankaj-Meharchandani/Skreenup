@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.palette.ktx)
+    implementation(libs.androidx.graphics.shapes)
     implementation(libs.reorderable)
     implementation(libs.simple.dialog.fragments)
     implementation(libs.coil.compose)

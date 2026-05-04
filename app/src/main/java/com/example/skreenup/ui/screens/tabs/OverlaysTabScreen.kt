@@ -160,7 +160,13 @@ fun TextTabContent(viewModel: EditorViewModel) {
                 ) {
                     Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(template.layer.heading.ifBlank { "Aa" }, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(template.description, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            text = template.description,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
@@ -185,9 +191,6 @@ fun TextTabContent(viewModel: EditorViewModel) {
                 modifier = Modifier.fillMaxWidth()
             )
             FontPicker(selectedFont = subheadingFont, onFontSelected = { viewModel.setSubheadingFont(it) })
-            
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            SectionHeader(label = "Spacing & Size", icon = Icons.Rounded.FormatSize)
             
             AdjustmentItem(
                 label = "Heading Size",

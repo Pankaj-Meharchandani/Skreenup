@@ -105,8 +105,10 @@ fun DeviceFrame(
     var sessionRotation by remember { mutableStateOf(0f) }
 
     // Snapping guides state
-    var showSnapLineX by remember { mutableStateOf(false) }
-    var showSnapLineY by remember { mutableStateOf(false) }
+    var snapLineX by remember { mutableStateOf<Float?>(null) }
+    var snapLineY by remember { mutableStateOf<Float?>(null) }
+    var snapExtentX by remember { mutableStateOf<Pair<Float, Float>?>(null) } // (minY, maxY)
+    var snapExtentY by remember { mutableStateOf<Pair<Float, Float>?>(null) } // (minX, maxX)
 
     // Use rememberUpdatedState to avoid restarting pointerInput when values change
     val currentScale by rememberUpdatedState(scale)
@@ -314,24 +316,63 @@ fun DeviceFrame(
                         when (activeTarget) {
                             Target.FRAME -> {
                                 val snapThreshold = 25f
-                                val snapX = kotlin.math.abs(sessionPanX) < snapThreshold
-                                val snapY = kotlin.math.abs(sessionPanY) < snapThreshold
-                                val finalX = if (snapX) 0f else sessionPanX
-                                val finalY = if (snapY) 0f else sessionPanY
-                                showSnapLineX = snapX
-                                showSnapLineY = snapY
-                                onFrameOffsetChange(finalX, finalY)
+                                val snapX = if (kotlin.math.abs(sessionPanX) < snapThreshold) 0f else null
+                                val snapY = if (kotlin.math.abs(sessionPanY) < snapThreshold) 0f else null
+                                
+                                snapLineX = snapX
+                                snapLineY = snapY
+                                snapExtentX = null
+                                snapExtentY = null
+                                onFrameOffsetChange(snapX ?: sessionPanX, snapY ?: sessionPanY)
                             }
                             Target.TEXT -> {
                                 if (currentSelectedId != null) {
                                     val snapThreshold = 25f
-                                    val snapX = kotlin.math.abs(sessionPanX) < snapThreshold
-                                    val snapY = kotlin.math.abs(sessionPanY) < snapThreshold
-                                    val finalX = if (snapX) 0f else sessionPanX
-                                    val finalY = if (snapY) 0f else sessionPanY
-                                    showSnapLineX = snapX
-                                    showSnapLineY = snapY
-                                    onTextLayerUpdate(currentSelectedId!!) { it.copy(offsetX = finalX, offsetY = finalY) }
+                                    val curX = sessionPanX
+                                    val curY = sessionPanY
+                                    
+                                    var sx: Float? = null
+                                    var sy: Float? = null
+                                    var ex: Pair<Float, Float>? = null
+                                    var ey: Pair<Float, Float>? = null
+
+                                    // 1. Check canvas center (prioritize full line)
+                                    if (kotlin.math.abs(curX) < snapThreshold) {
+                                        sx = 0f
+                                    }
+                                    if (kotlin.math.abs(curY) < snapThreshold) {
+                                        sy = 0f
+                                    }
+
+                                    // 2. Check other layers
+                                    currentTextLayers.forEach { other ->
+                                        if (other.id != currentSelectedId && other.isVisible) {
+                                            if (sx == null && kotlin.math.abs(curX - other.offsetX) < snapThreshold) {
+                                                sx = other.offsetX
+                                                ex = curY to other.offsetY
+                                            }
+                                            if (sy == null && kotlin.math.abs(curY - other.offsetY) < snapThreshold) {
+                                                sy = other.offsetY
+                                                ey = curX to other.offsetX
+                                            }
+                                        }
+                                    }
+
+                                    // 3. Check frame
+                                    if (sx == null && kotlin.math.abs(curX - currentFrameOffsetX) < snapThreshold) {
+                                        sx = currentFrameOffsetX
+                                        ex = curY to currentFrameOffsetY
+                                    }
+                                    if (sy == null && kotlin.math.abs(curY - currentFrameOffsetY) < snapThreshold) {
+                                        sy = currentFrameOffsetY
+                                        ey = curX to currentFrameOffsetX
+                                    }
+
+                                    snapLineX = sx
+                                    snapLineY = sy
+                                    snapExtentX = ex
+                                    snapExtentY = ey
+                                    onTextLayerUpdate(currentSelectedId!!) { it.copy(offsetX = sx ?: curX, offsetY = sy ?: curY) }
                                 }
                             }
                             else -> {}
@@ -346,8 +387,10 @@ fun DeviceFrame(
                         val event = awaitPointerEvent()
                         if (event.changes.all { !it.pressed }) {
                             activeTarget = Target.NONE
-                            showSnapLineX = false
-                            showSnapLineY = false
+                            snapLineX = null
+                            snapLineY = null
+                            snapExtentX = null
+                            snapExtentY = null
                         }
                     }
                 }
@@ -388,7 +431,7 @@ fun DeviceFrame(
         }
 
         // ── Snapping Guidelines (Overlay) ──
-        if (showSnapLineX || showSnapLineY) {
+        if (snapLineX != null || snapLineY != null) {
             val compWidth = if (canvasSize.width.toFloat() / canvasSize.height.toFloat() > currentRatio.ratio) {
                 canvasSize.height * currentRatio.ratio
             } else {
@@ -397,28 +440,43 @@ fun DeviceFrame(
             val compHeight = compWidth / currentRatio.ratio
             val compLeft = (canvasSize.width - compWidth) / 2
             val compTop = (canvasSize.height - compHeight) / 2
+            val resScale = compWidth / 1000f
 
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val strokeWidth = 1.dp.toPx()
                 val dashPathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
                 val guideColor = Color(0xFFFA1E4E).copy(alpha = 0.6f) // Theme accent or bright red
 
-                if (showSnapLineX) {
-                    // Vertical center line
+                snapLineX?.let { sx ->
+                    val lineX = compLeft + compWidth / 2 + (sx * resScale)
+                    val startY = if (snapExtentX != null) {
+                        compTop + compHeight / 2 + (minOf(snapExtentX!!.first, snapExtentX!!.second) * resScale)
+                    } else compTop
+                    val endY = if (snapExtentX != null) {
+                        compTop + compHeight / 2 + (maxOf(snapExtentX!!.first, snapExtentX!!.second) * resScale)
+                    } else compTop + compHeight
+
                     drawLine(
                         color = guideColor,
-                        start = Offset(compLeft + compWidth / 2, compTop),
-                        end = Offset(compLeft + compWidth / 2, compTop + compHeight),
+                        start = Offset(lineX, startY),
+                        end = Offset(lineX, endY),
                         strokeWidth = strokeWidth,
                         pathEffect = dashPathEffect
                     )
                 }
-                if (showSnapLineY) {
-                    // Horizontal center line
+                snapLineY?.let { sy ->
+                    val lineY = compTop + compHeight / 2 + (sy * resScale)
+                    val startX = if (snapExtentY != null) {
+                        compLeft + compWidth / 2 + (minOf(snapExtentY!!.first, snapExtentY!!.second) * resScale)
+                    } else compLeft
+                    val endX = if (snapExtentY != null) {
+                        compLeft + compWidth / 2 + (maxOf(snapExtentY!!.first, snapExtentY!!.second) * resScale)
+                    } else compLeft + compWidth
+
                     drawLine(
                         color = guideColor,
-                        start = Offset(compLeft, compTop + compHeight / 2),
-                        end = Offset(compLeft + compWidth, compTop + compHeight / 2),
+                        start = Offset(startX, lineY),
+                        end = Offset(endX, lineY),
                         strokeWidth = strokeWidth,
                         pathEffect = dashPathEffect
                     )

@@ -147,6 +147,7 @@ fun TextTabContent(viewModel: EditorViewModel) {
     val subheadingBold by viewModel.subheadingBold.collectAsState()
     val headingSize by viewModel.headingSize.collectAsState()
     val subheadingSize by viewModel.subheadingSize.collectAsState()
+    val textGap by viewModel.textGap.collectAsState()
     val selectedId by viewModel.selectedOverlayId.collectAsState()
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -185,6 +186,36 @@ fun TextTabContent(viewModel: EditorViewModel) {
             )
             FontPicker(selectedFont = subheadingFont, onFontSelected = { viewModel.setSubheadingFont(it) })
             
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            SectionHeader(label = "Spacing & Size", icon = Icons.Rounded.FormatSize)
+            
+            AdjustmentItem(
+                label = "Heading Size",
+                value = headingSize,
+                onValueChange = { viewModel.setHeadingSize(it) },
+                valueRange = 10f..300f,
+                showAsRaw = true,
+                icon = Icons.Rounded.Title
+            )
+            
+            AdjustmentItem(
+                label = "Subheading Size",
+                value = subheadingSize,
+                onValueChange = { viewModel.setSubheadingSize(it) },
+                valueRange = 8f..200f,
+                showAsRaw = true,
+                icon = Icons.Rounded.Subtitles
+            )
+            
+            AdjustmentItem(
+                label = "Line Gap",
+                value = textGap,
+                onValueChange = { viewModel.setTextGap(it) },
+                valueRange = 0f..200f,
+                showAsRaw = true,
+                icon = Icons.Rounded.VerticalAlignBottom
+            )
+
             val textAlignment by viewModel.textAlignment.collectAsState()
             SectionHeader(label = "Alignment", icon = Icons.Rounded.FormatAlignCenter)
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {

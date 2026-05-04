@@ -107,8 +107,48 @@ fun DeviceFrame(
     // Snapping guides state
     var snapLineX by remember { mutableStateOf<Float?>(null) }
     var snapLineY by remember { mutableStateOf<Float?>(null) }
-    var snapExtentX by remember { mutableStateOf<Pair<Float, Float>?>(null) } // (minY, maxY)
-    var snapExtentY by remember { mutableStateOf<Pair<Float, Float>?>(null) } // (minX, maxX)
+    var snapExtentX by remember { mutableStateOf<Pair<Float, Float>?>(null) }
+    var snapExtentY by remember { mutableStateOf<Pair<Float, Float>?>(null) }
+    var snapGapLines by remember { mutableStateOf<List<Rect>>(emptyList()) }
+
+    data class DesignBounds(
+        val id: String,
+        val left: Float, val top: Float, val right: Float, val bottom: Float,
+        val centerX: Float, val centerY: Float,
+        val width: Float, val height: Float
+    )
+
+    fun getLayerDesignBounds(layer: OverlayLayer): DesignBounds {
+        if (layer.type != OverlayType.TEXT) {
+            val size = 150f * layer.scale
+            return DesignBounds(
+                layer.id,
+                layer.offsetX - size / 2, layer.offsetY - size / 2,
+                layer.offsetX + size / 2, layer.offsetY + size / 2,
+                layer.offsetX, layer.offsetY,
+                size, size
+            )
+        }
+        // Text bounds calculation (simplified for snapping, matches renderer logic)
+        val hPaint = NativePaint().apply { textSize = layer.headingSize; typeface = getNativeTypeface(layer.headingFont, layer.headingBold) }
+        val sPaint = NativePaint().apply { textSize = layer.subheadingSize; typeface = getNativeTypeface(layer.subheadingFont, layer.subheadingBold) }
+        val hLines = layer.heading.split("\n")
+        val sLines = layer.subheading.split("\n")
+        var maxW = 0f
+        hLines.forEach { maxW = maxOf(maxW, hPaint.measureText(it)) }
+        sLines.forEach { maxW = maxOf(maxW, sPaint.measureText(it)) }
+        val hBlockH = if (layer.heading.isNotEmpty()) (hLines.size - 1) * hPaint.fontSpacing + (hPaint.fontMetrics.descent - hPaint.fontMetrics.ascent) else 0f
+        val sBlockH = if (layer.subheading.isNotEmpty()) (sLines.size - 1) * sPaint.fontSpacing + (sPaint.fontMetrics.descent - sPaint.fontMetrics.ascent) else 0f
+        val totalH = hBlockH + (if (layer.heading.isNotEmpty() && layer.subheading.isNotEmpty()) layer.textGap else 0f) + sBlockH
+        
+        return DesignBounds(
+            layer.id,
+            layer.offsetX - maxW / 2, layer.offsetY - totalH / 2,
+            layer.offsetX + maxW / 2, layer.offsetY + totalH / 2,
+            layer.offsetX, layer.offsetY,
+            maxW, totalH
+        )
+    }
 
     // Use rememberUpdatedState to avoid restarting pointerInput when values change
     val currentScale by rememberUpdatedState(scale)
@@ -330,42 +370,51 @@ fun DeviceFrame(
                                     val snapThreshold = 25f
                                     val curX = sessionPanX
                                     val curY = sessionPanY
+                                    val currentLayer = currentTextLayers.find { it.id == currentSelectedId } ?: return@detectTransformGestures
+                                    val moving = getLayerDesignBounds(currentLayer.copy(offsetX = curX, offsetY = curY))
                                     
                                     var sx: Float? = null
                                     var sy: Float? = null
                                     var ex: Pair<Float, Float>? = null
                                     var ey: Pair<Float, Float>? = null
 
-                                    // 1. Check canvas center (prioritize full line)
-                                    if (kotlin.math.abs(curX) < snapThreshold) {
-                                        sx = 0f
-                                    }
-                                    if (kotlin.math.abs(curY) < snapThreshold) {
-                                        sy = 0f
-                                    }
+                                    // 1. Check canvas center
+                                    if (kotlin.math.abs(curX) < snapThreshold) sx = 0f
+                                    if (kotlin.math.abs(curY) < snapThreshold) sy = 0f
 
-                                    // 2. Check other layers
-                                    currentTextLayers.forEach { other ->
-                                        if (other.id != currentSelectedId && other.isVisible) {
-                                            if (sx == null && kotlin.math.abs(curX - other.offsetX) < snapThreshold) {
-                                                sx = other.offsetX
-                                                ex = curY to other.offsetY
-                                            }
-                                            if (sy == null && kotlin.math.abs(curY - other.offsetY) < snapThreshold) {
-                                                sy = other.offsetY
-                                                ey = curX to other.offsetX
+                                    // 2. Get other components and frame bounds
+                                    val compWidth = if (canvasSize.width.toFloat() / canvasSize.height.toFloat() > currentRatio.ratio) canvasSize.height * currentRatio.ratio else canvasSize.width.toFloat()
+                                    val resScale = compWidth / 1000f
+                                    val fw = frameRect.width / resScale
+                                    val fh = frameRect.height / resScale
+                                    val frameBounds = DesignBounds("FRAME", currentFrameOffsetX - fw/2, currentFrameOffsetY - fh/2, currentFrameOffsetX + fw/2, currentFrameOffsetY + fh/2, currentFrameOffsetX, currentFrameOffsetY, fw, fh)
+                                    
+                                    val others = currentTextLayers.filter { it.id != currentSelectedId && it.isVisible }.map { getLayerDesignBounds(it) } + frameBounds
+                                    
+                                    others.forEach { other ->
+                                        // Center alignment
+                                        if (sx == null && kotlin.math.abs(moving.centerX - other.centerX) < snapThreshold) { sx = other.centerX; ex = moving.centerY to other.centerY }
+                                        if (sy == null && kotlin.math.abs(moving.centerY - other.centerY) < snapThreshold) { sy = other.centerY; ey = moving.centerX to other.centerX }
+                                        
+                                        // Edge alignment
+                                        if (sx == null && kotlin.math.abs(moving.left - other.left) < snapThreshold) { sx = other.left + moving.width/2; ex = moving.centerY to other.centerY }
+                                        if (sx == null && kotlin.math.abs(moving.right - other.right) < snapThreshold) { sx = other.right - moving.width/2; ex = moving.centerY to other.centerY }
+                                        if (sy == null && kotlin.math.abs(moving.top - other.top) < snapThreshold) { sy = other.top + moving.height/2; ey = moving.centerX to other.centerX }
+                                        if (sy == null && kotlin.math.abs(moving.bottom - other.bottom) < snapThreshold) { sy = other.bottom - moving.height/2; ey = moving.centerX to other.centerX }
+
+                                        // Vertical distribution (other is between moving and a third item)
+                                        if (sy == null && other.id != "FRAME") {
+                                            others.forEach { third ->
+                                                if (third.id != other.id && third.id != "FRAME" && third.id != "MOVING") {
+                                                    val gap1 = moving.top - other.bottom
+                                                    val gap2 = other.top - third.bottom
+                                                    if (kotlin.math.abs(gap1 - gap2) < snapThreshold) {
+                                                        sy = other.top - gap1 - moving.height/2
+                                                        ey = moving.centerX to other.centerX
+                                                    }
+                                                }
                                             }
                                         }
-                                    }
-
-                                    // 3. Check frame
-                                    if (sx == null && kotlin.math.abs(curX - currentFrameOffsetX) < snapThreshold) {
-                                        sx = currentFrameOffsetX
-                                        ex = curY to currentFrameOffsetY
-                                    }
-                                    if (sy == null && kotlin.math.abs(curY - currentFrameOffsetY) < snapThreshold) {
-                                        sy = currentFrameOffsetY
-                                        ey = curX to currentFrameOffsetX
                                     }
 
                                     snapLineX = sx

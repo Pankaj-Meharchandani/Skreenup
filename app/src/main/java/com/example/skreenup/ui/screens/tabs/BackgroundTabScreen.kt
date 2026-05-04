@@ -149,7 +149,7 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
             }
         }
 
-        if (smartPalette.isNotEmpty()) {
+        if (smartPalette.isNotEmpty() && (backgroundType == BackgroundType.SOLID || backgroundType == BackgroundType.GRADIENT)) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

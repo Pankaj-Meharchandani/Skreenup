@@ -103,6 +103,7 @@ data class OverlayLayer(
     val subheadingSize: Float = 40f,
     val textGap: Float = 20f,
     val textAlign: String = TextAlignLabel.CENTER.name,
+    val textAlignment: String = TextAlignLabel.CENTER.name,
     val headingBold: Boolean = true,
     val subheadingBold: Boolean = false,
     val textShadow: Boolean = true,

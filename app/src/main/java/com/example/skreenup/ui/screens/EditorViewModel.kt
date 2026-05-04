@@ -152,6 +152,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _textAlign = MutableStateFlow(TextAlignLabel.CENTER)
     val textAlign: StateFlow<TextAlignLabel> = _textAlign.asStateFlow()
 
+    private val _textAlignment = MutableStateFlow(TextAlignLabel.CENTER)
+    val textAlignment: StateFlow<TextAlignLabel> = _textAlignment.asStateFlow()
+
     private val _textBackgroundStyle = MutableStateFlow(TextBackgroundStyle.NONE)
     val textBackgroundStyle: StateFlow<TextBackgroundStyle> = _textBackgroundStyle.asStateFlow()
 
@@ -528,6 +531,14 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 _subheadingSize.value = layer.subheadingSize
                 _textGap.value = layer.textGap
                 _textAlign.value = try { TextAlignLabel.valueOf(layer.textAlign) } catch(e: Exception) { TextAlignLabel.CENTER }
+                // Migration: if textAlignment is default but textAlign isn't, match it
+                _textAlignment.value = try { 
+                    if (layer.textAlignment == TextAlignLabel.CENTER.name && layer.textAlign != TextAlignLabel.CENTER.name) {
+                        TextAlignLabel.valueOf(layer.textAlign)
+                    } else {
+                        TextAlignLabel.valueOf(layer.textAlignment)
+                    }
+                } catch(e: Exception) { TextAlignLabel.CENTER }
                 _headingBold.value = layer.headingBold
                 _subheadingBold.value = layer.subheadingBold
                 _textShadow.value = layer.textShadow
@@ -701,6 +712,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun setTextAlign(value: TextAlignLabel) { 
         _textAlign.value = value 
         updateSelectedOverlay { it.copy(textAlign = value.name) }
+        _isSaved.value = false
+    }
+
+    fun setTextAlignment(value: TextAlignLabel) {
+        _textAlignment.value = value
+        updateSelectedOverlay { it.copy(textAlignment = value.name) }
         _isSaved.value = false
     }
 
@@ -1070,6 +1087,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             textOffsetY = _textOffsetY.value,
             textColor = _textColor.value.toArgb(),
             textAlign = _textAlign.value.name,
+            textAlignment = _textAlignment.value.name,
             headingBold = _headingBold.value,
             subheadingBold = _subheadingBold.value,
             textShadow = _textShadow.value,
@@ -1127,7 +1145,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _screenBackgroundColor.value = Color(config.screenBackgroundColor)
 
         if (config.textLayers.isNotEmpty()) {
-            _overlayLayers.value = config.textLayers
+            _overlayLayers.value = config.textLayers.map { layer ->
+                if (layer.textAlignment == "CENTER" && layer.textAlign != "CENTER") {
+                    layer.copy(textAlignment = layer.textAlign)
+                } else layer
+            }
             config.textLayers.firstOrNull()?.let { selectOverlay(it.id) }
         } else {
             // Migration from legacy
@@ -1143,6 +1165,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 offsetY = config.textOffsetY,
                 color = if (config.textColor == -1) Color.White.toArgb() else config.textColor,
                 textAlign = config.textAlign,
+                textAlignment = if (config.textAlignment == "CENTER" && config.textAlign != "CENTER") config.textAlign else config.textAlignment,
                 headingBold = config.headingBold,
                 subheadingBold = config.subheadingBold,
                 textShadow = config.textShadow,

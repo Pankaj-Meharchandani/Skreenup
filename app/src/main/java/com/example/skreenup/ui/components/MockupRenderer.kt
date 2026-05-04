@@ -1252,7 +1252,7 @@ object MockupRenderer {
                     textSize = size * resolutionScale * layer.scale
                     isAntiAlias = true
                     alpha = (layer.alpha * 255).toInt()
-                    this.textAlign = when (layer.textAlign) {
+                    this.textAlign = when (layer.textAlignment) {
                         "LEFT" -> NativePaint.Align.LEFT
                         "RIGHT" -> NativePaint.Align.RIGHT
                         else -> NativePaint.Align.CENTER
@@ -1268,10 +1268,17 @@ object MockupRenderer {
 
             // Standardized horizontal margin (6% of design space)
             val horizontalMargin = 60f * resolutionScale
-            
-            val centerX = when (layer.textAlign) {
-                "LEFT" -> compLeft + horizontalMargin + (layer.offsetX * resolutionScale)
-                "RIGHT" -> compLeft + compWidth - horizontalMargin + (layer.offsetX * resolutionScale)
+            val headingLinesInitial = hText.split("\n")
+            val subheadingLinesInitial = sText.split("\n")
+
+            // Calculate max width for background and alignment
+            var maxWidth = 0f
+            headingLinesInitial.forEach { line -> maxWidth = maxOf(maxWidth, hPaint.measureText(line)) }
+            subheadingLinesInitial.forEach { line -> maxWidth = maxOf(maxWidth, sPaint.measureText(line)) }
+
+            val boxCenterX = when (layer.textAlign) {
+                "LEFT" -> compLeft + horizontalMargin + (layer.offsetX * resolutionScale) + maxWidth / 2
+                "RIGHT" -> compLeft + compWidth - horizontalMargin + (layer.offsetX * resolutionScale) - maxWidth / 2
                 else -> compLeft + compWidth / 2 + (layer.offsetX * resolutionScale)
             }
 
@@ -1281,9 +1288,6 @@ object MockupRenderer {
             val headingLineHeight = hPaint.fontSpacing
             val subheadingLineHeight = sPaint.fontSpacing
             val gap = layer.textGap * resolutionScale * layer.scale
-
-            val headingLinesInitial = hText.split("\n")
-            val subheadingLinesInitial = sText.split("\n")
 
             val headingBlockHeight = if (hText.isNotEmpty()) {
                 (headingLinesInitial.size - 1) * headingLineHeight + (hMetrics.descent - hMetrics.ascent)
@@ -1298,23 +1302,14 @@ object MockupRenderer {
             val blockTop = compTop + compHeight / 2 + (layer.offsetY * resolutionScale) - (totalTextHeight / 2)
 
             withTransform({
-                rotate(degrees = layer.rotation, pivot = Offset(centerX, blockTop + totalTextHeight / 2))
+                rotate(degrees = layer.rotation, pivot = Offset(boxCenterX, blockTop + totalTextHeight / 2))
             }) {
                 // ── Draw Text Background ──
                 if (layer.backgroundStyle != TextBackgroundStyle.NONE.name) {
                     val padding = layer.backgroundPadding * resolutionScale
                     val cornerRadius = layer.backgroundCornerRadius * resolutionScale
                     
-                    // Calculate max width for background
-                    var maxWidth = 0f
-                    headingLinesInitial.forEach { line -> maxWidth = maxOf(maxWidth, hPaint.measureText(line)) }
-                    subheadingLinesInitial.forEach { line -> maxWidth = maxOf(maxWidth, sPaint.measureText(line)) }
-
-                    val bgRect = when (layer.textAlign) {
-                        "LEFT" -> Rect(offset = Offset(centerX - padding, blockTop - padding), size = Size(maxWidth + padding * 2, totalTextHeight + padding * 2))
-                        "RIGHT" -> Rect(offset = Offset(centerX - maxWidth - padding, blockTop - padding), size = Size(maxWidth + padding * 2, totalTextHeight + padding * 2))
-                        else -> Rect(offset = Offset(centerX - maxWidth / 2 - padding, blockTop - padding), size = Size(maxWidth + padding * 2, totalTextHeight + padding * 2))
-                    }
+                    val bgRect = Rect(offset = Offset(boxCenterX - maxWidth / 2 - padding, blockTop - padding), size = Size(maxWidth + padding * 2, totalTextHeight + padding * 2))
 
                     val bgColor = Color(layer.backgroundColor).copy(alpha = layer.backgroundAlpha)
                     
@@ -1330,10 +1325,16 @@ object MockupRenderer {
                     }
                 }
 
+                val drawX = when (layer.textAlignment) {
+                    "LEFT" -> boxCenterX - maxWidth / 2
+                    "RIGHT" -> boxCenterX + maxWidth / 2
+                    else -> boxCenterX
+                }
+
                 if (hText.isNotEmpty()) {
                     val firstBaseline = blockTop - hMetrics.ascent
                     headingLinesInitial.forEachIndexed { index, line ->
-                        drawContext.canvas.nativeCanvas.drawText(line, centerX, firstBaseline + (index * headingLineHeight), hPaint)
+                        drawContext.canvas.nativeCanvas.drawText(line, drawX, firstBaseline + (index * headingLineHeight), hPaint)
                     }
                 }
 
@@ -1341,7 +1342,7 @@ object MockupRenderer {
                     val subBlockTop = if (hText.isNotEmpty()) blockTop + headingBlockHeight + gap else blockTop
                     val firstSubBaseline = subBlockTop - sMetrics.ascent
                     subheadingLinesInitial.forEachIndexed { index, line ->
-                        drawContext.canvas.nativeCanvas.drawText(line, centerX, firstSubBaseline + (index * subheadingLineHeight), sPaint)
+                        drawContext.canvas.nativeCanvas.drawText(line, drawX, firstSubBaseline + (index * subheadingLineHeight), sPaint)
                     }
                 }
             }

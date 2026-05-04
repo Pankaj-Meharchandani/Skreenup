@@ -28,6 +28,7 @@ data class EditorConfig(
     val textOffsetY: Float = 0f,
     val textColor: Int = -1,
     val textAlign: String = "CENTER",
+    val textAlignment: String = "CENTER",
     val headingBold: Boolean = true,
     val subheadingBold: Boolean = false,
     val textShadow: Boolean = true,

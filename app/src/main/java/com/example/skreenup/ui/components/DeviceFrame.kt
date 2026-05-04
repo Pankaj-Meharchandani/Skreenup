@@ -544,7 +544,7 @@ fun DeviceFrame(
                         Column(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = when (layer.textAlign) {
+                            horizontalAlignment = when (layer.textAlignment) {
                                 "LEFT" -> Alignment.Start
                                 "RIGHT" -> Alignment.End
                                 else -> Alignment.CenterHorizontally
@@ -555,7 +555,7 @@ fun DeviceFrame(
                                 onValueChange = { newVal -> onTextLayerUpdate(layer.id) { it.copy(heading = newVal) } },
                                 textStyle = TextStyle(
                                     fontSize = with(LocalDensity.current) { (layer.headingSize * resScale).toSp() },
-                                    textAlign = when (layer.textAlign) {
+                                    textAlign = when (layer.textAlignment) {
                                         "LEFT" -> androidx.compose.ui.text.style.TextAlign.Left
                                         "RIGHT" -> androidx.compose.ui.text.style.TextAlign.Right
                                         else -> androidx.compose.ui.text.style.TextAlign.Center
@@ -577,7 +577,7 @@ fun DeviceFrame(
                                 onValueChange = { newVal -> onTextLayerUpdate(layer.id) { it.copy(subheading = newVal) } },
                                 textStyle = TextStyle(
                                     fontSize = with(LocalDensity.current) { (layer.subheadingSize * resScale).toSp() },
-                                    textAlign = when (layer.textAlign) {
+                                    textAlign = when (layer.textAlignment) {
                                         "LEFT" -> androidx.compose.ui.text.style.TextAlign.Left
                                         "RIGHT" -> androidx.compose.ui.text.style.TextAlign.Right
                                         else -> androidx.compose.ui.text.style.TextAlign.Center

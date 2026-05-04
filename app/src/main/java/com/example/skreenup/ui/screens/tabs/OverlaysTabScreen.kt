@@ -185,6 +185,29 @@ fun TextTabContent(viewModel: EditorViewModel) {
             )
             FontPicker(selectedFont = subheadingFont, onFontSelected = { viewModel.setSubheadingFont(it) })
             
+            val textAlignment by viewModel.textAlignment.collectAsState()
+            SectionHeader(label = "Alignment", icon = Icons.Rounded.FormatAlignCenter)
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                TextAlignLabel.entries.forEachIndexed { index, label ->
+                    SegmentedButton(
+                        selected = textAlignment == label,
+                        onClick = { viewModel.setTextAlignment(label) },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = TextAlignLabel.entries.size),
+                        icon = {
+                            Icon(
+                                when (label) {
+                                    TextAlignLabel.LEFT -> Icons.AutoMirrored.Rounded.FormatAlignLeft
+                                    TextAlignLabel.CENTER -> Icons.Rounded.FormatAlignCenter
+                                    TextAlignLabel.RIGHT -> Icons.AutoMirrored.Rounded.FormatAlignRight
+                                },
+                                null
+                            )
+                        },
+                        label = { Text(label.label) }
+                    )
+                }
+            }
+
             // Shared controls (Color, Opacity, etc. can be added here or in a generic section)
             CommonOverlayControls(viewModel)
         } else {

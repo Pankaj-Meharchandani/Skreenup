@@ -15,7 +15,7 @@ data class EditorConfig(
     val backgroundImageScale: Float = 1.0f,
     val backgroundImageBlur: Float = 0f,
     val screenBackgroundColor: Int,
-    val textLayers: List<TextLayer> = emptyList(),
+    val textLayers: List<OverlayLayer> = emptyList(),
     // Legacy fields for migration
     val heading: String = "",
     val subheading: String = "",
@@ -28,6 +28,7 @@ data class EditorConfig(
     val textOffsetY: Float = 0f,
     val textColor: Int = -1,
     val textAlign: String = "CENTER",
+    val textAlignment: String = "CENTER",
     val headingBold: Boolean = true,
     val subheadingBold: Boolean = false,
     val textShadow: Boolean = true,

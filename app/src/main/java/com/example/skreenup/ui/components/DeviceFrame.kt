@@ -51,6 +51,9 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.models.CompositionAspectRatio
+import com.example.skreenup.ui.models.OverlayLayer
+import com.example.skreenup.ui.models.OverlayType
+import com.example.skreenup.ui.models.DecorationShape
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.components.MockupRenderer.drawMockup
 
@@ -77,7 +80,7 @@ fun DeviceFrame(
     rotationDegrees: Float = 0f,
     screenshotRotation: Float = 0f,
     screenBackgroundColor: Color = Color(0xFF2C2C2C),
-    textLayers: List<com.example.skreenup.ui.models.TextLayer> = emptyList(),
+    textLayers: List<OverlayLayer> = emptyList(),
     selectedTextLayerId: String? = null,
     showReflection: Boolean = true,
     shadowIntensity: Float = 0.3f,
@@ -87,7 +90,7 @@ fun DeviceFrame(
     onScaleChange: (Float) -> Unit = {},
     onRotationChange: (Float) -> Unit = {},
     onFrameOffsetChange: (Float, Float) -> Unit = { _, _ -> },
-    onTextLayerUpdate: (String, (com.example.skreenup.ui.models.TextLayer) -> com.example.skreenup.ui.models.TextLayer) -> Unit = { _, _ -> },
+    onTextLayerUpdate: (String, (OverlayLayer) -> OverlayLayer) -> Unit = { _, _ -> },
     onDeleteTextLayer: (String) -> Unit = {},
     onSelectTextLayer: (String?) -> Unit = {},
     onAddScreenshot: () -> Unit = {}
@@ -102,8 +105,50 @@ fun DeviceFrame(
     var sessionRotation by remember { mutableStateOf(0f) }
 
     // Snapping guides state
-    var showSnapLineX by remember { mutableStateOf(false) }
-    var showSnapLineY by remember { mutableStateOf(false) }
+    var snapLineX by remember { mutableStateOf<Float?>(null) }
+    var snapLineY by remember { mutableStateOf<Float?>(null) }
+    var snapExtentX by remember { mutableStateOf<Pair<Float, Float>?>(null) }
+    var snapExtentY by remember { mutableStateOf<Pair<Float, Float>?>(null) }
+    var snapGapLines by remember { mutableStateOf<List<Rect>>(emptyList()) }
+
+    data class DesignBounds(
+        val id: String,
+        val left: Float, val top: Float, val right: Float, val bottom: Float,
+        val centerX: Float, val centerY: Float,
+        val width: Float, val height: Float
+    )
+
+    fun getLayerDesignBounds(layer: OverlayLayer): DesignBounds {
+        if (layer.type != OverlayType.TEXT) {
+            val size = 150f * layer.scale
+            return DesignBounds(
+                layer.id,
+                layer.offsetX - size / 2, layer.offsetY - size / 2,
+                layer.offsetX + size / 2, layer.offsetY + size / 2,
+                layer.offsetX, layer.offsetY,
+                size, size
+            )
+        }
+        // Text bounds calculation (simplified for snapping, matches renderer logic)
+        val hPaint = NativePaint().apply { textSize = layer.headingSize; typeface = getNativeTypeface(layer.headingFont, layer.headingBold) }
+        val sPaint = NativePaint().apply { textSize = layer.subheadingSize; typeface = getNativeTypeface(layer.subheadingFont, layer.subheadingBold) }
+        val hLines = layer.heading.split("\n")
+        val sLines = layer.subheading.split("\n")
+        var maxW = 0f
+        hLines.forEach { maxW = maxOf(maxW, hPaint.measureText(it)) }
+        sLines.forEach { maxW = maxOf(maxW, sPaint.measureText(it)) }
+        val hBlockH = if (layer.heading.isNotEmpty()) (hLines.size - 1) * hPaint.fontSpacing + (hPaint.fontMetrics.descent - hPaint.fontMetrics.ascent) else 0f
+        val sBlockH = if (layer.subheading.isNotEmpty()) (sLines.size - 1) * sPaint.fontSpacing + (sPaint.fontMetrics.descent - sPaint.fontMetrics.ascent) else 0f
+        val totalH = hBlockH + (if (layer.heading.isNotEmpty() && layer.subheading.isNotEmpty()) layer.textGap else 0f) + sBlockH
+        
+        return DesignBounds(
+            layer.id,
+            layer.offsetX - maxW / 2, layer.offsetY - totalH / 2,
+            layer.offsetX + maxW / 2, layer.offsetY + totalH / 2,
+            layer.offsetX, layer.offsetY,
+            maxW, totalH
+        )
+    }
 
     // Use rememberUpdatedState to avoid restarting pointerInput when values change
     val currentScale by rememberUpdatedState(scale)
@@ -173,11 +218,11 @@ fun DeviceFrame(
                             selectedId = currentSelectedId
                         )
                         when (hit) {
-                            is HitResult.Text -> {
+                            is HitResult.Overlay -> {
                                 onSelectTextLayer(hit.id)
                                 isEditingTextId = null // Reset editing if just selecting
                             }
-                            is HitResult.DeleteText -> {
+                            is HitResult.DeleteOverlay -> {
                                 onDeleteTextLayer(hit.id)
                                 isEditingTextId = null
                             }
@@ -200,9 +245,12 @@ fun DeviceFrame(
                             textLayers = currentTextLayers,
                             selectedId = currentSelectedId
                         )
-                        if (hit is HitResult.Text) {
+                        if (hit is HitResult.Overlay) {
                             onSelectTextLayer(hit.id)
-                            isEditingTextId = hit.id
+                            val layer = currentTextLayers.find { it.id == hit.id }
+                            if (layer?.type == OverlayType.TEXT) {
+                                isEditingTextId = hit.id
+                            }
                         }
                     }
                 )
@@ -229,15 +277,15 @@ fun DeviceFrame(
                                 sessionPanY = currentFrameOffsetY
                                 sessionRotation = currentRotation
                             }
-                            is HitResult.Text -> {
+                            is HitResult.Overlay -> {
                                 activeTarget = Target.TEXT
                                 onSelectTextLayer(hit.id)
                                 val layer = currentTextLayers.find { it.id == hit.id }
                                 sessionPanX = layer?.offsetX ?: 0f
                                 sessionPanY = layer?.offsetY ?: 0f
-                                sessionRotation = 0f
+                                sessionRotation = layer?.rotation ?: 0f
                             }
-                            is HitResult.DeleteText -> {
+                            is HitResult.DeleteOverlay -> {
                                 activeTarget = Target.NONE
                             }
                             HitResult.NONE -> {
@@ -252,10 +300,14 @@ fun DeviceFrame(
                     if (zoom != 1f) {
                         if (activeTarget == Target.TEXT && currentSelectedId != null) {
                             onTextLayerUpdate(currentSelectedId!!) { layer ->
-                                layer.copy(
-                                    headingSize = (layer.headingSize * zoom).coerceIn(10f, 300f),
-                                    subheadingSize = (layer.subheadingSize * zoom).coerceIn(8f, 200f)
-                                )
+                                if (layer.type == OverlayType.TEXT) {
+                                    layer.copy(
+                                        headingSize = (layer.headingSize * zoom).coerceIn(10f, 300f),
+                                        subheadingSize = (layer.subheadingSize * zoom).coerceIn(8f, 200f)
+                                    )
+                                } else {
+                                    layer.copy(scale = (layer.scale * zoom).coerceIn(0.1f, 10f))
+                                }
                             }
                         } else {
                             onScaleChange((currentScale * zoom).coerceIn(0.1f, 2.0f))
@@ -263,21 +315,27 @@ fun DeviceFrame(
                     }
 
                     // 2. Handle Rotation (Two fingers)
-                    if (rotationChange != 0f && activeTarget == Target.FRAME) {
-                        sessionRotation = (sessionRotation + rotationChange) % 360f
-                        if (sessionRotation < 0) sessionRotation += 360f
-                        
-                        val snapPoints = listOf(0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f, 360f)
-                        val snapThreshold = 6f // Degrees
-                        
-                        var finalRotation = sessionRotation
-                        for (point in snapPoints) {
-                            if (kotlin.math.abs(sessionRotation - point) < snapThreshold) {
-                                finalRotation = if (point == 360f) 0f else point
-                                break
+                    if (rotationChange != 0f) {
+                        if (activeTarget == Target.TEXT && currentSelectedId != null) {
+                            sessionRotation = (sessionRotation + rotationChange) % 360f
+                            if (sessionRotation < 0) sessionRotation += 360f
+                            onRotationChange(sessionRotation)
+                        } else if (activeTarget == Target.FRAME) {
+                            sessionRotation = (sessionRotation + rotationChange) % 360f
+                            if (sessionRotation < 0) sessionRotation += 360f
+                            
+                            val snapPoints = listOf(0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f, 360f)
+                            val snapThreshold = 6f // Degrees
+                            
+                            var finalRotation = sessionRotation
+                            for (point in snapPoints) {
+                                if (kotlin.math.abs(sessionRotation - point) < snapThreshold) {
+                                    finalRotation = if (point == 360f) 0f else point
+                                    break
+                                }
                             }
+                            onRotationChange(finalRotation)
                         }
-                        onRotationChange(finalRotation)
                     }
 
                     // 3. Handle Pan
@@ -298,24 +356,72 @@ fun DeviceFrame(
                         when (activeTarget) {
                             Target.FRAME -> {
                                 val snapThreshold = 25f
-                                val snapX = kotlin.math.abs(sessionPanX) < snapThreshold
-                                val snapY = kotlin.math.abs(sessionPanY) < snapThreshold
-                                val finalX = if (snapX) 0f else sessionPanX
-                                val finalY = if (snapY) 0f else sessionPanY
-                                showSnapLineX = snapX
-                                showSnapLineY = snapY
-                                onFrameOffsetChange(finalX, finalY)
+                                val snapX = if (kotlin.math.abs(sessionPanX) < snapThreshold) 0f else null
+                                val snapY = if (kotlin.math.abs(sessionPanY) < snapThreshold) 0f else null
+                                
+                                snapLineX = snapX
+                                snapLineY = snapY
+                                snapExtentX = null
+                                snapExtentY = null
+                                onFrameOffsetChange(snapX ?: sessionPanX, snapY ?: sessionPanY)
                             }
                             Target.TEXT -> {
                                 if (currentSelectedId != null) {
                                     val snapThreshold = 25f
-                                    val snapX = kotlin.math.abs(sessionPanX) < snapThreshold
-                                    val snapY = kotlin.math.abs(sessionPanY) < snapThreshold
-                                    val finalX = if (snapX) 0f else sessionPanX
-                                    val finalY = if (snapY) 0f else sessionPanY
-                                    showSnapLineX = snapX
-                                    showSnapLineY = snapY
-                                    onTextLayerUpdate(currentSelectedId!!) { it.copy(offsetX = finalX, offsetY = finalY) }
+                                    val curX = sessionPanX
+                                    val curY = sessionPanY
+                                    val currentLayer = currentTextLayers.find { it.id == currentSelectedId } ?: return@detectTransformGestures
+                                    val moving = getLayerDesignBounds(currentLayer.copy(offsetX = curX, offsetY = curY))
+                                    
+                                    var sx: Float? = null
+                                    var sy: Float? = null
+                                    var ex: Pair<Float, Float>? = null
+                                    var ey: Pair<Float, Float>? = null
+
+                                    // 1. Check canvas center
+                                    if (kotlin.math.abs(curX) < snapThreshold) sx = 0f
+                                    if (kotlin.math.abs(curY) < snapThreshold) sy = 0f
+
+                                    // 2. Get other components and frame bounds
+                                    val compWidth = if (canvasSize.width.toFloat() / canvasSize.height.toFloat() > currentRatio.ratio) canvasSize.height * currentRatio.ratio else canvasSize.width.toFloat()
+                                    val resScale = compWidth / 1000f
+                                    val fw = frameRect.width / resScale
+                                    val fh = frameRect.height / resScale
+                                    val frameBounds = DesignBounds("FRAME", currentFrameOffsetX - fw/2, currentFrameOffsetY - fh/2, currentFrameOffsetX + fw/2, currentFrameOffsetY + fh/2, currentFrameOffsetX, currentFrameOffsetY, fw, fh)
+                                    
+                                    val others = currentTextLayers.filter { it.id != currentSelectedId && it.isVisible }.map { getLayerDesignBounds(it) } + frameBounds
+                                    
+                                    others.forEach { other ->
+                                        // Center alignment
+                                        if (sx == null && kotlin.math.abs(moving.centerX - other.centerX) < snapThreshold) { sx = other.centerX; ex = moving.centerY to other.centerY }
+                                        if (sy == null && kotlin.math.abs(moving.centerY - other.centerY) < snapThreshold) { sy = other.centerY; ey = moving.centerX to other.centerX }
+                                        
+                                        // Edge alignment
+                                        if (sx == null && kotlin.math.abs(moving.left - other.left) < snapThreshold) { sx = other.left + moving.width/2; ex = moving.centerY to other.centerY }
+                                        if (sx == null && kotlin.math.abs(moving.right - other.right) < snapThreshold) { sx = other.right - moving.width/2; ex = moving.centerY to other.centerY }
+                                        if (sy == null && kotlin.math.abs(moving.top - other.top) < snapThreshold) { sy = other.top + moving.height/2; ey = moving.centerX to other.centerX }
+                                        if (sy == null && kotlin.math.abs(moving.bottom - other.bottom) < snapThreshold) { sy = other.bottom - moving.height/2; ey = moving.centerX to other.centerX }
+
+                                        // Vertical distribution (other is between moving and a third item)
+                                        if (sy == null && other.id != "FRAME") {
+                                            others.forEach { third ->
+                                                if (third.id != other.id && third.id != "FRAME" && third.id != "MOVING") {
+                                                    val gap1 = moving.top - other.bottom
+                                                    val gap2 = other.top - third.bottom
+                                                    if (kotlin.math.abs(gap1 - gap2) < snapThreshold) {
+                                                        sy = other.top - gap1 - moving.height/2
+                                                        ey = moving.centerX to other.centerX
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    snapLineX = sx
+                                    snapLineY = sy
+                                    snapExtentX = ex
+                                    snapExtentY = ey
+                                    onTextLayerUpdate(currentSelectedId!!) { it.copy(offsetX = sx ?: curX, offsetY = sy ?: curY) }
                                 }
                             }
                             else -> {}
@@ -330,8 +436,10 @@ fun DeviceFrame(
                         val event = awaitPointerEvent()
                         if (event.changes.all { !it.pressed }) {
                             activeTarget = Target.NONE
-                            showSnapLineX = false
-                            showSnapLineY = false
+                            snapLineX = null
+                            snapLineY = null
+                            snapExtentX = null
+                            snapExtentY = null
                         }
                     }
                 }
@@ -372,7 +480,7 @@ fun DeviceFrame(
         }
 
         // ── Snapping Guidelines (Overlay) ──
-        if (showSnapLineX || showSnapLineY) {
+        if (snapLineX != null || snapLineY != null) {
             val compWidth = if (canvasSize.width.toFloat() / canvasSize.height.toFloat() > currentRatio.ratio) {
                 canvasSize.height * currentRatio.ratio
             } else {
@@ -381,28 +489,43 @@ fun DeviceFrame(
             val compHeight = compWidth / currentRatio.ratio
             val compLeft = (canvasSize.width - compWidth) / 2
             val compTop = (canvasSize.height - compHeight) / 2
+            val resScale = compWidth / 1000f
 
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val strokeWidth = 1.dp.toPx()
                 val dashPathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
                 val guideColor = Color(0xFFFA1E4E).copy(alpha = 0.6f) // Theme accent or bright red
 
-                if (showSnapLineX) {
-                    // Vertical center line
+                snapLineX?.let { sx ->
+                    val lineX = compLeft + compWidth / 2 + (sx * resScale)
+                    val startY = if (snapExtentX != null) {
+                        compTop + compHeight / 2 + (minOf(snapExtentX!!.first, snapExtentX!!.second) * resScale)
+                    } else compTop
+                    val endY = if (snapExtentX != null) {
+                        compTop + compHeight / 2 + (maxOf(snapExtentX!!.first, snapExtentX!!.second) * resScale)
+                    } else compTop + compHeight
+
                     drawLine(
                         color = guideColor,
-                        start = Offset(compLeft + compWidth / 2, compTop),
-                        end = Offset(compLeft + compWidth / 2, compTop + compHeight),
+                        start = Offset(lineX, startY),
+                        end = Offset(lineX, endY),
                         strokeWidth = strokeWidth,
                         pathEffect = dashPathEffect
                     )
                 }
-                if (showSnapLineY) {
-                    // Horizontal center line
+                snapLineY?.let { sy ->
+                    val lineY = compTop + compHeight / 2 + (sy * resScale)
+                    val startX = if (snapExtentY != null) {
+                        compLeft + compWidth / 2 + (minOf(snapExtentY!!.first, snapExtentY!!.second) * resScale)
+                    } else compLeft
+                    val endX = if (snapExtentY != null) {
+                        compLeft + compWidth / 2 + (maxOf(snapExtentY!!.first, snapExtentY!!.second) * resScale)
+                    } else compLeft + compWidth
+
                     drawLine(
                         color = guideColor,
-                        start = Offset(compLeft, compTop + compHeight / 2),
-                        end = Offset(compLeft + compWidth, compTop + compHeight / 2),
+                        start = Offset(startX, lineY),
+                        end = Offset(endX, lineY),
                         strokeWidth = strokeWidth,
                         pathEffect = dashPathEffect
                     )
@@ -431,53 +554,67 @@ fun DeviceFrame(
                 val compTop = (canvasHeight - compHeight) / 2
                 val resScale = compWidth / 1000f
 
-                // Re-calculate bounds (same logic as renderer)
-                val hPaint = NativePaint().apply {
-                    textSize = layer.headingSize * resScale
-                    typeface = getNativeTypeface(layer.headingFont, layer.headingBold)
+                var rectLeft: Float
+                var rectTop: Float
+                var rectW: Float
+                var rectH: Float
+                var gap = 0f
+
+                if (layer.type == OverlayType.TEXT) {
+                    // Re-calculate bounds (same logic as renderer)
+                    val hPaint = NativePaint().apply {
+                        textSize = layer.headingSize * resScale
+                        typeface = getNativeTypeface(layer.headingFont, layer.headingBold)
+                    }
+                    val sPaint = NativePaint().apply {
+                        textSize = layer.subheadingSize * resScale
+                        typeface = getNativeTypeface(layer.subheadingFont, layer.subheadingBold)
+                    }
+
+                    val hLines = layer.heading.split("\n")
+                    val sLines = layer.subheading.split("\n")
+                    
+                    var maxW = 0f
+                    hLines.forEach { maxW = maxOf(maxW, hPaint.measureText(it)) }
+                    sLines.forEach { maxW = maxOf(maxW, sPaint.measureText(it)) }
+
+                    val hSpacing = hPaint.fontSpacing
+                    val sSpacing = sPaint.fontSpacing
+                    val hMetrics = hPaint.fontMetrics
+                    val sMetrics = sPaint.fontMetrics
+                    
+                    val hBlockH = if (layer.heading.isNotEmpty()) (hLines.size - 1) * hSpacing + (hMetrics.descent - hMetrics.ascent) else 0f
+                    val sBlockH = if (layer.subheading.isNotEmpty()) (sLines.size - 1) * sSpacing + (sMetrics.descent - sMetrics.ascent) else 0f
+                    gap = layer.textGap * resScale
+                    val totalH = hBlockH + (if (layer.heading.isNotEmpty() && layer.subheading.isNotEmpty()) gap else 0f) + sBlockH
+
+                    val textCenterY = compTop + compHeight / 2 + (layer.offsetY * resScale)
+                    val blockTop = textCenterY - (totalH / 2)
+
+                    val horizontalMargin = 60f * resScale
+                    val centerX = when (layer.textAlign) {
+                        "LEFT" -> compLeft + horizontalMargin + (layer.offsetX * resScale)
+                        "RIGHT" -> compLeft + compWidth - horizontalMargin + (layer.offsetX * resScale)
+                        else -> compLeft + compWidth / 2 + (layer.offsetX * resScale)
+                    }
+
+                    val paddingPx = 0f // No padding for closer alignment
+                    
+                    rectLeft = when (layer.textAlign) {
+                        "LEFT" -> centerX - paddingPx
+                        "RIGHT" -> centerX - maxW - paddingPx
+                        else -> centerX - (maxW / 2) - paddingPx
+                    }
+                    rectTop = blockTop - paddingPx
+                    rectW = maxW + (paddingPx * 2)
+                    rectH = totalH + (paddingPx * 2)
+                } else {
+                    val size = 150f * resScale * layer.scale
+                    rectW = size
+                    rectH = size
+                    rectLeft = compLeft + compWidth / 2 + (layer.offsetX * resScale) - (rectW / 2)
+                    rectTop = compTop + compHeight / 2 + (layer.offsetY * resScale) - (rectH / 2)
                 }
-                val sPaint = NativePaint().apply {
-                    textSize = layer.subheadingSize * resScale
-                    typeface = getNativeTypeface(layer.subheadingFont, layer.subheadingBold)
-                }
-
-                val hLines = layer.heading.split("\n")
-                val sLines = layer.subheading.split("\n")
-                
-                var maxW = 0f
-                hLines.forEach { maxW = maxOf(maxW, hPaint.measureText(it)) }
-                sLines.forEach { maxW = maxOf(maxW, sPaint.measureText(it)) }
-
-                val hSpacing = hPaint.fontSpacing
-                val sSpacing = sPaint.fontSpacing
-                val hMetrics = hPaint.fontMetrics
-                val sMetrics = sPaint.fontMetrics
-                
-                val hBlockH = if (layer.heading.isNotEmpty()) (hLines.size - 1) * hSpacing + (hMetrics.descent - hMetrics.ascent) else 0f
-                val sBlockH = if (layer.subheading.isNotEmpty()) (sLines.size - 1) * sSpacing + (sMetrics.descent - sMetrics.ascent) else 0f
-                val gap = layer.textGap * resScale
-                val totalH = hBlockH + (if (layer.heading.isNotEmpty() && layer.subheading.isNotEmpty()) gap else 0f) + sBlockH
-
-                val textCenterY = compTop + compHeight / 2 + (layer.offsetY * resScale)
-                val blockTop = textCenterY - (totalH / 2)
-
-                val horizontalMargin = 60f * resScale
-                val centerX = when (layer.textAlign) {
-                    "LEFT" -> compLeft + horizontalMargin + (layer.offsetX * resScale)
-                    "RIGHT" -> compLeft + compWidth - horizontalMargin + (layer.offsetX * resScale)
-                    else -> compLeft + compWidth / 2 + (layer.offsetX * resScale)
-                }
-
-                val paddingPx = 0f // No padding for closer alignment
-                
-                val rectLeft = when (layer.textAlign) {
-                    "LEFT" -> centerX - paddingPx
-                    "RIGHT" -> centerX - maxW - paddingPx
-                    else -> centerX - (maxW / 2) - paddingPx
-                }
-                val rectTop = blockTop - paddingPx
-                val rectW = maxW + (paddingPx * 2)
-                val rectH = totalH + (paddingPx * 2)
 
                 // Selection Box & Edit Fields
                 Box(
@@ -489,6 +626,7 @@ fun DeviceFrame(
                         .graphicsLayer {
                             translationX = rectLeft
                             translationY = rectTop
+                            rotationZ = layer.rotation
                         }
                         .border(
                             width = 1.dp,
@@ -508,12 +646,12 @@ fun DeviceFrame(
                         Icon(Icons.Rounded.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
                     }
 
-                    // Direct Edit Fields
-                    if (isEditingTextId == layer.id) {
+                    // Direct Edit Fields (Only for Text)
+                    if (isEditingTextId == layer.id && layer.type == OverlayType.TEXT) {
                         Column(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = when (layer.textAlign) {
+                            horizontalAlignment = when (layer.textAlignment) {
                                 "LEFT" -> Alignment.Start
                                 "RIGHT" -> Alignment.End
                                 else -> Alignment.CenterHorizontally
@@ -524,12 +662,12 @@ fun DeviceFrame(
                                 onValueChange = { newVal -> onTextLayerUpdate(layer.id) { it.copy(heading = newVal) } },
                                 textStyle = TextStyle(
                                     fontSize = with(LocalDensity.current) { (layer.headingSize * resScale).toSp() },
-                                    textAlign = when (layer.textAlign) {
+                                    textAlign = when (layer.textAlignment) {
                                         "LEFT" -> androidx.compose.ui.text.style.TextAlign.Left
                                         "RIGHT" -> androidx.compose.ui.text.style.TextAlign.Right
                                         else -> androidx.compose.ui.text.style.TextAlign.Center
                                     },
-                                    color = Color(layer.textColor),
+                                    color = Color(layer.color),
                                     fontWeight = if (layer.headingBold) FontWeight.Bold else FontWeight.Normal,
                                     fontFamily = getComposeFontFamily(layer.headingFont),
                                     shadow = if (layer.textShadow) Shadow(
@@ -546,12 +684,12 @@ fun DeviceFrame(
                                 onValueChange = { newVal -> onTextLayerUpdate(layer.id) { it.copy(subheading = newVal) } },
                                 textStyle = TextStyle(
                                     fontSize = with(LocalDensity.current) { (layer.subheadingSize * resScale).toSp() },
-                                    textAlign = when (layer.textAlign) {
+                                    textAlign = when (layer.textAlignment) {
                                         "LEFT" -> androidx.compose.ui.text.style.TextAlign.Left
                                         "RIGHT" -> androidx.compose.ui.text.style.TextAlign.Right
                                         else -> androidx.compose.ui.text.style.TextAlign.Center
                                     },
-                                    color = Color(layer.textColor).copy(alpha = 0.8f),
+                                    color = Color(layer.color).copy(alpha = 0.8f),
                                     fontWeight = if (layer.subheadingBold) FontWeight.Bold else FontWeight.Normal,
                                     fontFamily = getComposeFontFamily(layer.subheadingFont),
                                     shadow = if (layer.textShadow) Shadow(
@@ -634,8 +772,8 @@ private enum class Target { NONE, FRAME, TEXT, BACKGROUND }
 private sealed class HitResult {
     object NONE : HitResult()
     object Frame : HitResult()
-    data class Text(val id: String) : HitResult()
-    data class DeleteText(val id: String) : HitResult()
+    data class Overlay(val id: String) : HitResult()
+    data class DeleteOverlay(val id: String) : HitResult()
 }
 
 private fun hitTest(
@@ -646,7 +784,7 @@ private fun hitTest(
     scale: Float,
     frameOffsetX: Float,
     frameOffsetY: Float,
-    textLayers: List<com.example.skreenup.ui.models.TextLayer>,
+    textLayers: List<OverlayLayer>,
     selectedId: String? = null
 ): HitResult {
     val canvasWidth = canvasSize.width.toFloat()
@@ -667,74 +805,91 @@ private fun hitTest(
     val compTop = (canvasHeight - compHeight) / 2
     val exportScaleFactor = compWidth / 1000f
 
-    // 2. Check Text Hit (Rough bounding box) - Reverse order for top-most first
+    // 2. Check Overlay Hit
     textLayers.asReversed().forEach { layer ->
         if (!layer.isVisible) return@forEach
 
-        val textCenterX = compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor)
-        val textCenterY = compTop + compHeight / 2 + (layer.offsetY * exportScaleFactor)
-        
-        val hPaint = NativePaint().apply {
-            textSize = layer.headingSize * exportScaleFactor
-            typeface = getNativeTypeface(layer.headingFont, layer.headingBold)
-        }
-        val sPaint = NativePaint().apply {
-            textSize = layer.subheadingSize * exportScaleFactor
-            typeface = getNativeTypeface(layer.subheadingFont, layer.subheadingBold)
-        }
-
-        val hLines = layer.heading.split("\n")
-        val sLines = layer.subheading.split("\n")
-        
-        var maxW = 0f
-        hLines.forEach { maxW = maxOf(maxW, hPaint.measureText(it)) }
-        sLines.forEach { maxW = maxOf(maxW, sPaint.measureText(it)) }
-
-        val hSpacing = hPaint.fontSpacing
-        val sSpacing = sPaint.fontSpacing
-        val hMetrics = hPaint.fontMetrics
-        val sMetrics = sPaint.fontMetrics
-        
-        val hBlockH = if (layer.heading.isNotEmpty()) (hLines.size - 1) * hSpacing + (hMetrics.descent - hMetrics.ascent) else 0f
-        val sBlockH = if (layer.subheading.isNotEmpty()) (sLines.size - 1) * sSpacing + (sMetrics.descent - sMetrics.ascent) else 0f
-        val gap = layer.textGap * exportScaleFactor
-        val totalHeight = hBlockH + (if (layer.heading.isNotEmpty() && layer.subheading.isNotEmpty()) gap else 0f) + sBlockH
-        
-        val blockTop = textCenterY - (totalHeight / 2)
-        
-        val horizontalMargin = 60f * exportScaleFactor
-        val centerX = when (layer.textAlign) {
-            "LEFT" -> compLeft + horizontalMargin + (layer.offsetX * exportScaleFactor)
-            "RIGHT" -> compLeft + compWidth - horizontalMargin + (layer.offsetX * exportScaleFactor)
-            else -> compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor)
-        }
-
-        // Use a more accurate hit test
         val hitPadding = 20f * exportScaleFactor
-        val rectLeft = when (layer.textAlign) {
-            "LEFT" -> centerX - hitPadding
-            "RIGHT" -> centerX - maxW - hitPadding
-            else -> centerX - (maxW / 2) - hitPadding
+        var rectLeft: Float
+        var rectTop: Float
+        var rectWidth: Float
+        var rectHeight: Float
+
+        if (layer.type == OverlayType.TEXT) {
+            val textCenterX = compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor)
+            val textCenterY = compTop + compHeight / 2 + (layer.offsetY * exportScaleFactor)
+            
+            val hPaint = NativePaint().apply {
+                textSize = layer.headingSize * exportScaleFactor
+                typeface = getNativeTypeface(layer.headingFont, layer.headingBold)
+            }
+            val sPaint = NativePaint().apply {
+                textSize = layer.subheadingSize * exportScaleFactor
+                typeface = getNativeTypeface(layer.subheadingFont, layer.subheadingBold)
+            }
+
+            val hLines = layer.heading.split("\n")
+            val sLines = layer.subheading.split("\n")
+            
+            var maxW = 0f
+            hLines.forEach { maxW = maxOf(maxW, hPaint.measureText(it)) }
+            sLines.forEach { maxW = maxOf(maxW, sPaint.measureText(it)) }
+
+            val hSpacing = hPaint.fontSpacing
+            val sSpacing = sPaint.fontSpacing
+            val hMetrics = hPaint.fontMetrics
+            val sMetrics = sPaint.fontMetrics
+            
+            val hBlockH = if (layer.heading.isNotEmpty()) (hLines.size - 1) * hSpacing + (hMetrics.descent - hMetrics.ascent) else 0f
+            val sBlockH = if (layer.subheading.isNotEmpty()) (sLines.size - 1) * sSpacing + (sMetrics.descent - sMetrics.ascent) else 0f
+            val gap = layer.textGap * exportScaleFactor
+            val totalHeight = hBlockH + (if (layer.heading.isNotEmpty() && layer.subheading.isNotEmpty()) gap else 0f) + sBlockH
+            
+            val blockTop = textCenterY - (totalHeight / 2)
+            
+            val horizontalMargin = 60f * exportScaleFactor
+            val centerX = when (layer.textAlign) {
+                "LEFT" -> compLeft + horizontalMargin + (layer.offsetX * exportScaleFactor)
+                "RIGHT" -> compLeft + compWidth - horizontalMargin + (layer.offsetX * exportScaleFactor)
+                else -> compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor)
+            }
+
+            rectLeft = when (layer.textAlign) {
+                "LEFT" -> centerX - hitPadding
+                "RIGHT" -> centerX - maxW - hitPadding
+                else -> centerX - (maxW / 2) - hitPadding
+            }
+            rectTop = blockTop - hitPadding
+            rectWidth = maxW + (hitPadding * 2)
+            rectHeight = totalHeight + (hitPadding * 2)
+        } else {
+            // SHAPE / ARROW / BUBBLE hit test (simplified to 100x100 base scaled)
+            val size = 150f * exportScaleFactor * layer.scale
+            rectWidth = size + hitPadding * 2
+            rectHeight = size + hitPadding * 2
+            rectLeft = compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor) - (rectWidth / 2)
+            rectTop = compTop + compHeight / 2 + (layer.offsetY * exportScaleFactor) - (rectHeight / 2)
         }
-        val textHitRect = Rect(
+
+        val hitRect = Rect(
             left = rectLeft,
-            right = rectLeft + maxW + (hitPadding * 2),
-            top = blockTop - hitPadding,
-            bottom = blockTop + totalHeight + hitPadding
+            right = rectLeft + rectWidth,
+            top = rectTop,
+            bottom = rectTop + rectHeight
         )
 
-        if (textHitRect.contains(point)) {
+        // TODO: Handle rotation in hit test properly
+        if (hitRect.contains(point)) {
             // Check for delete button hit if selected
             if (layer.id == selectedId) {
-                val padding = 12f * exportScaleFactor
-                val deleteRectTop = blockTop - padding
+                val deleteRectTop = rectTop
                 val deleteRectLeft = rectLeft
                 
                 val xSize = 40f * exportScaleFactor // Make it big for clicking
                 val xHitRect = Rect(Offset(deleteRectLeft - xSize/2, deleteRectTop - xSize/2), androidx.compose.ui.geometry.Size(xSize, xSize))
-                if (xHitRect.contains(point)) return HitResult.DeleteText(layer.id)
+                if (xHitRect.contains(point)) return HitResult.DeleteOverlay(layer.id)
             }
-            return HitResult.Text(layer.id)
+            return HitResult.Overlay(layer.id)
         }
     }
 

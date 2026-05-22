@@ -11,7 +11,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.fragment.app.FragmentActivity
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import eltos.simpledialogfragment.SimpleDialog
@@ -20,13 +19,15 @@ import eltos.simpledialogfragment.color.SimpleColorWheelDialog
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -37,6 +38,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -65,13 +67,11 @@ import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.models.CompositionAspectRatio
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.DeviceModels
-import com.example.skreenup.ui.models.TextAlignLabel
-import com.example.skreenup.ui.models.TextFont
 import com.example.skreenup.ui.screens.*
 import com.example.skreenup.ui.screens.tabs.AdjustTabScreen
 import com.example.skreenup.ui.screens.tabs.BackgroundTabScreen
 import com.example.skreenup.ui.screens.tabs.FrameTabScreen
-import com.example.skreenup.ui.screens.tabs.TextTabScreen
+import com.example.skreenup.ui.screens.tabs.OverlaysTabScreen
 import com.example.skreenup.ui.theme.SkreenupTheme
 import com.example.skreenup.update.GitHubRelease
 import com.example.skreenup.update.UpdateChecker
@@ -84,7 +84,8 @@ import androidx.core.content.FileProvider
 import androidx.appcompat.app.AppCompatDelegate
 import com.example.skreenup.data.ExportAction
 import com.example.skreenup.ui.components.ColorPickerBus
-import com.example.skreenup.ui.models.TextLayer
+import com.example.skreenup.ui.models.OverlayLayer
+import com.example.skreenup.ui.models.OverlayType
 import sh.calvin.reorderable.*
 import java.io.File
 import java.io.FileOutputStream
@@ -184,7 +185,7 @@ fun SkreenupApp() {
                         screenBackgroundColor = Color(template.config.screenBackgroundColor),
                         textLayers = template.config.textLayers.ifEmpty {
                             listOf(
-                                TextLayer(
+                                OverlayLayer(
                                     heading = template.config.heading,
                                     subheading = template.config.subheading,
                                     headingFont = template.config.headingFont,
@@ -194,7 +195,7 @@ fun SkreenupApp() {
                                     textGap = template.config.textGap,
                                     offsetX = template.config.textOffsetX,
                                     offsetY = template.config.textOffsetY,
-                                    textColor = if (template.config.textColor == -1) Color.White.toArgb() else template.config.textColor,
+                                    color = if (template.config.textColor == -1) Color.White.toArgb() else template.config.textColor,
                                     textAlign = template.config.textAlign,
                                     headingBold = template.config.headingBold,
                                     subheadingBold = template.config.subheadingBold,
@@ -292,6 +293,15 @@ fun SkreenupApp() {
             if (mainBackStackList.size > 1) {
                 mainBackStackList.removeAt(mainBackStackList.size - 1)
             }
+        },
+        transitionSpec = {
+            (slideInHorizontally { it } + fadeIn()).togetherWith(slideOutHorizontally { -it } + fadeOut())
+        },
+        popTransitionSpec = {
+            (slideInHorizontally { -it } + fadeIn()).togetherWith(slideOutHorizontally { it } + fadeOut())
+        },
+        predictivePopTransitionSpec = {
+            (slideInHorizontally { -it } + fadeIn()).togetherWith(slideOutHorizontally { it } + fadeOut())
         },
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
@@ -433,8 +443,8 @@ fun EditorScreen(
     val screenshotRotation by editorViewModel.screenshotRotation.collectAsState()
     val rotation by editorViewModel.rotation.collectAsState()
 
-    val textLayers by editorViewModel.textLayers.collectAsState()
-    val selectedTextLayerId by editorViewModel.selectedTextLayerId.collectAsState()
+    val overlayLayers by editorViewModel.overlayLayers.collectAsState()
+    val selectedOverlayId by editorViewModel.selectedOverlayId.collectAsState()
     
     val showReflection by editorViewModel.showReflection.collectAsState()
     val showWatermark by editorViewModel.showWatermark.collectAsState()
@@ -446,7 +456,7 @@ fun EditorScreen(
         backgroundImage, backgroundImageOffsetX, backgroundImageOffsetY, backgroundImageScale, backgroundImageBlur,
         screenBackgroundColor, scale, imageScale, aspectRatio, frameOffsetX, frameOffsetY,
         screenshotOffsetX, screenshotOffsetY, screenshotRotation, rotation,
-        textLayers, showReflection, showWatermark, watermarkText
+        overlayLayers, showReflection, showWatermark, watermarkText
     ) {
         editorViewModel.saveStateToPrefs()
     }
@@ -496,7 +506,7 @@ fun EditorScreen(
                                 rotationDegrees = rotation,
                                 screenshotRotation = screenshotRotation,
                                 screenBackgroundColor = screenBackgroundColor,
-                                textLayers = textLayers,
+                                textLayers = overlayLayers,
                                 showReflection = showReflection,
                                 shadowIntensity = editorViewModel.shadowIntensity.value,
                                 shadowSoftness = editorViewModel.shadowSoftness.value,
@@ -542,7 +552,7 @@ fun EditorScreen(
                                 rotationDegrees = rotation,
                                 screenshotRotation = screenshotRotation,
                                 screenBackgroundColor = screenBackgroundColor,
-                                textLayers = textLayers,
+                                textLayers = overlayLayers,
                                 showReflection = showReflection,
                                 shadowIntensity = editorViewModel.shadowIntensity.value,
                                 shadowSoftness = editorViewModel.shadowSoftness.value,
@@ -620,17 +630,17 @@ fun EditorScreen(
                     icon = { Icon(Icons.Rounded.Tune, contentDescription = "Adjust") },
                     label = { Text("Adjust") }
                 )
-                NavigationBarItem(
-                    selected = currentTab == TextTab,
-                    onClick = { 
-                        if (currentTab != TextTab) {
-                            tabBackStackList.clear()
-                            tabBackStackList.add(TextTab)
-                        }
-                    },
-                    icon = { Icon(Icons.Rounded.TextFields, contentDescription = "Text") },
-                    label = { Text("Text") }
-                )
+                    NavigationBarItem(
+                        selected = currentTab == TextTab,
+                        onClick = { 
+                            if (currentTab != TextTab) {
+                                tabBackStackList.clear()
+                                tabBackStackList.add(TextTab)
+                            }
+                        },
+                        icon = { Icon(Icons.Rounded.TextFields, contentDescription = "Overlays") },
+                        label = { Text("Overlays") }
+                    )
             }
         }
     ) { innerPadding ->
@@ -667,8 +677,8 @@ fun EditorScreen(
                     rotationDegrees = rotation,
                     screenshotRotation = screenshotRotation,
                     screenBackgroundColor = screenBackgroundColor,
-                    textLayers = textLayers,
-                    selectedTextLayerId = selectedTextLayerId,
+                    textLayers = overlayLayers,
+                    selectedTextLayerId = selectedOverlayId,
                     showReflection = showReflection,
                     shadowIntensity = editorViewModel.shadowIntensity.collectAsState().value,
                     shadowSoftness = editorViewModel.shadowSoftness.collectAsState().value,
@@ -681,11 +691,11 @@ fun EditorScreen(
                         editorViewModel.setFrameOffsetY(y)
                     },
                     onTextLayerUpdate = { id, update ->
-                        editorViewModel.selectTextLayer(id)
-                        editorViewModel.updateSelectedTextLayer(update)
+                        editorViewModel.selectOverlay(id)
+                        editorViewModel.updateSelectedOverlay(update)
                     },
-                    onDeleteTextLayer = { editorViewModel.removeTextLayer(it) },
-                    onSelectTextLayer = { editorViewModel.selectTextLayer(it) },
+                    onDeleteTextLayer = { editorViewModel.removeOverlay(it) },
+                    onSelectTextLayer = { editorViewModel.selectOverlay(it) },
                     onAddScreenshot = {
                         photoPickerLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -695,19 +705,31 @@ fun EditorScreen(
 
                 // Floating Layers Button
                 Surface(
+                    onClick = { showLayersSheet = true },
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(top = 8.dp, end = 12.dp),
+                        .padding(top = 12.dp, end = 12.dp),
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-                    tonalElevation = 2.dp
+                    tonalElevation = 2.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                 ) {
-                    IconButton(onClick = { showLayersSheet = true }) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Icon(
                             Icons.Rounded.Layers, 
-                            contentDescription = "Layers",
-                            modifier = Modifier.size(24.dp),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "Layers",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -720,6 +742,9 @@ fun EditorScreen(
                     if (tabBackStackList.size > 1) {
                         tabBackStackList.removeAt(tabBackStackList.size - 1)
                     }
+                },
+                transitionSpec = {
+                    fadeIn(tween(200)).togetherWith(fadeOut(tween(200)))
                 },
                 entryDecorators = listOf(
                     rememberSaveableStateHolderNavEntryDecorator(),
@@ -736,7 +761,7 @@ fun EditorScreen(
                         AdjustTabScreen(editorViewModel)
                     }
                     entry<TextTab> {
-                        TextTabScreen(editorViewModel)
+                        OverlaysTabScreen(editorViewModel)
                     }
                 },
                 modifier = Modifier
@@ -806,7 +831,7 @@ fun EditorScreen(
                                         rotationDegrees = rotation,
                                         screenshotRotation = screenshotRotation,
                                         screenBackgroundColor = screenBackgroundColor,
-                                        textLayers = textLayers,
+                                        textLayers = overlayLayers,
                                         showReflection = showReflection,
                                         shadowIntensity = editorViewModel.shadowIntensity.value,
                                         shadowSoftness = editorViewModel.shadowSoftness.value,
@@ -865,7 +890,7 @@ fun EditorScreen(
                                         rotationDegrees = rotation,
                                         screenshotRotation = screenshotRotation,
                                         screenBackgroundColor = screenBackgroundColor,
-                                        textLayers = textLayers,
+                                        textLayers = overlayLayers,
                                         showReflection = showReflection,
                                         shadowIntensity = editorViewModel.shadowIntensity.value,
                                         shadowSoftness = editorViewModel.shadowSoftness.value,
@@ -919,7 +944,7 @@ fun EditorScreen(
                                         rotationDegrees = rotation,
                                         screenshotRotation = screenshotRotation,
                                         screenBackgroundColor = screenBackgroundColor,
-                                        textLayers = textLayers,
+                                        textLayers = overlayLayers,
                                         showReflection = showReflection,
                                         shadowIntensity = editorViewModel.shadowIntensity.value,
                                         shadowSoftness = editorViewModel.shadowSoftness.value,
@@ -964,12 +989,12 @@ fun EditorScreen(
 
     if (showLayersSheet) {
         val devicePos by editorViewModel.deviceFramePosition.collectAsState()
-        val combinedItems = remember(textLayers, devicePos) {
-            val list = textLayers.toMutableList<Any>()
-            val actualPos = if (devicePos == -1) list.size else devicePos.coerceIn(0, list.size)
-            list.add(actualPos, "DEVICE")
-            list
-        }
+        val combinedItems = remember(overlayLayers, devicePos) {
+        val list = overlayLayers.toMutableList<Any>()
+        val actualPos = if (devicePos == -1) list.size else devicePos.coerceIn(0, list.size)
+        list.add(actualPos, "DEVICE")
+        list
+    }
 
         val lazyListState = rememberLazyListState()
         val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
@@ -996,20 +1021,20 @@ fun EditorScreen(
                     state = lazyListState,
                 ) {
                     itemsIndexed(combinedItems, key = { _, item -> 
-                        if (item is TextLayer) item.id else "DEVICE" 
+                        if (item is OverlayLayer) item.id else "DEVICE"
                     }) { index, item ->
-                        ReorderableItem(reorderableState, key = if (item is TextLayer) item.id else "DEVICE") { isDragging ->
+                        ReorderableItem(reorderableState, key = if (item is OverlayLayer) item.id else "DEVICE") { isDragging ->
                             val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp)
                             Surface(shadowElevation = elevation) {
-                                if (item is TextLayer) {
+                                if (item is OverlayLayer) {
                                     LayerItem(
-                                        name = item.heading.ifBlank { "Text Layer" },
+                                        name = if (item.type == OverlayType.TEXT) item.heading.ifBlank { "Text Layer" } else "Decoration",
                                         isVisible = item.isVisible,
                                         isFront = index < combinedItems.indexOf("DEVICE"),
-                                        onToggleVisibility = { editorViewModel.setTextLayerVisibility(item.id, !item.isVisible) },
-                                        onSelect = { editorViewModel.selectTextLayer(item.id) },
-                                        isSelected = selectedTextLayerId == item.id,
-                                        tintColor = Color(item.textColor),
+                                        onToggleVisibility = { editorViewModel.setOverlayVisibility(item.id, !item.isVisible) },
+                                        onSelect = { editorViewModel.selectOverlay(item.id) },
+                                        isSelected = selectedOverlayId == item.id,
+                                        tintColor = Color(item.color),
                                         modifier = Modifier.longPressDraggableHandle()
                                     )
                                 } else {
@@ -1097,7 +1122,7 @@ suspend fun captureToBitmap(
     rotationDegrees: Float = 0f,
     screenshotRotation: Float = 0f,
     screenBackgroundColor: Color = Color(0xFF2C2C2C),
-    textLayers: List<com.example.skreenup.ui.models.TextLayer> = emptyList(),
+    textLayers: List<OverlayLayer> = emptyList(),
     showReflection: Boolean = true,
     shadowIntensity: Float = 0.3f,
     shadowSoftness: Float = 1.0f,

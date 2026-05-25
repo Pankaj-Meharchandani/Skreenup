@@ -1060,8 +1060,22 @@ fun EditorScreen(
                             val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp)
                             Surface(shadowElevation = elevation) {
                                 if (item is OverlayLayer) {
+                                    val layerName = when (item.type) {
+                                        OverlayType.TEXT -> item.heading.ifBlank { "Text Layer" }
+                                        OverlayType.STICKER -> {
+                                            val nameParts = item.stickerResName?.split("-") ?: emptyList()
+                                            val logoIndex = nameParts.indexOfFirst { it == "logo" || it == "icon" }
+                                            val significantParts = if (logoIndex > 0) nameParts.take(logoIndex) else nameParts.take(1)
+                                            significantParts.joinToString(" ") { it.replaceFirstChar { it.uppercase() } }.ifEmpty { "Sticker" }
+                                        }
+                                        else -> {
+                                            item.shape.name.lowercase()
+                                                .split("_")
+                                                .joinToString(" ") { it.replaceFirstChar { it.uppercase() } }
+                                        }
+                                    }
                                     LayerItem(
-                                        name = if (item.type == OverlayType.TEXT) item.heading.ifBlank { "Text Layer" } else "Decoration",
+                                        name = layerName,
                                         isVisible = item.isVisible,
                                         isFront = index < combinedItems.indexOf("DEVICE"),
                                         onToggleVisibility = { editorViewModel.setOverlayVisibility(item.id, !item.isVisible) },

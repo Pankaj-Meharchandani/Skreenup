@@ -117,8 +117,22 @@ fun OverlaysTabScreen(viewModel: EditorViewModel) {
                             selected = selectedId == layer.id,
                             onClick = { viewModel.selectOverlay(layer.id) },
                             label = { 
+                                val chipText = when (layer.type) {
+                                    OverlayType.TEXT -> layer.heading.ifEmpty { "Text Layer" }
+                                    OverlayType.STICKER -> {
+                                        val nameParts = layer.stickerResName?.split("-") ?: emptyList()
+                                        val logoIndex = nameParts.indexOfFirst { it == "logo" || it == "icon" }
+                                        val significantParts = if (logoIndex > 0) nameParts.take(logoIndex) else nameParts.take(1)
+                                        significantParts.joinToString(" ") { it.replaceFirstChar { it.uppercase() } }.ifEmpty { "Sticker" }
+                                    }
+                                    else -> {
+                                        layer.shape.name.lowercase()
+                                            .split("_")
+                                            .joinToString(" ") { it.replaceFirstChar { it.uppercase() } }
+                                    }
+                                }
                                 Text(
-                                    text = if (layer.type == OverlayType.TEXT) layer.heading.ifEmpty { "Text Layer" } else layer.shape.name,
+                                    text = chipText,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 ) 

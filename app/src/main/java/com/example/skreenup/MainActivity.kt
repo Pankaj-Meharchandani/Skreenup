@@ -449,6 +449,8 @@ fun EditorScreen(
     val showReflection by editorViewModel.showReflection.collectAsState()
     val showWatermark by editorViewModel.showWatermark.collectAsState()
     val watermarkText by editorViewModel.watermarkText.collectAsState()
+    val customWidth by editorViewModel.customAspectRatioWidth.collectAsState()
+    val customHeight by editorViewModel.customAspectRatioHeight.collectAsState()
 
     // Save state whenever any of these change
     LaunchedEffect(
@@ -456,7 +458,8 @@ fun EditorScreen(
         backgroundImage, backgroundImageOffsetX, backgroundImageOffsetY, backgroundImageScale, backgroundImageBlur,
         screenBackgroundColor, scale, imageScale, aspectRatio, frameOffsetX, frameOffsetY,
         screenshotOffsetX, screenshotOffsetY, screenshotRotation, rotation,
-        overlayLayers, showReflection, showWatermark, watermarkText
+        overlayLayers, showReflection, showWatermark, watermarkText,
+        customWidth, customHeight
     ) {
         editorViewModel.saveStateToPrefs()
     }
@@ -657,7 +660,8 @@ fun EditorScreen(
             Box(
                 modifier = Modifier
                     .weight(previewWeight)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 DeviceFrame(

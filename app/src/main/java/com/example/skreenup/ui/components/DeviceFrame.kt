@@ -226,6 +226,8 @@ fun DeviceFrame(
                             point = offset,
                             canvasSize = canvasSize,
                             aspectRatio = currentRatio,
+                            customWidth = currentCustomWidth,
+                            customHeight = currentCustomHeight,
                             deviceModel = currentDevice,
                             scale = currentScale,
                             frameOffsetX = currentFrameOffsetX,
@@ -254,6 +256,8 @@ fun DeviceFrame(
                             point = offset,
                             canvasSize = canvasSize,
                             aspectRatio = currentRatio,
+                            customWidth = currentCustomWidth,
+                            customHeight = currentCustomHeight,
                             deviceModel = currentDevice,
                             scale = currentScale,
                             frameOffsetX = currentFrameOffsetX,
@@ -480,6 +484,8 @@ fun DeviceFrame(
                 screenshotOffsetX = screenshotOffsetX,
                 screenshotOffsetY = screenshotOffsetY,
                 aspectRatio = aspectRatio,
+                customAspectRatioWidth = customAspectRatioWidth,
+                customAspectRatioHeight = customAspectRatioHeight,
                 screenBackgroundColor = screenBackgroundColor,
                 isExport = false,
                 rotationDegrees = rotationDegrees,
@@ -796,6 +802,8 @@ private fun hitTest(
     point: Offset,
     canvasSize: IntSize,
     aspectRatio: CompositionAspectRatio,
+    customWidth: Float = 1f,
+    customHeight: Float = 1f,
     deviceModel: DeviceModel,
     scale: Float,
     frameOffsetX: Float,
@@ -807,15 +815,21 @@ private fun hitTest(
     val canvasHeight = canvasSize.height.toFloat()
     if (canvasWidth <= 0 || canvasHeight <= 0) return HitResult.NONE
 
+    val effectiveRatio = if (aspectRatio == CompositionAspectRatio.CUSTOM) {
+        customWidth / customHeight
+    } else {
+        aspectRatio.ratio
+    }
+
     // 1. Calculate comp area (Same logic as MockupRenderer)
     val compWidth: Float
     val compHeight: Float
-    if (canvasWidth / canvasHeight > aspectRatio.ratio) {
+    if (canvasWidth / canvasHeight > effectiveRatio) {
         compHeight = canvasHeight
-        compWidth = compHeight * aspectRatio.ratio
+        compWidth = compHeight * effectiveRatio
     } else {
         compWidth = canvasWidth
-        compHeight = compWidth / aspectRatio.ratio
+        compHeight = compWidth / effectiveRatio
     }
     val compLeft = (canvasWidth - compWidth) / 2
     val compTop = (canvasHeight - compHeight) / 2

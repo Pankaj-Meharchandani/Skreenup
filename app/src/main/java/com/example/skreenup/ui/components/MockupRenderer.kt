@@ -192,6 +192,16 @@ object MockupRenderer {
             }
         }
 
+        // Draw Canvas Border for Editor
+        if (!isExport) {
+            drawRect(
+                color = Color.White.copy(alpha = 0.2f),
+                topLeft = Offset(compLeft, compTop),
+                size = Size(compWidth, compHeight),
+                style = Stroke(width = 1f * resolutionScale)
+            )
+        }
+
         // 2. Calculate frame dimensions
         val frameAspectRatio = deviceModel.aspectRatio
         var frameWidth: Float

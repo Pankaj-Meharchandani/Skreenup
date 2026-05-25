@@ -75,6 +75,8 @@ object MockupRenderer {
         screenshotOffsetX: Float,
         screenshotOffsetY: Float,
         aspectRatio: CompositionAspectRatio,
+        customAspectRatioWidth: Float = 1f,
+        customAspectRatioHeight: Float = 1f,
         screenBackgroundColor: Color = Color(0xFF2C2C2C),
         isExport: Boolean = false,
         rotationDegrees: Float = 0f,
@@ -88,18 +90,24 @@ object MockupRenderer {
         showWatermark: Boolean = false,
         watermarkText: String = ""
     ) {
+        val effectiveRatio = if (aspectRatio == CompositionAspectRatio.CUSTOM) {
+            customAspectRatioWidth / customAspectRatioHeight
+        } else {
+            aspectRatio.ratio
+        }
+
         val canvasWidth = size.width
         val canvasHeight = size.height
 
         // Calculate composition area based on aspect ratio
         val compWidth: Float
         val compHeight: Float
-        if (canvasWidth / canvasHeight > aspectRatio.ratio) {
+        if (canvasWidth / canvasHeight > effectiveRatio) {
             compHeight = canvasHeight
-            compWidth = compHeight * aspectRatio.ratio
+            compWidth = compHeight * effectiveRatio
         } else {
             compWidth = canvasWidth
-            compHeight = compWidth / aspectRatio.ratio
+            compHeight = compWidth / effectiveRatio
         }
 
         val compLeft = (canvasWidth - compWidth) / 2

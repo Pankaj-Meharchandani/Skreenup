@@ -214,6 +214,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _aspectRatio = MutableStateFlow(CompositionAspectRatio.SQUARE)
     val aspectRatio: StateFlow<CompositionAspectRatio> = _aspectRatio.asStateFlow()
 
+    private val _customAspectRatioWidth = MutableStateFlow(1f)
+    val customAspectRatioWidth: StateFlow<Float> = _customAspectRatioWidth.asStateFlow()
+
+    private val _customAspectRatioHeight = MutableStateFlow(1f)
+    val customAspectRatioHeight: StateFlow<Float> = _customAspectRatioHeight.asStateFlow()
+
     private val _frameOffsetX = MutableStateFlow(0f)
     val frameOffsetX: StateFlow<Float> = _frameOffsetX.asStateFlow()
 
@@ -439,6 +445,23 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setAspectRatio(ratio: CompositionAspectRatio) {
         _aspectRatio.value = ratio
+        _isSaved.value = false
+    }
+
+    fun setCustomAspectRatioWidth(value: Float) {
+        _customAspectRatioWidth.value = value
+        _isSaved.value = false
+    }
+
+    fun setCustomAspectRatioHeight(value: Float) {
+        _customAspectRatioHeight.value = value
+        _isSaved.value = false
+    }
+
+    fun swapCustomAspectRatio() {
+        val temp = _customAspectRatioWidth.value
+        _customAspectRatioWidth.value = _customAspectRatioHeight.value
+        _customAspectRatioHeight.value = temp
         _isSaved.value = false
     }
 
@@ -1097,6 +1120,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             imageScale = _imageScale.value,
             screenshotRotation = _screenshotRotation.value,
             aspectRatio = _aspectRatio.value.name,
+            customAspectRatioWidth = _customAspectRatioWidth.value,
+            customAspectRatioHeight = _customAspectRatioHeight.value,
             frameOffsetX = _frameOffsetX.value,
             frameOffsetY = _frameOffsetY.value,
             screenshotOffsetX = _screenshotOffsetX.value,
@@ -1143,6 +1168,14 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _backgroundImageScale.value = config.backgroundImageScale
         _backgroundImageBlur.value = config.backgroundImageBlur
         _screenBackgroundColor.value = Color(config.screenBackgroundColor)
+
+        _aspectRatio.value = try {
+            CompositionAspectRatio.valueOf(config.aspectRatio)
+        } catch (e: Exception) {
+            CompositionAspectRatio.SQUARE
+        }
+        _customAspectRatioWidth.value = config.customAspectRatioWidth
+        _customAspectRatioHeight.value = config.customAspectRatioHeight
 
         if (config.textLayers.isNotEmpty()) {
             _overlayLayers.value = config.textLayers.map { layer ->

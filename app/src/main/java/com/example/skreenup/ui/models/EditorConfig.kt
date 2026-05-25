@@ -38,6 +38,8 @@ data class EditorConfig(
     val imageScale: Float = 1.0f,
     val screenshotRotation: Float = 0f,
     val aspectRatio: String,
+    val customAspectRatioWidth: Float = 1f,
+    val customAspectRatioHeight: Float = 1f,
     val frameOffsetX: Float = 0f,
     val frameOffsetY: Float = 0f,
     val screenshotOffsetX: Float = 0f,

@@ -33,7 +33,8 @@ enum class CompositionAspectRatio(val ratio: Float, val label: String) {
     SQUARE(1f, "1:1"),
     PORTRAIT(9f / 16f, "9:16"),
     LANDSCAPE(16f / 9f, "16:9"),
-    TABLET(4f / 3f, "4:3")
+    TABLET(4f / 3f, "4:3"),
+    CUSTOM(1f, "Custom")
 }
 
 @Immutable

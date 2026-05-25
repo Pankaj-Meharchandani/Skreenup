@@ -503,6 +503,8 @@ fun EditorScreen(
                                 screenshotOffsetX = screenshotOffsetX,
                                 screenshotOffsetY = screenshotOffsetY,
                                 aspectRatio = aspectRatio,
+                                customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
+                                customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
                                 rotationDegrees = rotation,
                                 screenshotRotation = screenshotRotation,
                                 screenBackgroundColor = screenBackgroundColor,
@@ -549,6 +551,8 @@ fun EditorScreen(
                                 screenshotOffsetX = screenshotOffsetX,
                                 screenshotOffsetY = screenshotOffsetY,
                                 aspectRatio = aspectRatio,
+                                customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
+                                customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
                                 rotationDegrees = rotation,
                                 screenshotRotation = screenshotRotation,
                                 screenBackgroundColor = screenBackgroundColor,
@@ -674,6 +678,8 @@ fun EditorScreen(
                     screenshotOffsetX = screenshotOffsetX,
                     screenshotOffsetY = screenshotOffsetY,
                     aspectRatio = aspectRatio,
+                    customAspectRatioWidth = editorViewModel.customAspectRatioWidth.collectAsState().value,
+                    customAspectRatioHeight = editorViewModel.customAspectRatioHeight.collectAsState().value,
                     rotationDegrees = rotation,
                     screenshotRotation = screenshotRotation,
                     screenBackgroundColor = screenBackgroundColor,
@@ -828,6 +834,8 @@ fun EditorScreen(
                                         screenshotOffsetX = screenshotOffsetX,
                                         screenshotOffsetY = screenshotOffsetY,
                                         aspectRatio = aspectRatio,
+                                        customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
+                                        customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
                                         rotationDegrees = rotation,
                                         screenshotRotation = screenshotRotation,
                                         screenBackgroundColor = screenBackgroundColor,
@@ -887,6 +895,8 @@ fun EditorScreen(
                                         screenshotOffsetX = screenshotOffsetX,
                                         screenshotOffsetY = screenshotOffsetY,
                                         aspectRatio = aspectRatio,
+                                        customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
+                                        customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
                                         rotationDegrees = rotation,
                                         screenshotRotation = screenshotRotation,
                                         screenBackgroundColor = screenBackgroundColor,
@@ -941,6 +951,8 @@ fun EditorScreen(
                                         screenshotOffsetX = screenshotOffsetX,
                                         screenshotOffsetY = screenshotOffsetY,
                                         aspectRatio = aspectRatio,
+                                        customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
+                                        customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
                                         rotationDegrees = rotation,
                                         screenshotRotation = screenshotRotation,
                                         screenBackgroundColor = screenBackgroundColor,
@@ -1119,6 +1131,8 @@ suspend fun captureToBitmap(
     screenshotOffsetX: Float,
     screenshotOffsetY: Float,
     aspectRatio: CompositionAspectRatio,
+    customAspectRatioWidth: Float = 1f,
+    customAspectRatioHeight: Float = 1f,
     rotationDegrees: Float = 0f,
     screenshotRotation: Float = 0f,
     screenBackgroundColor: Color = Color(0xFF2C2C2C),
@@ -1131,8 +1145,13 @@ suspend fun captureToBitmap(
     ignoreScreenshot: Boolean = false
 ): Bitmap {
     return withContext(Dispatchers.Default) {
+        val effectiveRatio = if (aspectRatio == CompositionAspectRatio.CUSTOM) {
+            customAspectRatioWidth / customAspectRatioHeight
+        } else {
+            aspectRatio.ratio
+        }
         val exportWidth = 2048
-        val exportHeight = (exportWidth / aspectRatio.ratio).toInt()
+        val exportHeight = (exportWidth / effectiveRatio).toInt()
         val bitmap = Bitmap.createBitmap(exportWidth, exportHeight, Bitmap.Config.ARGB_8888)
         val canvas = android.graphics.Canvas(bitmap)
         
@@ -1161,6 +1180,8 @@ suspend fun captureToBitmap(
                 screenshotOffsetX = screenshotOffsetX,
                 screenshotOffsetY = screenshotOffsetY,
                 aspectRatio = aspectRatio,
+                customAspectRatioWidth = customAspectRatioWidth,
+                customAspectRatioHeight = customAspectRatioHeight,
                 isExport = true,
                 rotationDegrees = rotationDegrees,
                 screenshotRotation = screenshotRotation,

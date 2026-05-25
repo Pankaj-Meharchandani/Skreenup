@@ -30,6 +30,8 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
     val scale by viewModel.scale.collectAsState()
     val imageScale by viewModel.imageScale.collectAsState()
     val aspectRatio by viewModel.aspectRatio.collectAsState()
+    val customWidth by viewModel.customAspectRatioWidth.collectAsState()
+    val customHeight by viewModel.customAspectRatioHeight.collectAsState()
     
     val screenshotOffsetX by viewModel.screenshotOffsetX.collectAsState()
     val screenshotOffsetY by viewModel.screenshotOffsetY.collectAsState()
@@ -96,6 +98,46 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
                         shape = MaterialTheme.shapes.large
                     )
                 }
+            }
+
+            if (aspectRatio == CompositionAspectRatio.CUSTOM) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Width", style = MaterialTheme.typography.labelMedium)
+                        Slider(
+                            value = customWidth,
+                            onValueChange = { viewModel.setCustomAspectRatioWidth(it) },
+                            valueRange = 0.1f..5f
+                        )
+                    }
+                    
+                    IconButton(
+                        onClick = { viewModel.swapCustomAspectRatio() },
+                        modifier = Modifier.padding(top = 16.dp)
+                    ) {
+                        Icon(Icons.Rounded.OpenWith, contentDescription = "Swap")
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Height", style = MaterialTheme.typography.labelMedium)
+                        Slider(
+                            value = customHeight,
+                            onValueChange = { viewModel.setCustomAspectRatioHeight(it) },
+                            valueRange = 0.1f..5f
+                        )
+                    }
+                }
+                
+                Text(
+                    text = "Current Ratio: ${"%.2f".format(customWidth / customHeight)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             }
         }
 

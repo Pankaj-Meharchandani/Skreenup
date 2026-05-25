@@ -72,6 +72,8 @@ fun DeviceFrame(
     screenshotOffsetX: Float = 0f,
     screenshotOffsetY: Float = 0f,
     aspectRatio: CompositionAspectRatio = CompositionAspectRatio.SQUARE,
+    customAspectRatioWidth: Float = 1f,
+    customAspectRatioHeight: Float = 1f,
     backgroundImage: ImageBitmap? = null,
     backgroundImageOffsetX: Float = 0f,
     backgroundImageOffsetY: Float = 0f,
@@ -95,6 +97,12 @@ fun DeviceFrame(
     onSelectTextLayer: (String?) -> Unit = {},
     onAddScreenshot: () -> Unit = {}
 ) {
+    val effectiveRatio = if (aspectRatio == CompositionAspectRatio.CUSTOM) {
+        customAspectRatioWidth / customAspectRatioHeight
+    } else {
+        aspectRatio.ratio
+    }
+
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     var activeTarget by remember { mutableStateOf<Target>(Target.NONE) }
     var isEditingTextId by remember { mutableStateOf<String?>(null) }
@@ -157,11 +165,19 @@ fun DeviceFrame(
     val currentFrameOffsetY by rememberUpdatedState(frameOffsetY)
     val currentDevice by rememberUpdatedState(deviceModel)
     val currentRatio by rememberUpdatedState(aspectRatio)
+    val currentCustomWidth by rememberUpdatedState(customAspectRatioWidth)
+    val currentCustomHeight by rememberUpdatedState(customAspectRatioHeight)
     val currentTextLayers by rememberUpdatedState(textLayers)
     val currentSelectedId by rememberUpdatedState(selectedTextLayerId)
 
+    val currentEffectiveRatio = if (currentRatio == CompositionAspectRatio.CUSTOM) {
+        currentCustomWidth / currentCustomHeight
+    } else {
+        currentRatio.ratio
+    }
+
     // Calculate frame rect for hit-testing and prompt positioning
-    val frameRect = remember(canvasSize, currentDevice, currentScale, currentFrameOffsetX, currentFrameOffsetY, currentRatio) {
+    val frameRect = remember(canvasSize, currentDevice, currentScale, currentFrameOffsetX, currentFrameOffsetY, currentEffectiveRatio) {
         if (canvasSize.width <= 0 || canvasSize.height <= 0) return@remember Rect.Zero
         
         val canvasWidth = canvasSize.width.toFloat()
@@ -169,12 +185,12 @@ fun DeviceFrame(
         
         val compWidth: Float
         val compHeight: Float
-        if (canvasWidth / canvasHeight > currentRatio.ratio) {
+        if (canvasWidth / canvasHeight > currentEffectiveRatio) {
             compHeight = canvasHeight
-            compWidth = compHeight * currentRatio.ratio
+            compWidth = compHeight * currentEffectiveRatio
         } else {
             compWidth = canvasWidth
-            compHeight = compWidth / currentRatio.ratio
+            compHeight = compWidth / currentEffectiveRatio
         }
         val compLeft = (canvasWidth - compWidth) / 2
         val compTop = (canvasHeight - compHeight) / 2
@@ -383,7 +399,7 @@ fun DeviceFrame(
                                     if (kotlin.math.abs(curY) < snapThreshold) sy = 0f
 
                                     // 2. Get other components and frame bounds
-                                    val compWidth = if (canvasSize.width.toFloat() / canvasSize.height.toFloat() > currentRatio.ratio) canvasSize.height * currentRatio.ratio else canvasSize.width.toFloat()
+                                    val compWidth = if (canvasSize.width.toFloat() / canvasSize.height.toFloat() > currentEffectiveRatio) canvasSize.height * currentEffectiveRatio else canvasSize.width.toFloat()
                                     val resScale = compWidth / 1000f
                                     val fw = frameRect.width / resScale
                                     val fh = frameRect.height / resScale
@@ -481,12 +497,12 @@ fun DeviceFrame(
 
         // ── Snapping Guidelines (Overlay) ──
         if (snapLineX != null || snapLineY != null) {
-            val compWidth = if (canvasSize.width.toFloat() / canvasSize.height.toFloat() > currentRatio.ratio) {
-                canvasSize.height * currentRatio.ratio
+            val compWidth = if (canvasSize.width.toFloat() / canvasSize.height.toFloat() > currentEffectiveRatio) {
+                canvasSize.height * currentEffectiveRatio
             } else {
                 canvasSize.width.toFloat()
             }
-            val compHeight = compWidth / currentRatio.ratio
+            val compHeight = compWidth / currentEffectiveRatio
             val compLeft = (canvasSize.width - compWidth) / 2
             val compTop = (canvasSize.height - compHeight) / 2
             val resScale = compWidth / 1000f
@@ -543,12 +559,12 @@ fun DeviceFrame(
                 val canvasHeight = canvasSize.height.toFloat()
                 val compWidth: Float
                 val compHeight: Float
-                if (canvasWidth / canvasHeight > aspectRatio.ratio) {
+                if (canvasWidth / canvasHeight > effectiveRatio) {
                     compHeight = canvasHeight
-                    compWidth = compHeight * aspectRatio.ratio
+                    compWidth = compHeight * effectiveRatio
                 } else {
                     compWidth = canvasWidth
-                    compHeight = compWidth / aspectRatio.ratio
+                    compHeight = compWidth / effectiveRatio
                 }
                 val compLeft = (canvasWidth - compWidth) / 2
                 val compTop = (canvasHeight - compHeight) / 2

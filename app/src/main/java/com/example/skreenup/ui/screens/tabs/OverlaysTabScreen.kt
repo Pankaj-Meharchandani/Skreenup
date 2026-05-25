@@ -12,7 +12,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
+import coil.compose.AsyncImage
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -280,7 +284,7 @@ fun DecorationsTabContent(viewModel: EditorViewModel, overlays: List<OverlayLaye
                     onClick = { viewModel.addOverlay(OverlayLayer(type = type, shape = shape, thickness = 4f)) },
                     modifier = Modifier.size(80.dp),
                     colors = CardDefaults.outlinedCardColors(
-                        containerColor = if (selectedShape == shape && selectedId != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                        containerColor = if (selectedShape == shape && selectedId != null && overlays.find { it.id == selectedId }?.type != OverlayType.STICKER) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
                     )
                 ) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -290,45 +294,105 @@ fun DecorationsTabContent(viewModel: EditorViewModel, overlays: List<OverlayLaye
             }
         }
 
+        SectionHeader(label = "Stickers", icon = Icons.Rounded.StickyNote2)
+        
+        val stickerLogos = listOf(
+            "figma-1-logo-svgrepo-com",
+            "shopify-logo-svgrepo-com",
+            "apple-11-logo-svgrepo-com",
+            "reddit-1-logo-svgrepo-com",
+            "snapchat-logo-svgrepo-com",
+            "telegram-logo-svgrepo-com",
+            "spotify-1-logo-svgrepo-com",
+            "gmail-icon-logo-svgrepo-com",
+            "youtube-icon-logo-svgrepo-com",
+            "facebook-icon-logo-svgrepo-com",
+            "github-icon-1-logo-svgrepo-com",
+            "instagram-2-1-logo-svgrepo-com",
+            "instagram-2016-logo-svgrepo-com",
+            "slack-new-logo-logo-svgrepo-com",
+            "dribbble-icon-1-logo-svgrepo-com",
+            "linkedin-icon-2-logo-svgrepo-com",
+            "google-play-badge-logo-svgrepo-com",
+            "tiktok-icon-white-1-logo-svgrepo-com",
+            "google-pay-primary-logo-logo-svgrepo-com",
+            "download-on-the-app-store-apple-logo-svgrepo-com"
+        )
+
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(stickerLogos) { stickerName ->
+                val isSelected = overlays.find { it.id == selectedId }?.stickerResName == stickerName
+                
+                OutlinedCard(
+                    onClick = { viewModel.addOverlay(OverlayLayer(type = OverlayType.STICKER, stickerResName = stickerName)) },
+                    modifier = Modifier.size(80.dp),
+                    colors = CardDefaults.outlinedCardColors(
+                        containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        val context = LocalContext.current
+                        val resId = context.resources.getIdentifier(stickerName.replace("-", "_"), "raw", context.packageName)
+                        if (resId != 0) {
+                            AsyncImage(
+                                model = resId,
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        } else {
+                            Icon(Icons.Rounded.Image, null, modifier = Modifier.size(32.dp))
+                        }
+                    }
+                }
+            }
+        }
+
         if (selectedId != null) {
+            val selectedOverlay = overlays.find { it.id == selectedId }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             SectionHeader(label = "Edit Decoration", icon = Icons.Rounded.Tune)
             
-            val selectedOverlay = overlays.find { it.id == selectedId }
-            if (selectedOverlay?.type == OverlayType.ARROW) {
-                AdjustmentItem(label = "Curvature", value = curvature, onValueChange = { viewModel.setDecorationCurvature(it) }, valueRange = -100f..100f, showAsRaw = true, icon = Icons.Rounded.Redo)
-            }
-            
-            if (selectedOverlay?.type == OverlayType.SHAPE || selectedOverlay?.type == OverlayType.BUBBLE) {
-                AdjustmentItem(label = "Corner Radius", value = cornerRadius, onValueChange = { viewModel.setDecorationCornerRadius(it) }, valueRange = 0f..100f, showAsRaw = true, icon = Icons.Rounded.RoundedCorner)
-            }
+            if (selectedOverlay?.type == OverlayType.STICKER) {
+                // Stickers only show common controls like Scale, Rotation, Opacity
+                CommonOverlayControls(viewModel, showColorPicker = false)
+            } else {
+                if (selectedOverlay?.type == OverlayType.ARROW) {
+                    AdjustmentItem(label = "Curvature", value = curvature, onValueChange = { viewModel.setDecorationCurvature(it) }, valueRange = -100f..100f, showAsRaw = true, icon = Icons.Rounded.Redo)
+                }
+                
+                if (selectedOverlay?.type == OverlayType.SHAPE || selectedOverlay?.type == OverlayType.BUBBLE) {
+                    AdjustmentItem(label = "Corner Radius", value = cornerRadius, onValueChange = { viewModel.setDecorationCornerRadius(it) }, valueRange = 0f..100f, showAsRaw = true, icon = Icons.Rounded.RoundedCorner)
+                }
 
-            AdjustmentItem(
-                label = "Thickness",
-                value = thickness,
-                onValueChange = { viewModel.setDecorationThickness(it) },
-                valueRange = 1f..50f,
-                showAsRaw = true,
-                icon = Icons.Rounded.LineWeight,
-                hintPoints = listOf(1f, 4f, 10f, 25f, 50f)
-            )
-            
-            CommonOverlayControls(viewModel)
+                AdjustmentItem(
+                    label = "Thickness",
+                    value = thickness,
+                    onValueChange = { viewModel.setDecorationThickness(it) },
+                    valueRange = 1f..50f,
+                    showAsRaw = true,
+                    icon = Icons.Rounded.LineWeight,
+                    hintPoints = listOf(1f, 4f, 10f, 25f, 50f)
+                )
+                
+                CommonOverlayControls(viewModel)
+            }
         } else {
-            Text("Tap a shape to add it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Tap a shape or sticker to add it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
-fun CommonOverlayControls(viewModel: EditorViewModel) {
+fun CommonOverlayControls(viewModel: EditorViewModel, showColorPicker: Boolean = true) {
     val scale by viewModel.overlayScale.collectAsState()
     val rotation by viewModel.overlayRotation.collectAsState()
     val color by viewModel.textColor.collectAsState()
     val alpha by viewModel.overlayAlpha.collectAsState()
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        ColorPickerButton(color = color, tag = "text_color", label = "Color")
+        if (showColorPicker) {
+            ColorPickerButton(color = color, tag = "text_color", label = "Color")
+        }
         
         AdjustmentItem(label = "Opacity", value = alpha, onValueChange = { viewModel.setOverlayAlpha(it) }, valueRange = 0f..1f, icon = Icons.Rounded.Opacity)
         

@@ -86,6 +86,8 @@ import com.example.skreenup.data.ExportAction
 import com.example.skreenup.ui.components.ColorPickerBus
 import com.example.skreenup.ui.models.OverlayLayer
 import com.example.skreenup.ui.models.OverlayType
+import coil.ImageLoader
+import coil.decode.SvgDecoder
 import sh.calvin.reorderable.*
 import java.io.File
 import java.io.FileOutputStream
@@ -94,6 +96,15 @@ import java.io.OutputStream
 class MainActivity : AppCompatActivity(), SimpleDialog.OnDialogResultListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize Coil with SVG support
+        val imageLoader = ImageLoader.Builder(this)
+            .components {
+                add(SvgDecoder.Factory())
+            }
+            .build()
+        coil.Coil.setImageLoader(imageLoader)
+
         enableEdgeToEdge()
         setContent {
             val settingsViewModel: SettingsViewModel = viewModel()
@@ -162,6 +173,7 @@ fun SkreenupApp() {
                     }?.asImageBitmap()
 
                     val bitmap = captureToBitmap(
+                        context = context,
                         density = Density(context),
                         screenshot = null,
                         deviceModel = device,
@@ -488,8 +500,9 @@ fun EditorScreen(
                     IconButton(onClick = { 
                         scope.launch {
                             val bitmap = captureToBitmap(
-                                density = Density(context),
-                                screenshot = screenshot,
+                            context = context,
+                            density = Density(context),
+                            screenshot = screenshot,
                                 deviceModel = selectedDevice,
                                 backgroundType = backgroundType,
                                 backgroundColor = backgroundColor,
@@ -536,8 +549,9 @@ fun EditorScreen(
                     IconButton(onClick = { 
                         scope.launch {
                             val bitmap = captureToBitmap(
-                                density = Density(context),
-                                screenshot = screenshot,
+                            context = context,
+                            density = Density(context),
+                            screenshot = screenshot,
                                 deviceModel = selectedDevice,
                                 backgroundType = backgroundType,
                                 backgroundColor = backgroundColor,
@@ -820,6 +834,7 @@ fun EditorScreen(
                             onClick = {
                                 scope.launch {
                                     val bitmap = captureToBitmap(
+                                        context = context,
                                         density = Density(context),
                                         screenshot = screenshot,
                                         deviceModel = selectedDevice,
@@ -881,6 +896,7 @@ fun EditorScreen(
                             onClick = {
                                 scope.launch {
                                     val bitmap = captureToBitmap(
+                                        context = context,
                                         density = Density(context),
                                         screenshot = screenshot,
                                         deviceModel = selectedDevice,
@@ -937,6 +953,7 @@ fun EditorScreen(
                             onClick = {
                                 scope.launch {
                                     val bitmap = captureToBitmap(
+                                        context = context,
                                         density = Density(context),
                                         screenshot = screenshot,
                                         deviceModel = selectedDevice,
@@ -1117,6 +1134,7 @@ fun LayerItem(
 }
 
 suspend fun captureToBitmap(
+    context: android.content.Context,
     density: Density,
     screenshot: ImageBitmap?,
     deviceModel: DeviceModel,
@@ -1149,6 +1167,9 @@ suspend fun captureToBitmap(
     ignoreScreenshot: Boolean = false
 ): Bitmap {
     return withContext(Dispatchers.Default) {
+        // Pre-load stickers if any are present
+        com.example.skreenup.ui.components.MockupRenderer.preloadStickers(context, textLayers)
+
         val effectiveRatio = if (aspectRatio == CompositionAspectRatio.CUSTOM) {
             customAspectRatioWidth / customAspectRatioHeight
         } else {
@@ -1196,7 +1217,8 @@ suspend fun captureToBitmap(
                 shadowIntensity = shadowIntensity,
                 shadowSoftness = shadowSoftness,
                 showWatermark = showWatermark,
-                watermarkText = watermarkText
+                watermarkText = watermarkText,
+                context = context
             )
         }
 

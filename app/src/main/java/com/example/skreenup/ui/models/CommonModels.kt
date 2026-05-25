@@ -73,7 +73,8 @@ enum class OverlayType {
     TEXT,
     SHAPE,
     ARROW,
-    BUBBLE
+    BUBBLE,
+    STICKER
 }
 
 @Immutable
@@ -115,6 +116,9 @@ data class OverlayLayer(
     val cornerRadius: Float = 16f,
     val arrowHeadSize: Float = 20f,
     val curvature: Float = 0f, // For curved arrows
+
+    // Sticker specific
+    val stickerResName: String? = null,
 
     // Shared properties
     val offsetX: Float = 0f,

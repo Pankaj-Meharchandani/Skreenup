@@ -35,6 +35,14 @@ import android.graphics.Typeface
 import android.graphics.BlurMaskFilter
 import android.graphics.Matrix
 import android.graphics.Paint as NativePaint
+import android.content.Context
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import coil.ImageLoader
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
+import coil.request.SuccessResult
+import android.graphics.drawable.Drawable
 import androidx.graphics.shapes.RoundedPolygon
 import androidx.graphics.shapes.star
 import androidx.graphics.shapes.circle
@@ -88,7 +96,8 @@ object MockupRenderer {
         shadowIntensity: Float = 0.3f,
         shadowSoftness: Float = 1.0f,
         showWatermark: Boolean = false,
-        watermarkText: String = ""
+        watermarkText: String = "",
+        context: Context? = null
     ) {
         val effectiveRatio = if (aspectRatio == CompositionAspectRatio.CUSTOM) {
             customAspectRatioWidth / customAspectRatioHeight
@@ -241,7 +250,7 @@ object MockupRenderer {
                 if (layer.type == OverlayType.TEXT) {
                     drawTextOverlay(this, layer, compLeft, compTop, compWidth, compHeight, resolutionScale)
                 } else {
-                    drawDecorationOverlay(this, layer, compLeft, compTop, compWidth, compHeight, resolutionScale)
+                    drawDecorationOverlay(this, layer, compLeft, compTop, compWidth, compHeight, resolutionScale, context)
                 }
             }
         }
@@ -1374,7 +1383,8 @@ object MockupRenderer {
         compTop: Float,
         compWidth: Float,
         compHeight: Float,
-        resolutionScale: Float
+        resolutionScale: Float,
+        context: Context? = null
     ) {
         with(drawScope) {
             val centerX = compLeft + compWidth / 2 + (layer.offsetX * resolutionScale)
@@ -1388,9 +1398,107 @@ object MockupRenderer {
                     OverlayType.SHAPE -> drawShape(this, layer, centerX, centerY, size, resolutionScale)
                     OverlayType.ARROW -> drawArrow(this, layer, centerX, centerY, size, resolutionScale)
                     OverlayType.BUBBLE -> drawBubble(this, layer, centerX, centerY, size, resolutionScale)
+                    OverlayType.STICKER -> drawSticker(this, layer, centerX, centerY, size, resolutionScale, context)
                     else -> {}
                 }
             }
+        }
+    }
+
+    private val stickerCache = mutableMapOf<String, Drawable>()
+
+    suspend fun preloadStickers(context: Context, layers: List<OverlayLayer>) {
+        val imageLoader = ImageLoader.Builder(context)
+            .components { add(SvgDecoder.Factory()) }
+            .build()
+            
+        layers.filter { it.type == OverlayType.STICKER && it.stickerResName != null }.forEach { layer ->
+            val resId = context.resources.getIdentifier(
+                layer.stickerResName!!.replace("-", "_"),
+                "raw",
+                context.packageName
+            )
+            if (resId != 0) {
+                val cacheKey = "${layer.stickerResName}_$resId"
+                if (!stickerCache.containsKey(cacheKey)) {
+                    val request = ImageRequest.Builder(context)
+                        .data(resId)
+                        .build()
+                    val result = imageLoader.execute(request)
+                    if (result is SuccessResult) {
+                        stickerCache[cacheKey] = result.drawable
+                    }
+                }
+            }
+        }
+    }
+
+    private fun drawSticker(
+        drawScope: DrawScope,
+        layer: OverlayLayer,
+        centerX: Float,
+        centerY: Float,
+        size: Float,
+        resolutionScale: Float,
+        context: Context?
+    ) {
+        if (context == null || layer.stickerResName == null) return
+        
+        val resId = context.resources.getIdentifier(
+            layer.stickerResName.replace("-", "_"),
+            "raw",
+            context.packageName
+        )
+        if (resId == 0) return
+
+        val cacheKey = "${layer.stickerResName}_$resId"
+        var drawable = stickerCache[cacheKey]
+
+        if (drawable == null) {
+            // Load SVG using Coil
+            val imageLoader = ImageLoader.Builder(context)
+                .components { add(SvgDecoder.Factory()) }
+                .build()
+            
+            // This is a synchronous-ish way to try to get it if it's already cached or fast to load
+            // But usually we'd want to pre-load.
+            // For now, let's use a simpler approach if possible.
+            // Since we can't easily block here, we'll just start the load.
+            val request = ImageRequest.Builder(context)
+                .data(resId)
+                .target { result ->
+                    stickerCache[cacheKey] = result
+                }
+                .build()
+            imageLoader.enqueue(request)
+            return
+        }
+        
+        val intrinsicRatio = if (drawable.intrinsicWidth > 0 && drawable.intrinsicHeight > 0) {
+            drawable.intrinsicWidth.toFloat() / drawable.intrinsicHeight.toFloat()
+        } else 1f
+        
+        val drawWidth: Float
+        val drawHeight: Float
+        
+        if (intrinsicRatio > 1) {
+            drawWidth = size
+            drawHeight = size / intrinsicRatio
+        } else {
+            drawHeight = size
+            drawWidth = size * intrinsicRatio
+        }
+
+        val left = (centerX - drawWidth / 2).toInt()
+        val top = (centerY - drawHeight / 2).toInt()
+        val right = (centerX + drawWidth / 2).toInt()
+        val bottom = (centerY + drawHeight / 2).toInt()
+
+        drawable.setBounds(left, top, right, bottom)
+        drawable.alpha = (layer.alpha * 255).toInt()
+        
+        drawScope.drawIntoCanvas { canvas ->
+            drawable?.draw(canvas.nativeCanvas)
         }
     }
 

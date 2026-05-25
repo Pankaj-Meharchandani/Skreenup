@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
@@ -165,6 +166,7 @@ fun DeviceFrameItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        val context = LocalContext.current
         // High-fidelity mini preview using the shared MockupRenderer
         Box(
             modifier = Modifier
@@ -197,7 +199,8 @@ fun DeviceFrameItem(
                     shadowIntensity = 0.5f,
                     shadowSoftness = 0.8f,
                     showWatermark = false,
-                    watermarkText = ""
+                    watermarkText = "",
+                    context = context
                 )
             }
         }

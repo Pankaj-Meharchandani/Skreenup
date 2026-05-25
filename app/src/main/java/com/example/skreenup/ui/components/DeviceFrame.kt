@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -465,6 +466,7 @@ fun DeviceFrame(
                 }
             }
     ) {
+        val context = LocalContext.current
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawMockup(
                 screenshot = screenshot,
@@ -497,7 +499,8 @@ fun DeviceFrame(
                 shadowIntensity = shadowIntensity,
                 shadowSoftness = shadowSoftness,
                 showWatermark = showWatermark,
-                watermarkText = watermarkText
+                watermarkText = watermarkText,
+                context = context
             )
         }
 

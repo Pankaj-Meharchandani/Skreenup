@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.reorderable)
     implementation(libs.simple.dialog.fragments)
     implementation(libs.coil.compose)
+    implementation(libs.coil.svg)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.material)

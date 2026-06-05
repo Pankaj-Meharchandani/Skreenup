@@ -284,6 +284,8 @@ fun DeviceFrame(
                             point = centroid,
                             canvasSize = canvasSize,
                             aspectRatio = currentRatio,
+                            customWidth = currentCustomWidth,
+                            customHeight = currentCustomHeight,
                             deviceModel = currentDevice,
                             scale = currentScale,
                             frameOffsetX = currentFrameOffsetX,

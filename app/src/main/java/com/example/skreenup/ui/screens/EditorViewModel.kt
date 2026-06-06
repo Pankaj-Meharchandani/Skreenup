@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.palette.graphics.Palette
 import com.example.skreenup.ui.models.BackgroundType
+import com.example.skreenup.ui.models.BackgroundPattern
 import com.example.skreenup.ui.models.CompositionAspectRatio
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -57,6 +58,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     "screen_color" -> setScreenBackgroundColor(Color(color))
                     "text_color" -> setOverlayColor(Color(color).copy(alpha = 1f))
                     "text_bg_color" -> setOverlayBackgroundColor(Color(color))
+                    "pattern_color" -> setPatternColor(Color(color))
                 }
             }
         }
@@ -106,6 +108,18 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _backgroundImageBlur = MutableStateFlow(0f)
     val backgroundImageBlur: StateFlow<Float> = _backgroundImageBlur.asStateFlow()
+
+    private val _backgroundPattern = MutableStateFlow(BackgroundPattern.NONE)
+    val backgroundPattern: StateFlow<BackgroundPattern> = _backgroundPattern.asStateFlow()
+
+    private val _patternColor = MutableStateFlow(Color.White)
+    val patternColor: StateFlow<Color> = _patternColor.asStateFlow()
+
+    private val _patternAlpha = MutableStateFlow(0.1f)
+    val patternAlpha: StateFlow<Float> = _patternAlpha.asStateFlow()
+
+    private val _patternScale = MutableStateFlow(1.0f)
+    val patternScale: StateFlow<Float> = _patternScale.asStateFlow()
 
     private val _screenBackgroundColor = MutableStateFlow(Color(0xFF2C2C2C))
     val screenBackgroundColor: StateFlow<Color> = _screenBackgroundColor.asStateFlow()
@@ -439,6 +453,26 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setBackgroundImageBlur(value: Float) {
         _backgroundImageBlur.value = value
+    }
+
+    fun setBackgroundPattern(pattern: BackgroundPattern) {
+        _backgroundPattern.value = pattern
+        _isSaved.value = false
+    }
+
+    fun setPatternColor(color: Color) {
+        _patternColor.value = color
+        _isSaved.value = false
+    }
+
+    fun setPatternAlpha(value: Float) {
+        _patternAlpha.value = value
+        _isSaved.value = false
+    }
+
+    fun setPatternScale(value: Float) {
+        _patternScale.value = value
+        _isSaved.value = false
     }
 
     fun setPresetBackgroundImage(url: String) {
@@ -900,6 +934,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _backgroundImageOffsetY.value = config.backgroundImageOffsetY
             _backgroundImageScale.value = config.backgroundImageScale
             _backgroundImageBlur.value = config.backgroundImageBlur
+            _backgroundPattern.value = try { BackgroundPattern.valueOf(config.backgroundPattern) } catch(e: Exception) { BackgroundPattern.NONE }
+            _patternColor.value = Color(config.patternColor)
+            _patternAlpha.value = config.patternAlpha
+            _patternScale.value = config.patternScale
         } ?: run {
             _backgroundType.value = BackgroundType.GRADIENT
             setBackgroundColor(Color(0xFF3F51B5))
@@ -908,6 +946,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _backgroundImageOffsetY.value = 0f
             _backgroundImageScale.value = 1.0f
             _backgroundImageBlur.value = 0f
+            _backgroundPattern.value = BackgroundPattern.NONE
+            _patternColor.value = Color.White
+            _patternAlpha.value = 0.1f
+            _patternScale.value = 1.0f
         }
         _backgroundImage.value = null
         _backgroundImageUri.value = null
@@ -1119,6 +1161,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             backgroundImageOffsetY = _backgroundImageOffsetY.value,
             backgroundImageScale = _backgroundImageScale.value,
             backgroundImageBlur = _backgroundImageBlur.value,
+            backgroundPattern = _backgroundPattern.value.name,
+            patternColor = _patternColor.value.toArgb(),
+            patternAlpha = _patternAlpha.value,
+            patternScale = _patternScale.value,
             screenBackgroundColor = _screenBackgroundColor.value.toArgb(),
             textLayers = _overlayLayers.value,
             // Legacy support
@@ -1194,6 +1240,16 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _backgroundImageOffsetY.value = config.backgroundImageOffsetY
         _backgroundImageScale.value = config.backgroundImageScale
         _backgroundImageBlur.value = config.backgroundImageBlur
+        
+        _backgroundPattern.value = try {
+            BackgroundPattern.valueOf(config.backgroundPattern)
+        } catch (e: Exception) {
+            BackgroundPattern.NONE
+        }
+        _patternColor.value = Color(config.patternColor)
+        _patternAlpha.value = config.patternAlpha
+        _patternScale.value = config.patternScale
+        
         _screenBackgroundColor.value = Color(config.screenBackgroundColor)
 
         _aspectRatio.value = try {

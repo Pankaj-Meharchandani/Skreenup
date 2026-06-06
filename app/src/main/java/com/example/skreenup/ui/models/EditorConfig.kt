@@ -14,6 +14,10 @@ data class EditorConfig(
     val backgroundImageOffsetY: Float = 0f,
     val backgroundImageScale: Float = 1.0f,
     val backgroundImageBlur: Float = 0f,
+    val backgroundPattern: String = "NONE",
+    val patternColor: Int = 0xFFFFFFFF.toInt(),
+    val patternAlpha: Float = 0.1f,
+    val patternScale: Float = 1.0f,
     val screenBackgroundColor: Int,
     val textLayers: List<OverlayLayer> = emptyList(),
     // Legacy fields for migration

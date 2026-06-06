@@ -447,6 +447,12 @@ fun EditorScreen(
     val backgroundImageOffsetY by editorViewModel.backgroundImageOffsetY.collectAsState()
     val backgroundImageScale by editorViewModel.backgroundImageScale.collectAsState()
     val backgroundImageBlur by editorViewModel.backgroundImageBlur.collectAsState()
+    
+    val backgroundPattern by editorViewModel.backgroundPattern.collectAsState()
+    val patternColor by editorViewModel.patternColor.collectAsState()
+    val patternAlpha by editorViewModel.patternAlpha.collectAsState()
+    val patternScale by editorViewModel.patternScale.collectAsState()
+
     val screenBackgroundColor by editorViewModel.screenBackgroundColor.collectAsState()
     val scale by editorViewModel.scale.collectAsState()
     val imageScale by editorViewModel.imageScale.collectAsState()
@@ -472,6 +478,7 @@ fun EditorScreen(
     LaunchedEffect(
         selectedDevice, screenshots, backgroundType, backgroundColor, gradientColors,
         backgroundImage, backgroundImageOffsetX, backgroundImageOffsetY, backgroundImageScale, backgroundImageBlur,
+        backgroundPattern, patternColor, patternAlpha, patternScale,
         screenBackgroundColor, scale, imageScale, aspectRatio, frameOffsetX, frameOffsetY,
         screenshotOffsetX, screenshotOffsetY, screenshotRotation, rotation,
         overlayLayers, showReflection, showWatermark, watermarkText,
@@ -497,6 +504,10 @@ fun EditorScreen(
                     backgroundImageOffsetY = backgroundImageOffsetY,
                     backgroundImageScale = backgroundImageScale,
                     backgroundImageBlur = backgroundImageBlur,
+                    backgroundPattern = backgroundPattern,
+                    patternColor = patternColor,
+                    patternAlpha = patternAlpha,
+                    patternScale = patternScale,
                     scale = scale,
                     imageScale = imageScale,
                     frameOffsetX = frameOffsetX,
@@ -533,6 +544,10 @@ fun EditorScreen(
                     backgroundImageOffsetY = backgroundImageOffsetY,
                     backgroundImageScale = backgroundImageScale,
                     backgroundImageBlur = backgroundImageBlur,
+                    backgroundPattern = backgroundPattern,
+                    patternColor = patternColor,
+                    patternAlpha = patternAlpha,
+                    patternScale = patternScale,
                     scale = scale,
                     imageScale = imageScale,
                     frameOffsetX = frameOffsetX,
@@ -747,6 +762,10 @@ fun EditorScreen(
                     backgroundImageOffsetY = backgroundImageOffsetY,
                     backgroundImageScale = backgroundImageScale,
                     backgroundImageBlur = backgroundImageBlur,
+                    backgroundPattern = backgroundPattern,
+                    patternColor = patternColor,
+                    patternAlpha = patternAlpha,
+                    patternScale = patternScale,
                     scale = scale,
                     imageScale = imageScale,
                     frameOffsetX = frameOffsetX,
@@ -1163,6 +1182,10 @@ suspend fun captureToBitmap(
     backgroundImageOffsetY: Float = 0f,
     backgroundImageScale: Float = 1.0f,
     backgroundImageBlur: Float = 0f,
+    backgroundPattern: com.example.skreenup.ui.models.BackgroundPattern = com.example.skreenup.ui.models.BackgroundPattern.NONE,
+    patternColor: Color = Color.White,
+    patternAlpha: Float = 0.1f,
+    patternScale: Float = 1.0f,
     scale: Float,
     imageScale: Float,
     frameOffsetX: Float,
@@ -1215,6 +1238,10 @@ suspend fun captureToBitmap(
                 backgroundImageOffsetY = backgroundImageOffsetY,
                 backgroundImageScale = backgroundImageScale,
                 backgroundImageBlur = backgroundImageBlur,
+                backgroundPattern = backgroundPattern,
+                patternColor = patternColor,
+                patternAlpha = patternAlpha,
+                patternScale = patternScale,
                 scale = scale,
                 imageScale = imageScale,
                 frameOffsetX = frameOffsetX,

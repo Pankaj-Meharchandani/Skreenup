@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.skreenup.ui.models.BackgroundType
+import com.example.skreenup.ui.models.BackgroundPattern
 import com.example.skreenup.ui.screens.EditorViewModel
 import com.example.skreenup.ui.components.ColorPickerButton
 import com.example.skreenup.ui.components.SnappingSlider
@@ -106,6 +107,11 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
     val backgroundImageOffsetY by viewModel.backgroundImageOffsetY.collectAsState()
     val backgroundImageScale by viewModel.backgroundImageScale.collectAsState()
     val backgroundImageBlur by viewModel.backgroundImageBlur.collectAsState()
+    
+    val backgroundPattern by viewModel.backgroundPattern.collectAsState()
+    val patternColor by viewModel.patternColor.collectAsState()
+    val patternAlpha by viewModel.patternAlpha.collectAsState()
+    val patternScale by viewModel.patternScale.collectAsState()
     
     val smartPalette by viewModel.smartPalette.collectAsState()
 
@@ -382,6 +388,65 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
                         "Background is now transparent. Export as PNG for best results.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+
+        // Pattern Overlay Section
+        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            Text("Pattern Overlay", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(BackgroundPattern.entries) { pattern ->
+                    FilterChip(
+                        selected = backgroundPattern == pattern,
+                        onClick = { viewModel.setBackgroundPattern(pattern) },
+                        label = { Text(pattern.label) },
+                        shape = MaterialTheme.shapes.large
+                    )
+                }
+            }
+
+            if (backgroundPattern != BackgroundPattern.NONE) {
+                ColorPickerButton(
+                    color = patternColor,
+                    tag = "pattern_color",
+                    label = "Pattern Color"
+                )
+
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Pattern Opacity", style = MaterialTheme.typography.labelMedium)
+                        Text("${(patternAlpha * 100).toInt()}%", style = MaterialTheme.typography.labelSmall)
+                    }
+                    Slider(
+                        value = patternAlpha,
+                        onValueChange = { viewModel.setPatternAlpha(it) },
+                        valueRange = 0f..1.0f
+                    )
+                }
+
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Pattern Scale", style = MaterialTheme.typography.labelMedium)
+                        Text("${(patternScale * 100).toInt()}%", style = MaterialTheme.typography.labelSmall)
+                    }
+                    Slider(
+                        value = patternScale,
+                        onValueChange = { viewModel.setPatternScale(it) },
+                        valueRange = 0.5f..3.0f
                     )
                 }
             }

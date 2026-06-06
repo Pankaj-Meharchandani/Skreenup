@@ -29,6 +29,17 @@ enum class BackgroundType {
 }
 
 @Immutable
+enum class BackgroundPattern(val label: String) {
+    NONE("None"),
+    DOTS("Dots"),
+    GRID("Grid"),
+    WAVY("Wavy"),
+    STRIPES("Stripes"),
+    CHECKERED("Checkered"),
+    NOISE("Noise")
+}
+
+@Immutable
 enum class CompositionAspectRatio(val ratio: Float, val label: String) {
     SQUARE(1f, "1:1"),
     PORTRAIT(9f / 16f, "9:16"),

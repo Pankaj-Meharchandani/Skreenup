@@ -76,6 +76,10 @@ object MockupRenderer {
         backgroundImageOffsetY: Float = 0f,
         backgroundImageScale: Float = 1.0f,
         backgroundImageBlur: Float = 0f,
+        backgroundPattern: com.example.skreenup.ui.models.BackgroundPattern = com.example.skreenup.ui.models.BackgroundPattern.NONE,
+        patternColor: Color = Color.White,
+        patternAlpha: Float = 0.1f,
+        patternScale: Float = 1.0f,
         scale: Float,
         imageScale: Float,
         frameOffsetX: Float,
@@ -198,6 +202,18 @@ object MockupRenderer {
                 BackgroundType.TRANSPARENT -> {
                     // Do nothing, leave it transparent
                 }
+            }
+
+            // Draw Background Pattern
+            if (backgroundPattern != com.example.skreenup.ui.models.BackgroundPattern.NONE) {
+                drawBackgroundPattern(
+                    pattern = backgroundPattern,
+                    color = patternColor,
+                    alpha = patternAlpha,
+                    scale = patternScale,
+                    compRect = compRect,
+                    resScale = resolutionScale
+                )
             }
         }
 
@@ -1661,6 +1677,102 @@ object MockupRenderer {
                 cx - 6.757f * s, cy + 0.243f * s
             )
             close()
+        }
+    }
+
+    private fun DrawScope.drawBackgroundPattern(
+        pattern: com.example.skreenup.ui.models.BackgroundPattern,
+        color: Color,
+        alpha: Float,
+        scale: Float,
+        compRect: Rect,
+        resScale: Float
+    ) {
+        val patternAlphaColor = color.copy(alpha = alpha)
+        val density = resScale * 50f * scale
+
+        when (pattern) {
+            com.example.skreenup.ui.models.BackgroundPattern.DOTS -> {
+                val radius = 2f * resScale
+                var x = compRect.left + density / 2
+                while (x < compRect.right) {
+                    var y = compRect.top + density / 2
+                    while (y < compRect.bottom) {
+                        drawCircle(patternAlphaColor, radius, Offset(x, y))
+                        y += density
+                    }
+                    x += density
+                }
+            }
+            com.example.skreenup.ui.models.BackgroundPattern.GRID -> {
+                val strokeWidth = 1f * resScale
+                var x = compRect.left + density
+                while (x < compRect.right) {
+                    drawLine(patternAlphaColor, Offset(x, compRect.top), Offset(x, compRect.bottom), strokeWidth)
+                    x += density
+                }
+                var y = compRect.top + density
+                while (y < compRect.bottom) {
+                    drawLine(patternAlphaColor, Offset(compRect.left, y), Offset(compRect.right, y), strokeWidth)
+                    y += density
+                }
+            }
+            com.example.skreenup.ui.models.BackgroundPattern.WAVY -> {
+                val strokeWidth = 2f * resScale
+                val waveHeight = density / 2
+                val waveLength = density * 2
+                var y = compRect.top + density
+                while (y < compRect.bottom + density) {
+                    val path = Path()
+                    path.moveTo(compRect.left, y)
+                    var x = compRect.left
+                    while (x < compRect.right + waveLength) {
+                        path.relativeQuadraticTo(waveLength / 4, -waveHeight, waveLength / 2, 0f)
+                        path.relativeQuadraticTo(waveLength / 4, waveHeight, waveLength / 2, 0f)
+                        x += waveLength
+                    }
+                    drawPath(path, patternAlphaColor, style = Stroke(strokeWidth))
+                    y += density
+                }
+            }
+            com.example.skreenup.ui.models.BackgroundPattern.STRIPES -> {
+                val strokeWidth = density / 2
+                var x = compRect.left - compRect.height
+                while (x < compRect.right) {
+                    drawLine(patternAlphaColor, Offset(x, compRect.top), Offset(x + compRect.height, compRect.bottom), strokeWidth)
+                    x += density * 2
+                }
+            }
+            com.example.skreenup.ui.models.BackgroundPattern.CHECKERED -> {
+                val squareSize = density
+                var x = compRect.left
+                var row = 0
+                while (x < compRect.right) {
+                    var y = compRect.top
+                    var col = 0
+                    while (y < compRect.bottom) {
+                        if ((row + col) % 2 == 0) {
+                            val w = if (x + squareSize > compRect.right) compRect.right - x else squareSize
+                            val h = if (y + squareSize > compRect.bottom) compRect.bottom - y else squareSize
+                            drawRect(patternAlphaColor, Offset(x, y), Size(w, h))
+                        }
+                        y += squareSize
+                        col++
+                    }
+                    x += squareSize
+                    row++
+                }
+            }
+            com.example.skreenup.ui.models.BackgroundPattern.NOISE -> {
+                val random = java.util.Random(42)
+                repeat(2000) {
+                    val x = compRect.left + random.nextFloat() * compRect.width
+                    val y = compRect.top + random.nextFloat() * compRect.height
+                    val r = (0.5f + random.nextFloat() * 1.5f) * resScale
+                    drawCircle(patternAlphaColor, r, Offset(x, y))
+                }
+            }
+            else -> {}
         }
     }
 

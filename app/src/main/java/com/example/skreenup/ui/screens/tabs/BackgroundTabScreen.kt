@@ -14,6 +14,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Collections
 import androidx.compose.material.icons.rounded.Link
@@ -28,7 +30,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -293,17 +297,29 @@ fun BackgroundTabScreen(viewModel: EditorViewModel) {
                     }
 
                     var customUrl by remember { mutableStateOf("") }
+                    val focusManager = LocalFocusManager.current
+                    
                     OutlinedTextField(
                         value = customUrl,
                         onValueChange = { customUrl = it },
                         label = { Text("Custom Image URL (Unsplash, etc.)") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(
+                            onSearch = {
+                                if (customUrl.isNotBlank()) {
+                                    viewModel.setPresetBackgroundImage(customUrl)
+                                    focusManager.clearFocus()
+                                }
+                            }
+                        ),
                         trailingIcon = {
                             IconButton(
                                 onClick = { 
                                     if (customUrl.isNotBlank()) {
                                         viewModel.setPresetBackgroundImage(customUrl)
+                                        focusManager.clearFocus()
                                     }
                                 },
                                 enabled = customUrl.isNotBlank()

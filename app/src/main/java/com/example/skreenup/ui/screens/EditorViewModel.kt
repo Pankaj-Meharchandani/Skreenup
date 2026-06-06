@@ -476,12 +476,54 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setPresetBackgroundImage(url: String) {
-        _backgroundImageUri.value = url
+        val sanitizedUrl = sanitizeImageUrl(url)
+        _backgroundImageUri.value = sanitizedUrl
         viewModelScope.launch {
-            val bitmap = ImageLoaderHelper.loadBitmapFromUrl(getApplication(), url)
+            val bitmap = ImageLoaderHelper.loadBitmapFromUrl(getApplication(), sanitizedUrl)
             _backgroundImage.value = bitmap?.asImageBitmap()
             _backgroundType.value = BackgroundType.IMAGE
         }
+    }
+
+    private fun sanitizeImageUrl(url: String): String {
+        // Remove whitespace and common trailing punctuation like dots or slashes
+        var trimmed = url.trim().removeSuffix("/").removeSuffix(".")
+        
+        // 1. Handle Unsplash Page Links
+        // Format: unsplash.com/photos/slug-ID or unsplash.com/photos/ID
+        if (trimmed.contains("unsplash.com/photos/")) {
+            val parts = trimmed.split("/")
+            // Get the segment after /photos/
+            val photoSegment = parts.getOrNull(parts.indexOf("photos") + 1)?.split("?")?.firstOrNull() ?: ""
+            // The ID is the alphanumeric string at the end (usually 11 chars)
+            // It might be preceded by a slug with hyphens.
+            val id = photoSegment.split("-").lastOrNull() ?: photoSegment
+            
+            if (id.isNotEmpty()) {
+                return "https://unsplash.com/photos/$id/download?force=true&w=2000"
+            }
+        }
+
+        // 2. Handle Unsplash Short/Direct Links
+        if (trimmed.contains("unsplash.com/") && !trimmed.contains("images.unsplash.com")) {
+            val id = trimmed.split("/").lastOrNull()?.split("?")?.firstOrNull() ?: ""
+            if (id.length >= 5) {
+                return "https://unsplash.com/photos/$id/download?force=true&w=2000"
+            }
+        }
+
+        // 3. Handle Pexels (Direct image usually needed, but let's try to detect page links)
+        if (trimmed.contains("pexels.com/photo/")) {
+            // Pexels is harder to reverse-engineer without an API, 
+            // but usually the ID is the number at the end.
+            val id = trimmed.split("/").filter { it.all { char -> char.isDigit() } }.lastOrNull()
+            if (id != null) {
+                // This is a guess but works for some pexels structures
+                return "https://images.pexels.com/photos/$id/pexels-photo-$id.jpeg?auto=compress&cs=tinysrgb&w=2000"
+            }
+        }
+
+        return trimmed
     }
 
     fun setScale(value: Float) {

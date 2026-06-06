@@ -54,7 +54,6 @@ import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.models.CompositionAspectRatio
 import com.example.skreenup.ui.models.OverlayLayer
 import com.example.skreenup.ui.models.OverlayType
-import com.example.skreenup.ui.models.DecorationShape
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.components.MockupRenderer.drawMockup
 

@@ -413,6 +413,7 @@ fun EditorScreen(
     val tabBackStackList: MutableList<NavKey> = tabBackStack
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val defaultExportAction by settingsViewModel.defaultExportAction.collectAsState()
     var showExportDialog by remember { mutableStateOf(false) }
@@ -599,10 +600,19 @@ fun EditorScreen(
     ) { uris ->
         if (uris.isNotEmpty()) {
             editorViewModel.setScreenshots(uris)
+            if (uris.size == 1) {
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "Tip: Select multiple images for batch editing!",
+                        duration = SnackbarDuration.Short
+                    )
+                }
+            }
         }
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Skreenup", color = MaterialTheme.colorScheme.onBackground) },

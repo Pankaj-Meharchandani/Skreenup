@@ -781,7 +781,7 @@ fun DeviceFrame(
                                 fontWeight = FontWeight.Black
                             )
                             Text(
-                                text = "SCREENSHOT",
+                                text = "SCREENSHOT(S)",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White.copy(alpha = 0.3f),
                                 fontWeight = FontWeight.Bold

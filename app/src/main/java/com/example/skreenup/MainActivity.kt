@@ -644,7 +644,20 @@ fun EditorScreen(
                             }
                         }
                     }) {
-                        Icon(Icons.Rounded.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.onBackground)
+                        BadgedBox(
+                            badge = {
+                                if (screenshots.size > 1) {
+                                    Badge(
+                                        containerColor = MaterialTheme.colorScheme.tertiary,
+                                        contentColor = MaterialTheme.colorScheme.onTertiary
+                                    ) {
+                                        Text(screenshots.size.toString())
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Rounded.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.onBackground)
+                        }
                     }
                 }
             )
@@ -790,28 +803,23 @@ fun EditorScreen(
                         color = MaterialTheme.colorScheme.secondaryContainer,
                         tonalElevation = 2.dp
                     ) {
-                        Text(
-                            text = "${currentIndex + 1} / ${screenshots.size}",
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    // Batch Mode Indicator
-                    Surface(
-                        modifier = Modifier.align(Alignment.TopStart).padding(top = 12.dp, start = 12.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
-                        tonalElevation = 2.dp
-                    ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Icon(Icons.Rounded.Layers, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Batch Mode", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            Icon(
+                                Icons.Rounded.Collections, 
+                                contentDescription = null, 
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Text(
+                                text = "${currentIndex + 1} / ${screenshots.size}",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
                         }
                     }
                 }

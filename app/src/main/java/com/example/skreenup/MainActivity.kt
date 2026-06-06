@@ -19,6 +19,7 @@ import eltos.simpledialogfragment.color.SimpleColorWheelDialog
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -30,6 +31,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.BookmarkBorder
@@ -434,7 +436,8 @@ fun EditorScreen(
     val previewWeight = if (isKeyboardVisible) 0.5f else 1f
 
     val selectedDevice by editorViewModel.selectedDevice.collectAsState()
-    val screenshot by editorViewModel.screenshot.collectAsState()
+    val screenshots by editorViewModel.screenshots.collectAsState()
+    val currentIndex by editorViewModel.currentIndex.collectAsState()
     val backgroundType by editorViewModel.backgroundType.collectAsState()
     val backgroundColor by editorViewModel.backgroundColor.collectAsState()
     val gradientColors by editorViewModel.gradientColors.collectAsState()
@@ -466,7 +469,7 @@ fun EditorScreen(
 
     // Save state whenever any of these change
     LaunchedEffect(
-        selectedDevice, screenshot, backgroundType, backgroundColor, gradientColors,
+        selectedDevice, screenshots, backgroundType, backgroundColor, gradientColors,
         backgroundImage, backgroundImageOffsetX, backgroundImageOffsetY, backgroundImageScale, backgroundImageBlur,
         screenBackgroundColor, scale, imageScale, aspectRatio, frameOffsetX, frameOffsetY,
         screenshotOffsetX, screenshotOffsetY, screenshotRotation, rotation,
@@ -476,10 +479,127 @@ fun EditorScreen(
         editorViewModel.saveStateToPrefs()
     }
 
+    val bitmapsToExport: suspend (Boolean) -> List<Bitmap> = { ignoreScreenshot: Boolean ->
+        val currentScreenshots = screenshots
+        if (currentScreenshots.isEmpty() || ignoreScreenshot) {
+            listOf(
+                captureToBitmap(
+                    context = context,
+                    density = Density(context),
+                    screenshot = null,
+                    deviceModel = selectedDevice,
+                    backgroundType = backgroundType,
+                    backgroundColor = backgroundColor,
+                    gradientColors = gradientColors,
+                    backgroundImage = backgroundImage,
+                    backgroundImageOffsetX = backgroundImageOffsetX,
+                    backgroundImageOffsetY = backgroundImageOffsetY,
+                    backgroundImageScale = backgroundImageScale,
+                    backgroundImageBlur = backgroundImageBlur,
+                    scale = scale,
+                    imageScale = imageScale,
+                    frameOffsetX = frameOffsetX,
+                    frameOffsetY = frameOffsetY,
+                    screenshotOffsetX = screenshotOffsetX,
+                    screenshotOffsetY = screenshotOffsetY,
+                    aspectRatio = aspectRatio,
+                    customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
+                    customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
+                    rotationDegrees = rotation,
+                    screenshotRotation = screenshotRotation,
+                    screenBackgroundColor = screenBackgroundColor,
+                    textLayers = overlayLayers,
+                    showReflection = showReflection,
+                    shadowIntensity = editorViewModel.shadowIntensity.value,
+                    shadowSoftness = editorViewModel.shadowSoftness.value,
+                    showWatermark = showWatermark,
+                    watermarkText = watermarkText,
+                    ignoreScreenshot = ignoreScreenshot
+                )
+            )
+        } else {
+            currentScreenshots.map { ss ->
+                captureToBitmap(
+                    context = context,
+                    density = Density(context),
+                    screenshot = ss,
+                    deviceModel = selectedDevice,
+                    backgroundType = backgroundType,
+                    backgroundColor = backgroundColor,
+                    gradientColors = gradientColors,
+                    backgroundImage = backgroundImage,
+                    backgroundImageOffsetX = backgroundImageOffsetX,
+                    backgroundImageOffsetY = backgroundImageOffsetY,
+                    backgroundImageScale = backgroundImageScale,
+                    backgroundImageBlur = backgroundImageBlur,
+                    scale = scale,
+                    imageScale = imageScale,
+                    frameOffsetX = frameOffsetX,
+                    frameOffsetY = frameOffsetY,
+                    screenshotOffsetX = screenshotOffsetX,
+                    screenshotOffsetY = screenshotOffsetY,
+                    aspectRatio = aspectRatio,
+                    customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
+                    customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
+                    rotationDegrees = rotation,
+                    screenshotRotation = screenshotRotation,
+                    screenBackgroundColor = screenBackgroundColor,
+                    textLayers = overlayLayers,
+                    showReflection = showReflection,
+                    shadowIntensity = editorViewModel.shadowIntensity.value,
+                    shadowSoftness = editorViewModel.shadowSoftness.value,
+                    showWatermark = showWatermark,
+                    watermarkText = watermarkText,
+                    ignoreScreenshot = false
+                )
+            }
+        }
+    }
+
+    val performSaveAction = suspend {
+        val images = bitmapsToExport(false)
+        var allSuccess = true
+        images.forEachIndexed { index, bitmap ->
+            val path = savePreviewToInternal(context, bitmap)
+            val success = saveBitmapToGallery(context, bitmap)
+            if (success) {
+                if (index == 0) editorViewModel.saveToHistory(previewUri = path)
+            } else {
+                allSuccess = false
+            }
+        }
+        if (allSuccess) {
+            Toast.makeText(context, if (images.size > 1) "Batch Export Saved!" else "Export Saved!", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Export failed for some images.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val performShareAction = suspend {
+        val images = bitmapsToExport(false)
+        if (images.size == 1) {
+            shareImage(context, images[0])
+        } else {
+            shareMultipleImages(context, images)
+        }
+    }
+
+    val performCopyAction = suspend {
+        val images = bitmapsToExport(false)
+        if (images.isNotEmpty()) {
+            copyImageToClipboard(context, images[0])
+            if (images.size > 1) {
+                Toast.makeText(context, "First image copied (clipboard doesn't support multiple)", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        uri?.let { editorViewModel.setScreenshot(it) }
+        contract = ActivityResultContracts.PickMultipleVisualMedia()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            editorViewModel.setScreenshots(uris)
+        }
     }
 
     Scaffold(
@@ -499,40 +619,8 @@ fun EditorScreen(
                     val isSaved by editorViewModel.isSaved.collectAsState()
                     IconButton(onClick = { 
                         scope.launch {
-                            val bitmap = captureToBitmap(
-                            context = context,
-                            density = Density(context),
-                            screenshot = screenshot,
-                                deviceModel = selectedDevice,
-                                backgroundType = backgroundType,
-                                backgroundColor = backgroundColor,
-                                gradientColors = gradientColors,
-                                backgroundImage = backgroundImage,
-                                backgroundImageOffsetX = backgroundImageOffsetX,
-                                backgroundImageOffsetY = backgroundImageOffsetY,
-                                backgroundImageScale = backgroundImageScale,
-                                backgroundImageBlur = backgroundImageBlur,
-                                scale = scale,
-                                imageScale = imageScale,
-                                frameOffsetX = frameOffsetX,
-                                frameOffsetY = frameOffsetY,
-                                screenshotOffsetX = screenshotOffsetX,
-                                screenshotOffsetY = screenshotOffsetY,
-                                aspectRatio = aspectRatio,
-                                customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
-                                customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
-                                rotationDegrees = rotation,
-                                screenshotRotation = screenshotRotation,
-                                screenBackgroundColor = screenBackgroundColor,
-                                textLayers = overlayLayers,
-                                showReflection = showReflection,
-                                shadowIntensity = editorViewModel.shadowIntensity.value,
-                                shadowSoftness = editorViewModel.shadowSoftness.value,
-                                showWatermark = showWatermark,
-                                watermarkText = watermarkText,
-                                ignoreScreenshot = true
-                            )
-                            val path = savePreviewToInternal(context, bitmap)
+                            val images = bitmapsToExport(true)
+                            val path = savePreviewToInternal(context, images[0])
                             editorViewModel.saveTemplate(previewUri = path)
                             Toast.makeText(context, "Template Saved!", Toast.LENGTH_SHORT).show()
                         }
@@ -548,64 +636,11 @@ fun EditorScreen(
                     }
                     IconButton(onClick = { 
                         scope.launch {
-                            val bitmap = captureToBitmap(
-                            context = context,
-                            density = Density(context),
-                            screenshot = screenshot,
-                                deviceModel = selectedDevice,
-                                backgroundType = backgroundType,
-                                backgroundColor = backgroundColor,
-                                gradientColors = gradientColors,
-                                backgroundImage = backgroundImage,
-                                backgroundImageOffsetX = backgroundImageOffsetX,
-                                backgroundImageOffsetY = backgroundImageOffsetY,
-                                backgroundImageScale = backgroundImageScale,
-                                backgroundImageBlur = backgroundImageBlur,
-                                scale = scale,
-                                imageScale = imageScale,
-                                frameOffsetX = frameOffsetX,
-                                frameOffsetY = frameOffsetY,
-                                screenshotOffsetX = screenshotOffsetX,
-                                screenshotOffsetY = screenshotOffsetY,
-                                aspectRatio = aspectRatio,
-                                customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
-                                customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
-                                rotationDegrees = rotation,
-                                screenshotRotation = screenshotRotation,
-                                screenBackgroundColor = screenBackgroundColor,
-                                textLayers = overlayLayers,
-                                showReflection = showReflection,
-                                shadowIntensity = editorViewModel.shadowIntensity.value,
-                                shadowSoftness = editorViewModel.shadowSoftness.value,
-                                showWatermark = showWatermark,
-                                watermarkText = watermarkText,
-                                ignoreScreenshot = false
-                            )
-
-                            val performSave = suspend {
-                                val path = savePreviewToInternal(context, bitmap)
-                                val success = saveBitmapToGallery(context, bitmap)
-                                if (success) {
-                                    editorViewModel.saveToHistory(previewUri = path)
-                                    Toast.makeText(context, "Export Saved!", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    Toast.makeText(context, "Export failed.", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-
-                            val performShare = {
-                                shareImage(context, bitmap)
-                            }
-
-                            val performCopy = {
-                                copyImageToClipboard(context, bitmap)
-                            }
-
                             when (defaultExportAction) {
                                 ExportAction.ASK -> showExportDialog = true
-                                ExportAction.SAVE -> performSave()
-                                ExportAction.SHARE -> performShare()
-                                ExportAction.CLIPBOARD -> performCopy()
+                                ExportAction.SAVE -> performSaveAction()
+                                ExportAction.SHARE -> performShareAction()
+                                ExportAction.CLIPBOARD -> performCopyAction()
                             }
                         }
                     }) {
@@ -679,7 +714,7 @@ fun EditorScreen(
                 contentAlignment = Alignment.Center
             ) {
                 DeviceFrame(
-                    screenshot = screenshot,
+                    screenshot = screenshots.getOrNull(currentIndex),
                     deviceModel = selectedDevice,
                     backgroundType = backgroundType,
                     backgroundColor = backgroundColor,
@@ -726,6 +761,60 @@ fun EditorScreen(
                         )
                     }
                 )
+
+                if (screenshots.size > 1) {
+                    // Navigation Arrows
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = { editorViewModel.previousScreenshot() },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), CircleShape)
+                        ) {
+                            Icon(Icons.Rounded.ChevronLeft, contentDescription = "Previous")
+                        }
+                        IconButton(
+                            onClick = { editorViewModel.nextScreenshot() },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), CircleShape)
+                        ) {
+                            Icon(Icons.Rounded.ChevronRight, contentDescription = "Next")
+                        }
+                    }
+
+                    // Index Indicator
+                    Surface(
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        tonalElevation = 2.dp
+                    ) {
+                        Text(
+                            text = "${currentIndex + 1} / ${screenshots.size}",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Batch Mode Indicator
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopStart).padding(top = 12.dp, start = 12.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        tonalElevation = 2.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Rounded.Layers, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Batch Mode", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
 
                 // Floating Layers Button
                 Surface(
@@ -833,45 +922,7 @@ fun EditorScreen(
                         Button(
                             onClick = {
                                 scope.launch {
-                                    val bitmap = captureToBitmap(
-                                        context = context,
-                                        density = Density(context),
-                                        screenshot = screenshot,
-                                        deviceModel = selectedDevice,
-                                        backgroundType = backgroundType,
-                                        backgroundColor = backgroundColor,
-                                        gradientColors = gradientColors,
-                                        backgroundImage = backgroundImage,
-                                        backgroundImageOffsetX = backgroundImageOffsetX,
-                                        backgroundImageOffsetY = backgroundImageOffsetY,
-                                        backgroundImageScale = backgroundImageScale,
-                                        backgroundImageBlur = backgroundImageBlur,
-                                        scale = scale,
-                                        imageScale = imageScale,
-                                        frameOffsetX = frameOffsetX,
-                                        frameOffsetY = frameOffsetY,
-                                        screenshotOffsetX = screenshotOffsetX,
-                                        screenshotOffsetY = screenshotOffsetY,
-                                        aspectRatio = aspectRatio,
-                                        customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
-                                        customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
-                                        rotationDegrees = rotation,
-                                        screenshotRotation = screenshotRotation,
-                                        screenBackgroundColor = screenBackgroundColor,
-                                        textLayers = overlayLayers,
-                                        showReflection = showReflection,
-                                        shadowIntensity = editorViewModel.shadowIntensity.value,
-                                        shadowSoftness = editorViewModel.shadowSoftness.value,
-                                        showWatermark = showWatermark,
-                                        watermarkText = watermarkText,
-                                        ignoreScreenshot = false
-                                    )
-                                    val path = savePreviewToInternal(context, bitmap)
-                                    val success = saveBitmapToGallery(context, bitmap)
-                                    if (success) {
-                                        editorViewModel.saveToHistory(previewUri = path)
-                                        Toast.makeText(context, "Export Saved!", Toast.LENGTH_SHORT).show()
-                                    }
+                                    performSaveAction()
                                     showExportDialog = false
                                 }
                             },
@@ -882,7 +933,7 @@ fun EditorScreen(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                             ),
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             Icon(Icons.Rounded.Save, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(12.dp))
@@ -895,40 +946,7 @@ fun EditorScreen(
                         Button(
                             onClick = {
                                 scope.launch {
-                                    val bitmap = captureToBitmap(
-                                        context = context,
-                                        density = Density(context),
-                                        screenshot = screenshot,
-                                        deviceModel = selectedDevice,
-                                        backgroundType = backgroundType,
-                                        backgroundColor = backgroundColor,
-                                        gradientColors = gradientColors,
-                                        backgroundImage = backgroundImage,
-                                        backgroundImageOffsetX = backgroundImageOffsetX,
-                                        backgroundImageOffsetY = backgroundImageOffsetY,
-                                        backgroundImageScale = backgroundImageScale,
-                                        backgroundImageBlur = backgroundImageBlur,
-                                        scale = scale,
-                                        imageScale = imageScale,
-                                        frameOffsetX = frameOffsetX,
-                                        frameOffsetY = frameOffsetY,
-                                        screenshotOffsetX = screenshotOffsetX,
-                                        screenshotOffsetY = screenshotOffsetY,
-                                        aspectRatio = aspectRatio,
-                                        customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
-                                        customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
-                                        rotationDegrees = rotation,
-                                        screenshotRotation = screenshotRotation,
-                                        screenBackgroundColor = screenBackgroundColor,
-                                        textLayers = overlayLayers,
-                                        showReflection = showReflection,
-                                        shadowIntensity = editorViewModel.shadowIntensity.value,
-                                        shadowSoftness = editorViewModel.shadowSoftness.value,
-                                        showWatermark = showWatermark,
-                                        watermarkText = watermarkText,
-                                        ignoreScreenshot = false
-                                    )
-                                    shareImage(context, bitmap)
+                                    performShareAction()
                                     showExportDialog = false
                                 }
                             },
@@ -939,7 +957,7 @@ fun EditorScreen(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                             ),
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(12.dp))
@@ -952,40 +970,7 @@ fun EditorScreen(
                         Button(
                             onClick = {
                                 scope.launch {
-                                    val bitmap = captureToBitmap(
-                                        context = context,
-                                        density = Density(context),
-                                        screenshot = screenshot,
-                                        deviceModel = selectedDevice,
-                                        backgroundType = backgroundType,
-                                        backgroundColor = backgroundColor,
-                                        gradientColors = gradientColors,
-                                        backgroundImage = backgroundImage,
-                                        backgroundImageOffsetX = backgroundImageOffsetX,
-                                        backgroundImageOffsetY = backgroundImageOffsetY,
-                                        backgroundImageScale = backgroundImageScale,
-                                        backgroundImageBlur = backgroundImageBlur,
-                                        scale = scale,
-                                        imageScale = imageScale,
-                                        frameOffsetX = frameOffsetX,
-                                        frameOffsetY = frameOffsetY,
-                                        screenshotOffsetX = screenshotOffsetX,
-                                        screenshotOffsetY = screenshotOffsetY,
-                                        aspectRatio = aspectRatio,
-                                        customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
-                                        customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
-                                        rotationDegrees = rotation,
-                                        screenshotRotation = screenshotRotation,
-                                        screenBackgroundColor = screenBackgroundColor,
-                                        textLayers = overlayLayers,
-                                        showReflection = showReflection,
-                                        shadowIntensity = editorViewModel.shadowIntensity.value,
-                                        shadowSoftness = editorViewModel.shadowSoftness.value,
-                                        showWatermark = showWatermark,
-                                        watermarkText = watermarkText,
-                                        ignoreScreenshot = false
-                                    )
-                                    copyImageToClipboard(context, bitmap)
+                                    performCopyAction()
                                     showExportDialog = false
                                 }
                             },
@@ -996,7 +981,7 @@ fun EditorScreen(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                             ),
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(12.dp))
@@ -1323,6 +1308,31 @@ fun copyImageToClipboard(context: android.content.Context, bitmap: Bitmap) {
                 Toast.makeText(context, "Image copied to clipboard", Toast.LENGTH_SHORT).show()
             }
         }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
+fun shareMultipleImages(context: android.content.Context, bitmaps: List<Bitmap>) {
+    try {
+        val cachePath = File(context.cacheDir, "shared_images")
+        cachePath.mkdirs()
+        
+        val uris = bitmaps.mapIndexed { index, bitmap ->
+            val file = File(cachePath, "image_$index.png")
+            FileOutputStream(file).use { stream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            }
+            FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+        }
+
+        val shareIntent = Intent().apply {
+            action = Intent.ACTION_SEND_MULTIPLE
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
+            type = "image/png"
+        }
+        context.startActivity(Intent.createChooser(shareIntent, "Share Images"))
     } catch (e: Exception) {
         e.printStackTrace()
     }

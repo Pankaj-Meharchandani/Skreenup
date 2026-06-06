@@ -67,11 +67,14 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _selectedDevice = MutableStateFlow(DeviceModels.first())
     val selectedDevice: StateFlow<DeviceModel> = _selectedDevice.asStateFlow()
 
-    private val _screenshot = MutableStateFlow<ImageBitmap?>(null)
-    val screenshot: StateFlow<ImageBitmap?> = _screenshot.asStateFlow()
+    private val _screenshots = MutableStateFlow<List<ImageBitmap>>(emptyList())
+    val screenshots: StateFlow<List<ImageBitmap>> = _screenshots.asStateFlow()
 
-    private val _screenshotUri = MutableStateFlow<String?>(null)
-    val screenshotUri: StateFlow<String?> = _screenshotUri.asStateFlow()
+    private val _screenshotUris = MutableStateFlow<List<String>>(emptyList())
+    val screenshotUris: StateFlow<List<String>> = _screenshotUris.asStateFlow()
+
+    private val _currentIndex = MutableStateFlow(0)
+    val currentIndex: StateFlow<Int> = _currentIndex.asStateFlow()
 
     private val _smartPalette = MutableStateFlow<List<Color>>(emptyList())
     val smartPalette: StateFlow<List<Color>> = _smartPalette.asStateFlow()
@@ -277,17 +280,36 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _isSaved.value = false
     }
 
-    fun setScreenshot(uri: Uri) {
-        _screenshotUri.value = uri.toString()
+    fun setScreenshots(uris: List<Uri>) {
+        _screenshotUris.value = uris.map { it.toString() }
+        _currentIndex.value = 0
         viewModelScope.launch {
-            val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), uri)
-            _screenshot.value = bitmap?.asImageBitmap()
+            val bitmaps = uris.mapNotNull { uri ->
+                ImageLoaderHelper.loadBitmapFromUri(getApplication(), uri)?.asImageBitmap()
+            }
+            _screenshots.value = bitmaps
             
-            // Extract default screen color from the screenshot
-            bitmap?.let { bp ->
-                val extractedColor = extractProminentColor(bp)
+            // Extract default screen color from the first screenshot
+            bitmaps.firstOrNull()?.let { bp ->
+                val extractedColor = extractProminentColor(bp.asAndroidBitmap())
                 setScreenBackgroundColor(Color(extractedColor))
-                extractSmartPalette(bp)
+                extractSmartPalette(bp.asAndroidBitmap())
+            }
+        }
+    }
+
+    fun nextScreenshot() {
+        if (_screenshots.value.isNotEmpty()) {
+            _currentIndex.value = (_currentIndex.value + 1) % _screenshots.value.size
+        }
+    }
+
+    fun previousScreenshot() {
+        if (_screenshots.value.isNotEmpty()) {
+            _currentIndex.value = if (_currentIndex.value > 0) {
+                _currentIndex.value - 1
+            } else {
+                _screenshots.value.size - 1
             }
         }
     }
@@ -863,8 +885,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _showReflection.value = true
             setScreenBackgroundColor(Color(0xFF2C2C2C))
         }
-        _screenshot.value = null
-        _screenshotUri.value = null
+        _screenshots.value = emptyList()
+        _screenshotUris.value = emptyList()
+        _currentIndex.value = 0
         _smartPalette.value = emptyList()
     }
 
@@ -1087,7 +1110,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private fun getCurrentConfig(): EditorConfig {
         return EditorConfig(
             selectedDeviceName = _selectedDevice.value.name,
-            screenshotUri = _screenshotUri.value,
+            screenshotUris = _screenshotUris.value,
             backgroundType = _backgroundType.value.name,
             backgroundColor = _backgroundColor.value.toArgb(),
             gradientColors = _gradientColors.value.map { it.toArgb() },
@@ -1142,13 +1165,17 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _backgroundColor.value = Color(config.backgroundColor)
         _gradientColors.value = config.gradientColors.map { Color(it) }
         
-        _screenshotUri.value = config.screenshotUri
-        config.screenshotUri?.let { uriStr ->
+        _screenshotUris.value = config.screenshotUris
+        if (config.screenshotUris.isNotEmpty()) {
             viewModelScope.launch {
-                val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), Uri.parse(uriStr))
-                _screenshot.value = bitmap?.asImageBitmap()
-                bitmap?.let { extractSmartPalette(it) }
+                val bitmaps = config.screenshotUris.mapNotNull { uriStr ->
+                    ImageLoaderHelper.loadBitmapFromUri(getApplication(), Uri.parse(uriStr))?.asImageBitmap()
+                }
+                _screenshots.value = bitmaps
+                bitmaps.firstOrNull()?.let { extractSmartPalette(it.asAndroidBitmap()) }
             }
+        } else {
+            _screenshots.value = emptyList()
         }
 
         _backgroundImageUri.value = config.backgroundImageUri
@@ -1230,7 +1257,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun saveTemplate(name: String = "My Template", previewUri: String? = null) {
         viewModelScope.launch {
             val currentConfig = getCurrentConfig()
-            val templateConfig = currentConfig.copy(screenshotUri = null)
+            val templateConfig = currentConfig.copy(screenshotUris = emptyList())
             val templateConfigJson = Json.encodeToString(templateConfig)
             val historyConfigJson = Json.encodeToString(currentConfig)
             

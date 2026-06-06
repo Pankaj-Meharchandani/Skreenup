@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class EditorConfig(
     val selectedDeviceName: String,
-    val screenshotUri: String? = null,
+    val screenshotUris: List<String> = emptyList(),
     val backgroundType: String,
     val backgroundColor: Int,
     val gradientColors: List<Int>,

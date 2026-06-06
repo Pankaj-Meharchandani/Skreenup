@@ -260,8 +260,10 @@ fun TextTabContent(viewModel: EditorViewModel) {
                 }
             }
 
-            // Shared controls (Color, Opacity, etc. can be added here or in a generic section)
+            // Shared controls (Color, Opacity, etc.)
             CommonOverlayControls(viewModel)
+
+            TextBackgroundControls(viewModel)
         } else {
             Button(
                 onClick = { viewModel.addOverlay(OverlayLayer(type = OverlayType.TEXT, heading = "New Text")) },
@@ -392,6 +394,64 @@ fun DecorationsTabContent(viewModel: EditorViewModel, overlays: List<OverlayLaye
             }
         } else {
             Text("Tap a shape or sticker to add it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+fun TextBackgroundControls(viewModel: EditorViewModel) {
+    val style by viewModel.textBackgroundStyle.collectAsState()
+    val color by viewModel.textBackgroundColor.collectAsState()
+    val alpha by viewModel.textBackgroundAlpha.collectAsState()
+    val padding by viewModel.textBackgroundPadding.collectAsState()
+    val radius by viewModel.textBackgroundCornerRadius.collectAsState()
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        SectionHeader(label = "Text Background", icon = Icons.Rounded.SquareFoot)
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(TextBackgroundStyle.entries) { item ->
+                FilterChip(
+                    selected = style == item,
+                    onClick = { viewModel.setOverlayBackgroundStyle(item) },
+                    label = { Text(item.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                    shape = MaterialTheme.shapes.large
+                )
+            }
+        }
+
+        if (style != TextBackgroundStyle.NONE) {
+            ColorPickerButton(color = color, tag = "text_bg_color", label = "BG Color")
+
+            AdjustmentItem(
+                label = "BG Opacity",
+                value = alpha,
+                onValueChange = { viewModel.setOverlayBackgroundAlpha(it) },
+                valueRange = 0f..1f,
+                icon = Icons.Rounded.Opacity
+            )
+
+            AdjustmentItem(
+                label = "BG Padding",
+                value = padding,
+                onValueChange = { viewModel.setOverlayBackgroundPadding(it) },
+                valueRange = 0f..100f,
+                showAsRaw = true,
+                icon = Icons.Rounded.Padding
+            )
+
+            AdjustmentItem(
+                label = "BG Corner Radius",
+                value = radius,
+                onValueChange = { viewModel.setOverlayBackgroundCornerRadius(it) },
+                valueRange = 0f..100f,
+                showAsRaw = true,
+                icon = Icons.Rounded.RoundedCorner
+            )
         }
     }
 }

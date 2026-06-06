@@ -1280,13 +1280,10 @@ object MockupRenderer {
                     "MONTSERRAT" -> Typeface.create("sans-serif-light", style)
                     "BEBAS" -> Typeface.create("sans-serif-black", style)
                     "PACIFICO" -> Typeface.create("cursive", style)
-                    "PLAYFAIR" -> Typeface.create("serif-monospace", style)
+                    "CASUAL" -> Typeface.create("casual", style)
+                    "ROBOTO_MONO" -> Typeface.create("monospace", style)
                     "TIMES" -> Typeface.create("serif", style)
                     "OSWALD" -> Typeface.create("sans-serif-condensed", style)
-                    "RALEWAY" -> Typeface.create("sans-serif-thin", style)
-                    "ANTON" -> Typeface.create("sans-serif-black", style)
-                    "QUICKSAND" -> Typeface.create("sans-serif-light", style)
-                    "LIBRE_BASKERVILLE" -> Typeface.create("serif", style)
                     else -> Typeface.create("sans-serif", style)
                 }
                 return android.graphics.Paint().apply {

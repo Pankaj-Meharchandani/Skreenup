@@ -52,16 +52,12 @@ enum class CompositionAspectRatio(val ratio: Float, val label: String) {
 enum class TextFont(val label: String, val family: String) {
     POPPINS("Poppins", "sans-serif"),
     INTER("Inter", "sans-serif-medium"),
-    MONTSERRAT("Montserrat", "sans-serif-light"),
-    BEBAS("Bebas Neue", "sans-serif-black"),
-    PACIFICO("Pacifico", "cursive"),
-    PLAYFAIR("Playfair Display", "serif-monospace"),
-    TIMES("Times New Roman", "serif"),
-    OSWALD("Oswald", "sans-serif-condensed"),
-    RALEWAY("Raleway", "sans-serif-thin"),
-    ANTON("Anton", "sans-serif-black"),
-    QUICKSAND("Quicksand", "sans-serif-light"),
-    LIBRE_BASKERVILLE("Libre Baskerville", "serif")
+    BEBAS("Bebas (Bold)", "sans-serif-black"),
+    PACIFICO("Pacifico (Script)", "cursive"),
+    CASUAL("Casual (Friendly)", "casual"),
+    ROBOTO_MONO("Roboto (Tech)", "monospace"),
+    TIMES("Times (Classic)", "serif"),
+    OSWALD("Oswald (Narrow)", "sans-serif-condensed")
 }
 
 @Immutable

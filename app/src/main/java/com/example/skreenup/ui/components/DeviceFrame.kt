@@ -284,6 +284,8 @@ fun DeviceFrame(
                             point = centroid,
                             canvasSize = canvasSize,
                             aspectRatio = currentRatio,
+                            customWidth = currentCustomWidth,
+                            customHeight = currentCustomHeight,
                             deviceModel = currentDevice,
                             scale = currentScale,
                             frameOffsetX = currentFrameOffsetX,
@@ -361,8 +363,8 @@ fun DeviceFrame(
 
                     // 3. Handle Pan
                     if (pan != Offset.Zero) {
-                        val compWidth = if (canvasSize.width.toFloat() / canvasSize.height.toFloat() > currentRatio.ratio) {
-                            canvasSize.height * currentRatio.ratio
+                        val compWidth = if (canvasSize.width.toFloat() / canvasSize.height.toFloat() > currentEffectiveRatio) {
+                            canvasSize.height * currentEffectiveRatio
                         } else {
                             canvasSize.width.toFloat()
                         }

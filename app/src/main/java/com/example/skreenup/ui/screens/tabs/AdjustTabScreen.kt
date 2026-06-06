@@ -107,11 +107,18 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Width", style = MaterialTheme.typography.labelMedium)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Width", style = MaterialTheme.typography.labelMedium)
+                            Text("${customWidth.toInt()}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        }
                         Slider(
                             value = customWidth,
                             onValueChange = { viewModel.setCustomAspectRatioWidth(it) },
-                            valueRange = 0.1f..5f
+                            valueRange = 1f..21f,
+                            steps = 19
                         )
                     }
                     
@@ -123,17 +130,24 @@ fun AdjustTabScreen(viewModel: EditorViewModel) {
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Height", style = MaterialTheme.typography.labelMedium)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Height", style = MaterialTheme.typography.labelMedium)
+                            Text("${customHeight.toInt()}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        }
                         Slider(
                             value = customHeight,
                             onValueChange = { viewModel.setCustomAspectRatioHeight(it) },
-                            valueRange = 0.1f..5f
+                            valueRange = 1f..21f,
+                            steps = 19
                         )
                     }
                 }
                 
                 Text(
-                    text = "Current Ratio: ${"%.2f".format(customWidth / customHeight)}",
+                    text = "Current Ratio: ${customWidth.toInt()}:${customHeight.toInt()} (${"%.2f".format(customWidth / customHeight)})",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.align(Alignment.CenterHorizontally)

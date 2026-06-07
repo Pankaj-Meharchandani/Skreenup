@@ -40,6 +40,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -418,6 +419,8 @@ fun EditorScreen(
     val defaultExportAction by settingsViewModel.defaultExportAction.collectAsState()
     var showExportDialog by remember { mutableStateOf(false) }
     var showLayersSheet by remember { mutableStateOf(false) }
+    var isExporting by remember { mutableStateOf(false) }
+    var exportStatus by remember { mutableStateOf("") }
     
     LaunchedEffect(presetId, projectId, staticTemplateId, isLastProject) {
         if (isLastProject) {
@@ -923,8 +926,12 @@ fun EditorScreen(
 
     if (showExportDialog) {
         AlertDialog(
-            onDismissRequest = { showExportDialog = false },
-            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+            onDismissRequest = { if (!isExporting) showExportDialog = false },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = !isExporting,
+                dismissOnClickOutside = !isExporting
+            ),
             content = {
                 Surface(
                     modifier = Modifier
@@ -946,7 +953,7 @@ fun EditorScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Choose how to save or share your art.",
+                                    text = if (isExporting) exportStatus else "Choose how to save or share your art.",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -955,86 +962,123 @@ fun EditorScreen(
 
                         Spacer(Modifier.height(24.dp))
 
-                        // Save Button (Primary)
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    performSaveAction()
-                                    showExportDialog = false
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Icon(Icons.Rounded.Save, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(12.dp))
-                            Text("Save to Gallery", style = MaterialTheme.typography.labelLarge)
-                        }
+                        if (isExporting) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                LinearProgressIndicator(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            }
+                        } else {
+                            // Save Button (Primary)
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        isExporting = true
+                                        exportStatus = "Saving to Gallery..."
+                                        try {
+                                            performSaveAction()
+                                        } finally {
+                                            isExporting = false
+                                            showExportDialog = false
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                ),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Icon(Icons.Rounded.Save, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Text("Save to Gallery", style = MaterialTheme.typography.labelLarge)
+                            }
 
-                        Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(12.dp))
 
-                        // Share Button
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    performShareAction()
-                                    showExportDialog = false
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(12.dp))
-                            Text("Share as Image", style = MaterialTheme.typography.labelLarge)
-                        }
+                            // Share Button
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        isExporting = true
+                                        exportStatus = "Preparing Image to Share..."
+                                        try {
+                                            performShareAction()
+                                        } finally {
+                                            isExporting = false
+                                            showExportDialog = false
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Text("Share as Image", style = MaterialTheme.typography.labelLarge)
+                            }
 
-                        Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(12.dp))
 
-                        // Copy Button
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    performCopyAction()
-                                    showExportDialog = false
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(12.dp))
-                            Text("Copy to Clipboard", style = MaterialTheme.typography.labelLarge)
-                        }
+                            // Copy Button
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        isExporting = true
+                                        exportStatus = "Copying to Clipboard..."
+                                        try {
+                                            performCopyAction()
+                                        } finally {
+                                            isExporting = false
+                                            showExportDialog = false
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Text("Copy to Clipboard", style = MaterialTheme.typography.labelLarge)
+                            }
 
-                        Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(16.dp))
 
-                        TextButton(
-                            onClick = { showExportDialog = false }
-                        ) {
-                            Text(
-                                "Cancel",
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.labelLarge
-                            )
+                            TextButton(
+                                onClick = { showExportDialog = false }
+                            ) {
+                                Text(
+                                    "Cancel",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
                         }
                     }
                 }

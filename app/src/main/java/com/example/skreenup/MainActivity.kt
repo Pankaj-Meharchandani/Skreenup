@@ -983,9 +983,10 @@ fun EditorScreen(
                             // Save Button (Primary)
                             Button(
                                 onClick = {
+                                    if (isExporting) return@Button
+                                    isExporting = true
+                                    exportStatus = "Saving to Gallery..."
                                     scope.launch {
-                                        isExporting = true
-                                        exportStatus = "Saving to Gallery..."
                                         try {
                                             performSaveAction()
                                         } finally {
@@ -1013,9 +1014,10 @@ fun EditorScreen(
                             // Share Button
                             Button(
                                 onClick = {
+                                    if (isExporting) return@Button
+                                    isExporting = true
+                                    exportStatus = "Preparing Image to Share..."
                                     scope.launch {
-                                        isExporting = true
-                                        exportStatus = "Preparing Image to Share..."
                                         try {
                                             performShareAction()
                                         } finally {
@@ -1043,9 +1045,10 @@ fun EditorScreen(
                             // Copy Button
                             Button(
                                 onClick = {
+                                    if (isExporting) return@Button
+                                    isExporting = true
+                                    exportStatus = "Copying to Clipboard..."
                                     scope.launch {
-                                        isExporting = true
-                                        exportStatus = "Copying to Clipboard..."
                                         try {
                                             performCopyAction()
                                         } finally {

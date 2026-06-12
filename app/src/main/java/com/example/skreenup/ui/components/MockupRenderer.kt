@@ -458,17 +458,23 @@ object MockupRenderer {
             )
 
             if (screenshot != null) {
-                val imgAspectRatio = screenshot.width.toFloat() / screenshot.height.toFloat()
-                var imgWidth: Float
-                var imgHeight: Float
+                val theta = java.lang.Math.toRadians(screenshotRotation.toDouble())
+                val cosTheta = java.lang.Math.abs(java.lang.Math.cos(theta))
+                val sinTheta = java.lang.Math.abs(java.lang.Math.sin(theta))
+                val w = screenshot.width.toFloat()
+                val h = screenshot.height.toFloat()
+                val rotatedW = (w * cosTheta + h * sinTheta).toFloat()
+                val rotatedH = (w * sinTheta + h * cosTheta).toFloat()
+                val rotatedAspectRatio = rotatedW / rotatedH
 
-                if (frameWidth / frameHeight > imgAspectRatio) {
-                    imgHeight = frameHeight * imageScale
-                    imgWidth = imgHeight * imgAspectRatio
+                val s = if (frameWidth / frameHeight > rotatedAspectRatio) {
+                    (frameHeight * imageScale) / rotatedH
                 } else {
-                    imgWidth = frameWidth * imageScale
-                    imgHeight = imgWidth / imgAspectRatio
+                    (frameWidth * imageScale) / rotatedW
                 }
+
+                val imgWidth = w * s
+                val imgHeight = h * s
 
                 val imgLeft = frameLeft + (frameWidth - imgWidth) / 2 + currentScreenshotOffsetX
                 val imgTop = frameTop + (frameHeight - imgHeight) / 2 + currentScreenshotOffsetY

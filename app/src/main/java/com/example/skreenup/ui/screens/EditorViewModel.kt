@@ -309,7 +309,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             offsetY = 0f,
             scale = 0.7f,
             rotation = 0f,
-            zIndex = maxZ + 1
+            zIndex = maxZ + 1,
+            screenBackgroundColor = _screenBackgroundColor.value.toArgb()
         )
         _deviceLayers.value = _deviceLayers.value + newLayer
         _selectedDeviceId.value = newLayer.id
@@ -337,6 +338,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _rotation.value = layer.rotation
             _frameOffsetX.value = layer.offsetX
             _frameOffsetY.value = layer.offsetY
+            _screenBackgroundColor.value = Color(layer.screenBackgroundColor)
+            _hexColorScreen.value = "#" + String.format("%06X", 0xFFFFFF and layer.screenBackgroundColor)
         }
     }
 
@@ -351,6 +354,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _rotation.value = updatedLayer.rotation
             _frameOffsetX.value = updatedLayer.offsetX
             _frameOffsetY.value = updatedLayer.offsetY
+            _screenBackgroundColor.value = Color(updatedLayer.screenBackgroundColor)
+            _hexColorScreen.value = "#" + String.format("%06X", 0xFFFFFF and updatedLayer.screenBackgroundColor)
         }
         _isSaved.value = false
     }
@@ -367,8 +372,13 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             if (bitmap != null) {
                 _deviceBitmaps.value = _deviceBitmaps.value + (id to bitmap)
                 _screenshots.value = _deviceBitmaps.value.values.toList()
-                extractProminentColor(bitmap.asAndroidBitmap()).let {
-                    setScreenBackgroundColor(Color(it))
+                val extractedColor = extractProminentColor(bitmap.asAndroidBitmap())
+                _deviceLayers.value = _deviceLayers.value.map {
+                    if (it.id == id) it.copy(screenBackgroundColor = extractedColor) else it
+                }
+                if (_selectedDeviceId.value == id || _selectedDeviceId.value == null) {
+                    _screenBackgroundColor.value = Color(extractedColor)
+                    _hexColorScreen.value = "#" + String.format("%06X", 0xFFFFFF and extractedColor)
                 }
                 extractSmartPalette(bitmap.asAndroidBitmap())
             }
@@ -409,28 +419,37 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _screenshots.value = loadedBitmaps
             
             if (_deviceLayers.value.size > 1) {
+                val bitmapMap = _deviceBitmaps.value.toMutableMap()
                 val updatedLayers = _deviceLayers.value.mapIndexed { index, layer ->
                     if (index < uris.size) {
-                        layer.copy(screenshotUri = uris[index].toString())
+                        val bp = loadedBitmaps.getOrNull(index)
+                        val color = bp?.let { extractProminentColor(it.asAndroidBitmap()) } ?: layer.screenBackgroundColor
+                        if (bp != null) {
+                            bitmapMap[layer.id] = bp
+                        }
+                        layer.copy(screenshotUri = uris[index].toString(), screenBackgroundColor = color)
                     } else layer
                 }
                 _deviceLayers.value = updatedLayers
-                val bitmapMap = _deviceBitmaps.value.toMutableMap()
-                loadedBitmaps.forEachIndexed { index, bp ->
-                    if (index < updatedLayers.size) {
-                        bitmapMap[updatedLayers[index].id] = bp
-                    }
-                }
                 _deviceBitmaps.value = bitmapMap
+                val selLayer = updatedLayers.find { it.id == _selectedDeviceId.value } ?: updatedLayers.firstOrNull()
+                selLayer?.let {
+                    _screenBackgroundColor.value = Color(it.screenBackgroundColor)
+                    _hexColorScreen.value = "#" + String.format("%06X", 0xFFFFFF and it.screenBackgroundColor)
+                }
             } else {
                 val firstLayerId = _deviceLayers.value.firstOrNull()?.id
                 if (firstLayerId != null && uris.isNotEmpty()) {
                     val firstUriStr = uris.first().toString()
+                    val firstBp = loadedBitmaps.firstOrNull()
+                    val extractedColor = firstBp?.let { extractProminentColor(it.asAndroidBitmap()) } ?: 0xFF2C2C2C.toInt()
                     _deviceLayers.value = _deviceLayers.value.mapIndexed { index, layer ->
-                        if (index == 0) layer.copy(screenshotUri = firstUriStr) else layer
+                        if (index == 0) layer.copy(screenshotUri = firstUriStr, screenBackgroundColor = extractedColor) else layer
                     }
-                    loadedBitmaps.firstOrNull()?.let { bp ->
-                        _deviceBitmaps.value = _deviceBitmaps.value + (firstLayerId to bp)
+                    if (firstBp != null) {
+                        _deviceBitmaps.value = _deviceBitmaps.value + (firstLayerId to firstBp)
+                        _screenBackgroundColor.value = Color(extractedColor)
+                        _hexColorScreen.value = "#" + String.format("%06X", 0xFFFFFF and extractedColor)
                     }
                 }
             }
@@ -749,12 +768,18 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setScreenBackgroundColor(color: Color) {
         _screenBackgroundColor.value = color
-        _hexColorScreen.value = "#" + String.format("%06X", 0xFFFFFF and color.toArgb())
+        val colorInt = color.toArgb()
+        _hexColorScreen.value = "#" + String.format("%06X", 0xFFFFFF and colorInt)
+        updateSelectedDeviceLayer { it.copy(screenBackgroundColor = colorInt) }
     }
 
     fun setHexColorScreen(value: String) {
         _hexColorScreen.value = value
-        parseHexColor(value)?.let { _screenBackgroundColor.value = it }
+        parseHexColor(value)?.let {
+            _screenBackgroundColor.value = it
+            val colorInt = it.toArgb()
+            updateSelectedDeviceLayer { dev -> dev.copy(screenBackgroundColor = colorInt) }
+        }
     }
 
     // Overlay Management

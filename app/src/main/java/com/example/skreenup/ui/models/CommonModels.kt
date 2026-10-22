@@ -112,7 +112,8 @@ data class DeviceLayer(
     val screenshotOffsetX: Float = 0f,
     val screenshotOffsetY: Float = 0f,
     val zIndex: Int = 0,
-    val isVisible: Boolean = true
+    val isVisible: Boolean = true,
+    val screenBackgroundColor: Int = 0xFF2C2C2C.toInt()
 )
 
 @kotlinx.serialization.Serializable

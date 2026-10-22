@@ -343,7 +343,7 @@ object MockupRenderer {
                                 currentScreenshotOffsetX = devScreenshotOffsetX,
                                 currentScreenshotOffsetY = devScreenshotOffsetY,
                                 screenshotRotation = devLayer.screenshotRotation,
-                                screenBackgroundColor = screenBackgroundColor,
+                                screenBackgroundColor = Color(devLayer.screenBackgroundColor),
                                 showReflection = showReflection,
                                 shadowIntensity = shadowIntensity,
                                 shadowSoftness = shadowSoftness

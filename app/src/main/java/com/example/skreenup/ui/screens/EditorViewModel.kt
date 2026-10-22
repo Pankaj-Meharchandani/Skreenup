@@ -19,6 +19,7 @@ import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.DeviceModels
+import com.example.skreenup.ui.models.DeviceLayer
 import com.example.skreenup.ui.models.TextFont
 import com.example.skreenup.ui.models.TextAlignLabel
 import com.example.skreenup.ui.models.TextBackgroundStyle
@@ -65,6 +66,15 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private var initialConfig: EditorConfig? = null
+
+    private val _deviceLayers = MutableStateFlow<List<DeviceLayer>>(listOf(DeviceLayer()))
+    val deviceLayers: StateFlow<List<DeviceLayer>> = _deviceLayers.asStateFlow()
+
+    private val _selectedDeviceId = MutableStateFlow<String?>(_deviceLayers.value.firstOrNull()?.id)
+    val selectedDeviceId: StateFlow<String?> = _selectedDeviceId.asStateFlow()
+
+    private val _deviceBitmaps = MutableStateFlow<Map<String, ImageBitmap>>(emptyMap())
+    val deviceBitmaps: StateFlow<Map<String, ImageBitmap>> = _deviceBitmaps.asStateFlow()
 
     private val _selectedDevice = MutableStateFlow(DeviceModels.first())
     val selectedDevice: StateFlow<DeviceModel> = _selectedDevice.asStateFlow()
@@ -289,22 +299,141 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val _hexColorScreen = MutableStateFlow("#2C2C2C")
     val hexColorScreen: StateFlow<String> = _hexColorScreen.asStateFlow()
 
+    fun addDevice() {
+        if (_deviceLayers.value.size >= 4) return
+        val currentDeviceName = _selectedDevice.value.name
+        val newLayer = DeviceLayer(
+            deviceName = currentDeviceName,
+            offsetX = 0f,
+            offsetY = 0f,
+            scale = 0.7f,
+            rotation = 0f,
+            zIndex = _deviceLayers.value.size
+        )
+        _deviceLayers.value = _deviceLayers.value + newLayer
+        _selectedDeviceId.value = newLayer.id
+        _isSaved.value = false
+    }
+
+    fun removeDevice(id: String) {
+        val updated = _deviceLayers.value.filter { it.id != id }
+        _deviceLayers.value = if (updated.isEmpty()) listOf(DeviceLayer()) else updated
+        _deviceBitmaps.value = _deviceBitmaps.value - id
+        _screenshotUris.value = _deviceLayers.value.mapNotNull { it.screenshotUri }
+        _screenshots.value = _deviceBitmaps.value.values.toList()
+        if (_selectedDeviceId.value == id) {
+            selectDeviceLayer(_deviceLayers.value.lastOrNull()?.id)
+        }
+        _isSaved.value = false
+    }
+
+    fun selectDeviceLayer(id: String?) {
+        _selectedDeviceId.value = id
+        val layer = _deviceLayers.value.find { it.id == id }
+        if (layer != null) {
+            _selectedDevice.value = DeviceModels.find { it.name == layer.deviceName } ?: DeviceModels.first()
+            _scale.value = layer.scale
+            _rotation.value = layer.rotation
+            _frameOffsetX.value = layer.offsetX
+            _frameOffsetY.value = layer.offsetY
+        }
+    }
+
+    fun updateSelectedDeviceLayer(update: (DeviceLayer) -> DeviceLayer) {
+        val targetId = _selectedDeviceId.value ?: _deviceLayers.value.firstOrNull()?.id ?: return
+        _deviceLayers.value = _deviceLayers.value.map {
+            if (it.id == targetId) update(it) else it
+        }
+        val updatedLayer = _deviceLayers.value.find { it.id == targetId }
+        if (updatedLayer != null) {
+            _scale.value = updatedLayer.scale
+            _rotation.value = updatedLayer.rotation
+            _frameOffsetX.value = updatedLayer.offsetX
+            _frameOffsetY.value = updatedLayer.offsetY
+        }
+        _isSaved.value = false
+    }
+
+    fun setDeviceScreenshot(id: String, uri: Uri) {
+        val uriStr = uri.toString()
+        _deviceLayers.value = _deviceLayers.value.map {
+            if (it.id == id) it.copy(screenshotUri = uriStr) else it
+        }
+        _screenshotUris.value = _deviceLayers.value.mapNotNull { it.screenshotUri }
+        _isSaved.value = false
+        viewModelScope.launch {
+            val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), uri)?.asImageBitmap()
+            if (bitmap != null) {
+                _deviceBitmaps.value = _deviceBitmaps.value + (id to bitmap)
+                _screenshots.value = _deviceBitmaps.value.values.toList()
+                extractProminentColor(bitmap.asAndroidBitmap()).let {
+                    setScreenBackgroundColor(Color(it))
+                }
+                extractSmartPalette(bitmap.asAndroidBitmap())
+            }
+        }
+    }
+
+    fun clearDeviceScreenshot(id: String) {
+        _deviceLayers.value = _deviceLayers.value.map {
+            if (it.id == id) it.copy(screenshotUri = null) else it
+        }
+        _deviceBitmaps.value = _deviceBitmaps.value - id
+        _screenshotUris.value = _deviceLayers.value.mapNotNull { it.screenshotUri }
+        _screenshots.value = _deviceBitmaps.value.values.toList()
+        _isSaved.value = false
+    }
+
     fun selectDevice(device: DeviceModel) {
         _selectedDevice.value = device
+        updateSelectedDeviceLayer { it.copy(deviceName = device.name) }
         _isSaved.value = false
     }
 
     fun setScreenshots(uris: List<Uri>) {
-        _screenshotUris.value = uris.map { it.toString() }
+        if (uris.isEmpty()) return
+        
+        val currentLayers = _deviceLayers.value.toMutableList()
+        val targetCount = uris.size.coerceAtMost(4)
+        
+        while (currentLayers.size < targetCount) {
+            currentLayers.add(
+                DeviceLayer(
+                    deviceName = _selectedDevice.value.name,
+                    offsetX = 0f,
+                    offsetY = 0f,
+                    scale = 0.7f,
+                    rotation = 0f,
+                    zIndex = currentLayers.size
+                )
+            )
+        }
+        
+        val updatedLayers = currentLayers.mapIndexed { index, layer ->
+            if (index < uris.size) {
+                layer.copy(screenshotUri = uris[index].toString())
+            } else layer
+        }
+        _deviceLayers.value = updatedLayers
+        _screenshotUris.value = updatedLayers.mapNotNull { it.screenshotUri }
         _currentIndex.value = 0
+        _isSaved.value = false
+        
         viewModelScope.launch {
-            val bitmaps = uris.mapNotNull { uri ->
-                ImageLoaderHelper.loadBitmapFromUri(getApplication(), uri)?.asImageBitmap()
+            val bitmapMap = _deviceBitmaps.value.toMutableMap()
+            uris.forEachIndexed { index, uri ->
+                if (index < updatedLayers.size) {
+                    val layerId = updatedLayers[index].id
+                    val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), uri)?.asImageBitmap()
+                    if (bitmap != null) {
+                        bitmapMap[layerId] = bitmap
+                    }
+                }
             }
-            _screenshots.value = bitmaps
+            _deviceBitmaps.value = bitmapMap
+            _screenshots.value = bitmapMap.values.toList()
             
-            // Extract default screen color from the first screenshot
-            bitmaps.firstOrNull()?.let { bp ->
+            bitmapMap.values.firstOrNull()?.let { bp ->
                 val extractedColor = extractProminentColor(bp.asAndroidBitmap())
                 setScreenBackgroundColor(Color(extractedColor))
                 extractSmartPalette(bp.asAndroidBitmap())
@@ -528,16 +657,19 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setScale(value: Float) {
         _scale.value = value
+        updateSelectedDeviceLayer { it.copy(scale = value) }
         _isSaved.value = false
     }
 
     fun setImageScale(value: Float) {
         _imageScale.value = value
+        updateSelectedDeviceLayer { it.copy(imageScale = value) }
         _isSaved.value = false
     }
 
     fun setScreenshotRotation(value: Float) {
         _screenshotRotation.value = value
+        updateSelectedDeviceLayer { it.copy(screenshotRotation = value) }
         _isSaved.value = false
     }
 
@@ -565,27 +697,32 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setFrameOffsetX(value: Float) {
         _frameOffsetX.value = value
+        updateSelectedDeviceLayer { it.copy(offsetX = value) }
         _isSaved.value = false
     }
 
     fun setFrameOffsetY(value: Float) {
         _frameOffsetY.value = value
+        updateSelectedDeviceLayer { it.copy(offsetY = value) }
         _isSaved.value = false
     }
 
     fun setScreenshotOffsetX(value: Float) {
         _screenshotOffsetX.value = value
+        updateSelectedDeviceLayer { it.copy(screenshotOffsetX = value) }
         _isSaved.value = false
     }
 
     fun setScreenshotOffsetY(value: Float) {
         _screenshotOffsetY.value = value
+        updateSelectedDeviceLayer { it.copy(screenshotOffsetY = value) }
         _isSaved.value = false
     }
 
     // Rotation with snap
     fun setRotation(degrees: Float) {
         _rotation.value = degrees
+        updateSelectedDeviceLayer { it.copy(rotation = degrees) }
         _isSaved.value = false
     }
 
@@ -725,28 +862,42 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun setDeviceVisibility(id: String, visible: Boolean) {
+        _deviceLayers.value = _deviceLayers.value.map {
+            if (it.id == id) it.copy(isVisible = visible) else it
+        }
+        _isSaved.value = false
+    }
+
     fun moveLayer(fromIndex: Int, toIndex: Int) {
-        val devicePos = if (_deviceFramePosition.value == -1) _overlayLayers.value.size else _deviceFramePosition.value
-        val list = _overlayLayers.value.toMutableList<Any>()
-        list.add(devicePos, "DEVICE")
-        
+        val list = mutableListOf<Any>()
+        list.addAll(_deviceLayers.value)
+        list.addAll(_overlayLayers.value)
+        list.sortByDescending { item ->
+            when (item) {
+                is DeviceLayer -> item.zIndex
+                is OverlayLayer -> item.zIndex
+                else -> 0
+            }
+        }
+
         if (fromIndex in list.indices && toIndex in list.indices) {
             val item = list.removeAt(fromIndex)
             list.add(toIndex, item)
-            
-            // Re-separate
-            val newLayers = mutableListOf<OverlayLayer>()
-            var newDevicePos = -1
-            list.forEachIndexed { idx, it ->
-                if (it is OverlayLayer) {
-                    newLayers.add(it)
-                } else {
-                    newDevicePos = idx
+
+            val total = list.size
+            list.forEachIndexed { index, el ->
+                val newZ = total - index
+                if (el is DeviceLayer) {
+                    _deviceLayers.value = _deviceLayers.value.map {
+                        if (it.id == el.id) it.copy(zIndex = newZ) else it
+                    }
+                } else if (el is OverlayLayer) {
+                    _overlayLayers.value = _overlayLayers.value.map {
+                        if (it.id == el.id) it.copy(zIndex = newZ) else it
+                    }
                 }
             }
-            _overlayLayers.value = newLayers
-            _deviceFramePosition.value = newDevicePos
-            updateZIndices()
             _isSaved.value = false
         }
     }
@@ -961,6 +1112,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             _showReflection.value = true
             setScreenBackgroundColor(Color(0xFF2C2C2C))
         }
+        _deviceLayers.value = listOf(DeviceLayer(deviceName = _selectedDevice.value.name))
+        _selectedDeviceId.value = _deviceLayers.value.first().id
+        _deviceBitmaps.value = emptyMap()
         _screenshots.value = emptyList()
         _screenshotUris.value = emptyList()
         _currentIndex.value = 0
@@ -1195,6 +1349,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         return EditorConfig(
             selectedDeviceName = _selectedDevice.value.name,
             screenshotUris = _screenshotUris.value,
+            deviceLayers = _deviceLayers.value,
             backgroundType = _backgroundType.value.name,
             backgroundColor = _backgroundColor.value.toArgb(),
             gradientColors = _gradientColors.value.map { it.toArgb() },
@@ -1253,17 +1408,49 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         _backgroundColor.value = Color(config.backgroundColor)
         _gradientColors.value = config.gradientColors.map { Color(it) }
         
-        _screenshotUris.value = config.screenshotUris
-        if (config.screenshotUris.isNotEmpty()) {
-            viewModelScope.launch {
-                val bitmaps = config.screenshotUris.mapNotNull { uriStr ->
-                    ImageLoaderHelper.loadBitmapFromUri(getApplication(), Uri.parse(uriStr))?.asImageBitmap()
-                }
-                _screenshots.value = bitmaps
-                bitmaps.firstOrNull()?.let { extractSmartPalette(it.asAndroidBitmap()) }
-            }
+        if (config.deviceLayers.isNotEmpty()) {
+            _deviceLayers.value = config.deviceLayers
         } else {
-            _screenshots.value = emptyList()
+            val legacyLayer = DeviceLayer(
+                id = "default_device",
+                deviceName = config.selectedDeviceName,
+                screenshotUri = config.screenshotUris.firstOrNull(),
+                offsetX = config.frameOffsetX,
+                offsetY = config.frameOffsetY,
+                scale = config.scale,
+                imageScale = config.imageScale,
+                rotation = config.rotation,
+                screenshotRotation = config.screenshotRotation,
+                screenshotOffsetX = config.screenshotOffsetX,
+                screenshotOffsetY = config.screenshotOffsetY
+            )
+            _deviceLayers.value = listOf(legacyLayer)
+        }
+
+        val firstLayer = _deviceLayers.value.firstOrNull()
+        if (firstLayer != null) {
+            _selectedDeviceId.value = firstLayer.id
+            _selectedDevice.value = DeviceModels.find { it.name == firstLayer.deviceName } ?: DeviceModels.first()
+            _scale.value = firstLayer.scale
+            _rotation.value = firstLayer.rotation
+            _frameOffsetX.value = firstLayer.offsetX
+            _frameOffsetY.value = firstLayer.offsetY
+        }
+
+        _screenshotUris.value = _deviceLayers.value.mapNotNull { it.screenshotUri }
+        viewModelScope.launch {
+            val bitmapMap = mutableMapOf<String, ImageBitmap>()
+            _deviceLayers.value.forEach { layer ->
+                layer.screenshotUri?.let { uriStr ->
+                    val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), Uri.parse(uriStr))?.asImageBitmap()
+                    if (bitmap != null) {
+                        bitmapMap[layer.id] = bitmap
+                    }
+                }
+            }
+            _deviceBitmaps.value = bitmapMap
+            _screenshots.value = bitmapMap.values.toList()
+            bitmapMap.values.firstOrNull()?.let { extractSmartPalette(it.asAndroidBitmap()) }
         }
 
         _backgroundImageUri.value = config.backgroundImageUri

@@ -55,6 +55,7 @@ import com.example.skreenup.ui.models.CompositionAspectRatio
 import com.example.skreenup.ui.models.OverlayLayer
 import com.example.skreenup.ui.models.OverlayType
 import com.example.skreenup.ui.models.DeviceModel
+import com.example.skreenup.ui.models.DeviceModels
 import com.example.skreenup.ui.components.MockupRenderer.drawMockup
 
 @Composable
@@ -62,6 +63,12 @@ fun DeviceFrame(
     screenshot: ImageBitmap?,
     deviceModel: DeviceModel,
     modifier: Modifier = Modifier,
+    deviceLayers: List<com.example.skreenup.ui.models.DeviceLayer> = emptyList(),
+    deviceBitmaps: Map<String, ImageBitmap> = emptyMap(),
+    selectedDeviceId: String? = null,
+    onSelectDeviceLayer: (String?) -> Unit = {},
+    onAddScreenshotForDevice: (String) -> Unit = {},
+    onRemoveDeviceLayer: (String) -> Unit = {},
     backgroundType: BackgroundType = BackgroundType.SOLID,
     backgroundColor: Color = Color.White,
     gradientColors: List<Color> = listOf(Color(0xFF3F51B5), Color(0xFF006A6A)),
@@ -173,6 +180,8 @@ fun DeviceFrame(
     val currentCustomHeight by rememberUpdatedState(customAspectRatioHeight)
     val currentTextLayers by rememberUpdatedState(textLayers)
     val currentSelectedId by rememberUpdatedState(selectedTextLayerId)
+    val currentDeviceLayers by rememberUpdatedState(deviceLayers)
+    val currentSelectedDeviceId by rememberUpdatedState(selectedDeviceId)
 
     val currentEffectiveRatio = if (currentRatio == CompositionAspectRatio.CUSTOM) {
         currentCustomWidth / currentCustomHeight
@@ -237,7 +246,9 @@ fun DeviceFrame(
                             frameOffsetX = currentFrameOffsetX,
                             frameOffsetY = currentFrameOffsetY,
                             textLayers = currentTextLayers,
-                            selectedId = currentSelectedId
+                            deviceLayers = currentDeviceLayers,
+                            selectedId = currentSelectedId,
+                            selectedDeviceId = currentSelectedDeviceId
                         )
                         when (hit) {
                             is HitResult.Overlay -> {
@@ -248,9 +259,22 @@ fun DeviceFrame(
                                 onDeleteTextLayer(hit.id)
                                 isEditingTextId = null
                             }
+                            is HitResult.Device -> {
+                                onSelectDeviceLayer(hit.id)
+                                val devLayer = currentDeviceLayers.find { it.id == hit.id }
+                                if (devLayer?.screenshotUri == null) {
+                                    onAddScreenshotForDevice(hit.id)
+                                }
+                                isEditingTextId = null
+                            }
+                            is HitResult.DeleteDevice -> {
+                                onRemoveDeviceLayer(hit.id)
+                                isEditingTextId = null
+                            }
                             is HitResult.Frame -> onAddScreenshot()
                             else -> {
                                 onSelectTextLayer(null)
+                                onSelectDeviceLayer(null)
                                 isEditingTextId = null
                             }
                         }
@@ -267,7 +291,9 @@ fun DeviceFrame(
                             frameOffsetX = currentFrameOffsetX,
                             frameOffsetY = currentFrameOffsetY,
                             textLayers = currentTextLayers,
-                            selectedId = currentSelectedId
+                            deviceLayers = currentDeviceLayers,
+                            selectedId = currentSelectedId,
+                            selectedDeviceId = currentSelectedDeviceId
                         )
                         if (hit is HitResult.Overlay) {
                             onSelectTextLayer(hit.id)
@@ -293,10 +319,21 @@ fun DeviceFrame(
                             scale = currentScale,
                             frameOffsetX = currentFrameOffsetX,
                             frameOffsetY = currentFrameOffsetY,
-                            textLayers = currentTextLayers
+                            textLayers = currentTextLayers,
+                            deviceLayers = currentDeviceLayers,
+                            selectedId = currentSelectedId,
+                            selectedDeviceId = currentSelectedDeviceId
                         )
                         
                         when (hit) {
+                            is HitResult.Device -> {
+                                activeTarget = Target.FRAME
+                                onSelectDeviceLayer(hit.id)
+                                val devLayer = currentDeviceLayers.find { it.id == hit.id }
+                                sessionPanX = devLayer?.offsetX ?: currentFrameOffsetX
+                                sessionPanY = devLayer?.offsetY ?: currentFrameOffsetY
+                                sessionRotation = devLayer?.rotation ?: currentRotation
+                            }
                             is HitResult.Frame -> {
                                 activeTarget = Target.FRAME
                                 sessionPanX = currentFrameOffsetX
@@ -311,7 +348,7 @@ fun DeviceFrame(
                                 sessionPanY = layer?.offsetY ?: 0f
                                 sessionRotation = layer?.rotation ?: 0f
                             }
-                            is HitResult.DeleteOverlay -> {
+                            is HitResult.DeleteDevice, is HitResult.DeleteOverlay -> {
                                 activeTarget = Target.NONE
                             }
                             HitResult.NONE -> {
@@ -509,6 +546,8 @@ fun DeviceFrame(
                 shadowSoftness = shadowSoftness,
                 showWatermark = showWatermark,
                 watermarkText = watermarkText,
+                deviceLayers = deviceLayers,
+                deviceBitmaps = deviceBitmaps,
                 context = context
             )
         }
@@ -806,6 +845,8 @@ private enum class Target { NONE, FRAME, TEXT, BACKGROUND }
 private sealed class HitResult {
     object NONE : HitResult()
     object Frame : HitResult()
+    data class Device(val id: String) : HitResult()
+    data class DeleteDevice(val id: String) : HitResult()
     data class Overlay(val id: String) : HitResult()
     data class DeleteOverlay(val id: String) : HitResult()
 }
@@ -821,7 +862,9 @@ private fun hitTest(
     frameOffsetX: Float,
     frameOffsetY: Float,
     textLayers: List<OverlayLayer>,
-    selectedId: String? = null
+    deviceLayers: List<com.example.skreenup.ui.models.DeviceLayer> = emptyList(),
+    selectedId: String? = null,
+    selectedDeviceId: String? = null
 ): HitResult {
     val canvasWidth = canvasSize.width.toFloat()
     val canvasHeight = canvasSize.height.toFloat()
@@ -905,7 +948,6 @@ private fun hitTest(
             rectWidth = maxW + (hitPadding * 2)
             rectHeight = totalHeight + (hitPadding * 2)
         } else {
-            // SHAPE / ARROW / BUBBLE hit test (simplified to 100x100 base scaled)
             val size = 150f * exportScaleFactor * layer.scale
             rectWidth = size + hitPadding * 2
             rectHeight = size + hitPadding * 2
@@ -920,40 +962,68 @@ private fun hitTest(
             bottom = rectTop + rectHeight
         )
 
-        // TODO: Handle rotation in hit test properly
         if (hitRect.contains(point)) {
-            // Check for delete button hit if selected
             if (layer.id == selectedId) {
-                val deleteRectTop = rectTop
-                val deleteRectLeft = rectLeft
-                
-                val xSize = 40f * exportScaleFactor // Make it big for clicking
-                val xHitRect = Rect(Offset(deleteRectLeft - xSize/2, deleteRectTop - xSize/2), androidx.compose.ui.geometry.Size(xSize, xSize))
+                val xSize = 40f * exportScaleFactor
+                val xHitRect = Rect(Offset(rectLeft - xSize/2, rectTop - xSize/2), androidx.compose.ui.geometry.Size(xSize, xSize))
                 if (xHitRect.contains(point)) return HitResult.DeleteOverlay(layer.id)
             }
             return HitResult.Overlay(layer.id)
         }
     }
 
-    // 3. Check Frame Hit
-    val frameAspectRatio = deviceModel.aspectRatio
-    val frameWidth: Float
-    val frameHeight: Float
-    if (compWidth / compHeight > frameAspectRatio) {
-        frameHeight = compHeight * scale
-        frameWidth = frameHeight * frameAspectRatio
-    } else {
-        frameWidth = compWidth * scale
-        frameHeight = frameWidth / frameAspectRatio
-    }
+    // 3. Check Device Layer Hit
+    if (deviceLayers.isNotEmpty()) {
+        deviceLayers.asReversed().forEach { devLayer ->
+            if (!devLayer.isVisible) return@forEach
+            val devModel = DeviceModels.find { it.name == devLayer.deviceName } ?: deviceModel
+            val devFrameAspectRatio = devModel.aspectRatio
+            val devFrameWidth: Float
+            val devFrameHeight: Float
+            if (compWidth / compHeight > devFrameAspectRatio) {
+                devFrameHeight = compHeight * devLayer.scale
+                devFrameWidth = devFrameHeight * devFrameAspectRatio
+            } else {
+                devFrameWidth = compWidth * devLayer.scale
+                devFrameHeight = devFrameWidth / devFrameAspectRatio
+            }
 
-    val currentFrameOffsetX = frameOffsetX * exportScaleFactor
-    val currentFrameOffsetY = frameOffsetY * exportScaleFactor
-    val frameLeft = compLeft + (compWidth - frameWidth) / 2 + currentFrameOffsetX
-    val frameTop = compTop + (compHeight - frameHeight) / 2 + currentFrameOffsetY
-    
-    val frameRect = Rect(Offset(frameLeft, frameTop), androidx.compose.ui.geometry.Size(frameWidth, frameHeight))
-    if (frameRect.contains(point)) return HitResult.Frame
+            val devFrameOffsetX = devLayer.offsetX * exportScaleFactor
+            val devFrameOffsetY = devLayer.offsetY * exportScaleFactor
+            val devFrameLeft = compLeft + (compWidth - devFrameWidth) / 2 + devFrameOffsetX
+            val devFrameTop = compTop + (compHeight - devFrameHeight) / 2 + devFrameOffsetY
+
+            val frameRect = Rect(Offset(devFrameLeft, devFrameTop), androidx.compose.ui.geometry.Size(devFrameWidth, devFrameHeight))
+            if (frameRect.contains(point)) {
+                if (devLayer.id == selectedDeviceId && deviceLayers.size > 1) {
+                    val xSize = 40f * exportScaleFactor
+                    val xHitRect = Rect(Offset(devFrameLeft - xSize / 2, devFrameTop - xSize / 2), androidx.compose.ui.geometry.Size(xSize, xSize))
+                    if (xHitRect.contains(point)) return HitResult.DeleteDevice(devLayer.id)
+                }
+                return HitResult.Device(devLayer.id)
+            }
+        }
+    } else {
+        // Fallback single frame
+        val frameAspectRatio = deviceModel.aspectRatio
+        val frameWidth: Float
+        val frameHeight: Float
+        if (compWidth / compHeight > frameAspectRatio) {
+            frameHeight = compHeight * scale
+            frameWidth = frameHeight * frameAspectRatio
+        } else {
+            frameWidth = compWidth * scale
+            frameHeight = frameWidth / frameAspectRatio
+        }
+
+        val currentFrameOffsetX = frameOffsetX * exportScaleFactor
+        val currentFrameOffsetY = frameOffsetY * exportScaleFactor
+        val frameLeft = compLeft + (compWidth - frameWidth) / 2 + currentFrameOffsetX
+        val frameTop = compTop + (compHeight - frameHeight) / 2 + currentFrameOffsetY
+        
+        val frameRect = Rect(Offset(frameLeft, frameTop), androidx.compose.ui.geometry.Size(frameWidth, frameHeight))
+        if (frameRect.contains(point)) return HitResult.Frame
+    }
 
     return HitResult.NONE
 }

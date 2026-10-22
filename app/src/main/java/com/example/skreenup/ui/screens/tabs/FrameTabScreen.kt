@@ -8,10 +8,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Collections
 import androidx.compose.material3.FilterChip
@@ -51,6 +53,8 @@ import com.example.skreenup.ui.components.TabHeader
 @Composable
 fun FrameTabScreen(viewModel: EditorViewModel) {
     val selectedDevice by viewModel.selectedDevice.collectAsState()
+    val deviceLayers by viewModel.deviceLayers.collectAsState()
+    val selectedDeviceId by viewModel.selectedDeviceId.collectAsState()
     val showReflection by viewModel.showReflection.collectAsState()
     val screenBackgroundColor by viewModel.screenBackgroundColor.collectAsState()
     var selectedCategory by remember { mutableStateOf(selectedDevice.category) }
@@ -89,6 +93,36 @@ fun FrameTabScreen(viewModel: EditorViewModel) {
                 }
             }
         )
+
+        // Active Canvas Devices Selection
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Active Mobile:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                itemsIndexed(deviceLayers) { idx, dev ->
+                    FilterChip(
+                        selected = selectedDeviceId == dev.id,
+                        onClick = { viewModel.selectDeviceLayer(dev.id) },
+                        label = { Text("Device ${idx + 1}") },
+                        shape = MaterialTheme.shapes.large
+                    )
+                }
+                if (deviceLayers.size < 4) {
+                    item {
+                        FilterChip(
+                            selected = false,
+                            onClick = { viewModel.addDevice() },
+                            label = { Text("+ Add") },
+                            leadingIcon = { Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            shape = MaterialTheme.shapes.large
+                        )
+                    }
+                }
+            }
+        }
 
         // Batch Mode Feature Highlight
         Surface(

@@ -99,6 +99,23 @@ enum class DecorationShape {
 }
 
 @kotlinx.serialization.Serializable
+data class DeviceLayer(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val deviceName: String = "iPhone 17 Pro Max",
+    val screenshotUri: String? = null,
+    val offsetX: Float = 0f,
+    val offsetY: Float = 0f,
+    val scale: Float = 0.8f,
+    val imageScale: Float = 1.0f,
+    val rotation: Float = 0f,
+    val screenshotRotation: Float = 0f,
+    val screenshotOffsetX: Float = 0f,
+    val screenshotOffsetY: Float = 0f,
+    val zIndex: Int = 0,
+    val isVisible: Boolean = true
+)
+
+@kotlinx.serialization.Serializable
 data class OverlayLayer(
     val id: String = java.util.UUID.randomUUID().toString(),
     val type: OverlayType = OverlayType.TEXT,

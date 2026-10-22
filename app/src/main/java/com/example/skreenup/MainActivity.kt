@@ -70,6 +70,7 @@ import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.models.CompositionAspectRatio
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.DeviceModels
+import com.example.skreenup.ui.models.DeviceLayer
 import com.example.skreenup.ui.screens.*
 import com.example.skreenup.ui.screens.tabs.AdjustTabScreen
 import com.example.skreenup.ui.screens.tabs.BackgroundTabScreen
@@ -439,6 +440,11 @@ fun EditorScreen(
     val isKeyboardVisible = WindowInsets.isImeVisible
     val previewWeight = if (isKeyboardVisible) 0.5f else 1f
 
+    val deviceLayers by editorViewModel.deviceLayers.collectAsState()
+    val selectedDeviceId by editorViewModel.selectedDeviceId.collectAsState()
+    val deviceBitmaps by editorViewModel.deviceBitmaps.collectAsState()
+    var pickingForDeviceId by remember { mutableStateOf<String?>(null) }
+
     val selectedDevice by editorViewModel.selectedDevice.collectAsState()
     val screenshots by editorViewModel.screenshots.collectAsState()
     val currentIndex by editorViewModel.currentIndex.collectAsState()
@@ -479,7 +485,7 @@ fun EditorScreen(
 
     // Save state whenever any of these change
     LaunchedEffect(
-        selectedDevice, screenshots, backgroundType, backgroundColor, gradientColors,
+        deviceLayers, selectedDevice, screenshots, backgroundType, backgroundColor, gradientColors,
         backgroundImage, backgroundImageOffsetX, backgroundImageOffsetY, backgroundImageScale, backgroundImageBlur,
         backgroundPattern, patternColor, patternAlpha, patternScale,
         screenBackgroundColor, scale, imageScale, aspectRatio, frameOffsetX, frameOffsetY,
@@ -529,7 +535,9 @@ fun EditorScreen(
                     shadowSoftness = editorViewModel.shadowSoftness.value,
                     showWatermark = showWatermark,
                     watermarkText = watermarkText,
-                    ignoreScreenshot = ignoreScreenshot
+                    ignoreScreenshot = ignoreScreenshot,
+                    deviceLayers = deviceLayers,
+                    deviceBitmaps = deviceBitmaps
                 )
             )
         } else {
@@ -569,7 +577,9 @@ fun EditorScreen(
                     shadowSoftness = editorViewModel.shadowSoftness.value,
                     showWatermark = showWatermark,
                     watermarkText = watermarkText,
-                    ignoreScreenshot = false
+                    ignoreScreenshot = false,
+                    deviceLayers = deviceLayers,
+                    deviceBitmaps = deviceBitmaps
                 )
             }
         }
@@ -617,8 +627,14 @@ fun EditorScreen(
         contract = ActivityResultContracts.PickMultipleVisualMedia()
     ) { uris ->
         if (uris.isNotEmpty()) {
-            editorViewModel.setScreenshots(uris)
-            if (uris.size == 1) {
+            val devTarget = pickingForDeviceId
+            if (devTarget != null) {
+                editorViewModel.setDeviceScreenshot(devTarget, uris.first())
+                pickingForDeviceId = null
+            } else {
+                editorViewModel.setScreenshots(uris)
+            }
+            if (uris.size == 1 && devTarget == null) {
                 scope.launch {
                     snackbarHostState.showSnackbar(
                         message = "Tip: Select multiple images for batch editing!",
@@ -626,6 +642,8 @@ fun EditorScreen(
                     )
                 }
             }
+        } else {
+            pickingForDeviceId = null
         }
     }
 
@@ -645,6 +663,33 @@ fun EditorScreen(
                 },
                 actions = {
                     val isSaved by editorViewModel.isSaved.collectAsState()
+                    IconButton(
+                        onClick = {
+                            if (deviceLayers.size < 4) {
+                                editorViewModel.addDevice()
+                                Toast.makeText(context, "Added Device (${deviceLayers.size}/4)", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Maximum 4 devices allowed", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    ) {
+                        BadgedBox(
+                            badge = {
+                                Badge(
+                                    containerColor = if (deviceLayers.size < 4) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                ) {
+                                    Text("+")
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Smartphone,
+                                contentDescription = "Add Device",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    }
                     IconButton(onClick = { 
                         scope.launch {
                             val images = bitmapsToExport(true)
@@ -757,6 +802,17 @@ fun EditorScreen(
                 DeviceFrame(
                     screenshot = screenshots.getOrNull(currentIndex),
                     deviceModel = selectedDevice,
+                    deviceLayers = deviceLayers,
+                    deviceBitmaps = deviceBitmaps,
+                    selectedDeviceId = selectedDeviceId,
+                    onSelectDeviceLayer = { editorViewModel.selectDeviceLayer(it) },
+                    onAddScreenshotForDevice = { devId ->
+                        pickingForDeviceId = devId
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                    onRemoveDeviceLayer = { editorViewModel.removeDevice(it) },
                     backgroundType = backgroundType,
                     backgroundColor = backgroundColor,
                     gradientColors = gradientColors,
@@ -1090,13 +1146,19 @@ fun EditorScreen(
     }
 
     if (showLayersSheet) {
-        val devicePos by editorViewModel.deviceFramePosition.collectAsState()
-        val combinedItems = remember(overlayLayers, devicePos) {
-        val list = overlayLayers.toMutableList<Any>()
-        val actualPos = if (devicePos == -1) list.size else devicePos.coerceIn(0, list.size)
-        list.add(actualPos, "DEVICE")
-        list
-    }
+        val combinedItems = remember(overlayLayers, deviceLayers) {
+            val list = mutableListOf<Any>()
+            list.addAll(deviceLayers)
+            list.addAll(overlayLayers)
+            list.sortByDescending { item ->
+                when (item) {
+                    is DeviceLayer -> item.zIndex
+                    is OverlayLayer -> item.zIndex
+                    else -> 0
+                }
+            }
+            list
+        }
 
         val lazyListState = rememberLazyListState()
         val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
@@ -1123,9 +1185,18 @@ fun EditorScreen(
                     state = lazyListState,
                 ) {
                     itemsIndexed(combinedItems, key = { _, item -> 
-                        if (item is OverlayLayer) item.id else "DEVICE"
+                        when (item) {
+                            is DeviceLayer -> "DEV_${item.id}"
+                            is OverlayLayer -> "OVERLAY_${item.id}"
+                            else -> item.toString()
+                        }
                     }) { index, item ->
-                        ReorderableItem(reorderableState, key = if (item is OverlayLayer) item.id else "DEVICE") { isDragging ->
+                        val itemKey = when (item) {
+                            is DeviceLayer -> "DEV_${item.id}"
+                            is OverlayLayer -> "OVERLAY_${item.id}"
+                            else -> item.toString()
+                        }
+                        ReorderableItem(reorderableState, key = itemKey) { isDragging ->
                             val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp)
                             Surface(shadowElevation = elevation) {
                                 if (item is OverlayLayer) {
@@ -1146,22 +1217,24 @@ fun EditorScreen(
                                     LayerItem(
                                         name = layerName,
                                         isVisible = item.isVisible,
-                                        isFront = index < combinedItems.indexOf("DEVICE"),
+                                        isFront = true,
                                         onToggleVisibility = { editorViewModel.setOverlayVisibility(item.id, !item.isVisible) },
                                         onSelect = { editorViewModel.selectOverlay(item.id) },
                                         isSelected = selectedOverlayId == item.id,
                                         tintColor = Color(item.color),
                                         modifier = Modifier.longPressDraggableHandle()
                                     )
-                                } else {
-                                    ListItem(
-                                        modifier = Modifier.longPressDraggableHandle(),
-                                        headlineContent = { Text("Device Frame", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) },
-                                        leadingContent = { Icon(Icons.Rounded.Smartphone, contentDescription = null) },
-                                        trailingContent = {
-                                            Icon(Icons.Rounded.DragHandle, contentDescription = "Drag to reorder")
-                                        },
-                                        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                } else if (item is DeviceLayer) {
+                                    val devIndex = deviceLayers.indexOfFirst { it.id == item.id } + 1
+                                    LayerItem(
+                                        name = "Device $devIndex (${item.deviceName})",
+                                        isVisible = item.isVisible,
+                                        isFront = true,
+                                        onToggleVisibility = { editorViewModel.setDeviceVisibility(item.id, !item.isVisible) },
+                                        onSelect = { editorViewModel.selectDeviceLayer(item.id) },
+                                        isSelected = selectedDeviceId == item.id,
+                                        tintColor = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.longPressDraggableHandle()
                                     )
                                 }
                             }
@@ -1251,7 +1324,9 @@ suspend fun captureToBitmap(
     shadowSoftness: Float = 1.0f,
     showWatermark: Boolean = true,
     watermarkText: String = "Made with Skreenup",
-    ignoreScreenshot: Boolean = false
+    ignoreScreenshot: Boolean = false,
+    deviceLayers: List<com.example.skreenup.ui.models.DeviceLayer> = emptyList(),
+    deviceBitmaps: Map<String, ImageBitmap> = emptyMap()
 ): Bitmap {
     return withContext(Dispatchers.Default) {
         // Pre-load stickers if any are present
@@ -1309,6 +1384,8 @@ suspend fun captureToBitmap(
                 shadowSoftness = shadowSoftness,
                 showWatermark = showWatermark,
                 watermarkText = watermarkText,
+                deviceLayers = deviceLayers,
+                deviceBitmaps = deviceBitmaps,
                 context = context
             )
         }

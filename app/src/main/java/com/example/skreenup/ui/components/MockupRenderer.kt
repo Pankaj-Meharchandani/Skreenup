@@ -26,6 +26,8 @@ import com.example.skreenup.ui.models.BackgroundType
 import com.example.skreenup.ui.models.CompositionAspectRatio
 import com.example.skreenup.ui.models.CutoutType
 import com.example.skreenup.ui.models.DeviceModel
+import com.example.skreenup.ui.models.DeviceModels
+import com.example.skreenup.ui.models.DeviceLayer
 import com.example.skreenup.ui.models.FrameType
 import com.example.skreenup.ui.models.OverlayLayer
 import com.example.skreenup.ui.models.OverlayType
@@ -101,6 +103,8 @@ object MockupRenderer {
         shadowSoftness: Float = 1.0f,
         showWatermark: Boolean = false,
         watermarkText: String = "",
+        deviceLayers: List<com.example.skreenup.ui.models.DeviceLayer> = emptyList(),
+        deviceBitmaps: Map<String, ImageBitmap> = emptyMap(),
         context: Context? = null
     ) {
         val effectiveRatio = if (aspectRatio == CompositionAspectRatio.CUSTOM) {
@@ -276,29 +280,80 @@ object MockupRenderer {
             drawOverlayContent(-1) // Draw back layers
         }
 
-        // Wrap all device drawing in a rotation transform
-        clipPath(Path().apply { addRect(compRect) }) {
-            withTransform({
-                rotate(degrees = rotationDegrees, pivot = Offset(pivotX, pivotY))
-            }) {
-                drawDeviceAndContent(
-                    deviceModel = deviceModel,
-                    screenshot = screenshot,
+        val effectiveDeviceLayers = if (deviceLayers.isNotEmpty()) {
+            deviceLayers.filter { it.isVisible }
+        } else {
+            listOf(
+                com.example.skreenup.ui.models.DeviceLayer(
+                    id = "default",
+                    deviceName = deviceModel.name,
+                    offsetX = frameOffsetX,
+                    offsetY = frameOffsetY,
+                    scale = scale,
                     imageScale = imageScale,
-                    frameLeft = frameLeft,
-                    frameTop = frameTop,
-                    frameWidth = frameWidth,
-                    frameHeight = frameHeight,
-                    pixelScale = pixelScale,
-                    cornerRadiusPx = cornerRadiusPx,
-                    currentScreenshotOffsetX = currentScreenshotOffsetX,
-                    currentScreenshotOffsetY = currentScreenshotOffsetY,
+                    rotation = rotationDegrees,
                     screenshotRotation = screenshotRotation,
-                    screenBackgroundColor = screenBackgroundColor,
-                    showReflection = showReflection,
-                    shadowIntensity = shadowIntensity,
-                    shadowSoftness = shadowSoftness
+                    screenshotOffsetX = screenshotOffsetX,
+                    screenshotOffsetY = screenshotOffsetY
                 )
+            )
+        }
+
+        clipPath(Path().apply { addRect(compRect) }) {
+            effectiveDeviceLayers.forEach { devLayer ->
+                val devModel = DeviceModels.find { it.name == devLayer.deviceName } ?: deviceModel
+                val devScreenshot = deviceBitmaps[devLayer.id] ?: if (effectiveDeviceLayers.size == 1) screenshot else null
+                
+                val devFrameAspectRatio = devModel.aspectRatio
+                var devFrameWidth: Float
+                var devFrameHeight: Float
+
+                if (compWidth / compHeight > devFrameAspectRatio) {
+                    devFrameHeight = compHeight * devLayer.scale
+                    devFrameWidth = devFrameHeight * devFrameAspectRatio
+                } else {
+                    devFrameWidth = compWidth * devLayer.scale
+                    devFrameHeight = devFrameWidth / devFrameAspectRatio
+                }
+
+                val devFrameOffsetX = devLayer.offsetX * resolutionScale
+                val devFrameOffsetY = devLayer.offsetY * resolutionScale
+                val devScreenshotOffsetX = devLayer.screenshotOffsetX * resolutionScale
+                val devScreenshotOffsetY = devLayer.screenshotOffsetY * resolutionScale
+
+                val devFrameLeft = compLeft + (compWidth - devFrameWidth) / 2 + devFrameOffsetX
+                val devFrameTop = compTop + (compHeight - devFrameHeight) / 2 + devFrameOffsetY
+
+                val devPixelScale = devFrameWidth / devModel.widthMm
+                val devCornerRadiusPx = (devModel.cornerRadiusDp * 0.3527f) * devPixelScale
+
+                val devIsLaptop = devModel.type == FrameType.LAPTOP && devModel.hasChassis
+                val devChassisTotalHeight = if (devIsLaptop) 14f * devPixelScale else 0f
+                val devPivotX = devFrameLeft + devFrameWidth / 2
+                val devPivotY = devFrameTop + (devFrameHeight + devChassisTotalHeight) / 2
+
+                withTransform({
+                    rotate(degrees = devLayer.rotation, pivot = Offset(devPivotX, devPivotY))
+                }) {
+                    drawDeviceAndContent(
+                        deviceModel = devModel,
+                        screenshot = devScreenshot,
+                        imageScale = devLayer.imageScale,
+                        frameLeft = devFrameLeft,
+                        frameTop = devFrameTop,
+                        frameWidth = devFrameWidth,
+                        frameHeight = devFrameHeight,
+                        pixelScale = devPixelScale,
+                        cornerRadiusPx = devCornerRadiusPx,
+                        currentScreenshotOffsetX = devScreenshotOffsetX,
+                        currentScreenshotOffsetY = devScreenshotOffsetY,
+                        screenshotRotation = devLayer.screenshotRotation,
+                        screenBackgroundColor = screenBackgroundColor,
+                        showReflection = showReflection,
+                        shadowIntensity = shadowIntensity,
+                        shadowSoftness = shadowSoftness
+                    )
+                }
             }
         }
 
@@ -524,6 +579,55 @@ object MockupRenderer {
                         topLeft = Offset(frameLeft, frameTop),
                         size = Size(frameWidth, frameHeight),
                         blendMode = BlendMode.Plus
+                    )
+                }
+            } else {
+                // Black screen with plus icon (default empty mobile frame)
+                val screenCenterX = frameLeft + frameWidth / 2 + currentScreenshotOffsetX
+                val screenCenterY = frameTop + frameHeight / 2 + currentScreenshotOffsetY
+                
+                val plusRadius = (18f * pixelScale).coerceAtLeast(12f)
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.08f),
+                    radius = plusRadius,
+                    center = Offset(screenCenterX, screenCenterY)
+                )
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.2f),
+                    radius = plusRadius,
+                    center = Offset(screenCenterX, screenCenterY),
+                    style = Stroke(width = 1.5f * pixelScale)
+                )
+                
+                val plusSize = (8f * pixelScale).coerceAtLeast(6f)
+                val plusColor = Color.White.copy(alpha = 0.5f)
+                drawLine(
+                    color = plusColor,
+                    start = Offset(screenCenterX - plusSize, screenCenterY),
+                    end = Offset(screenCenterX + plusSize, screenCenterY),
+                    strokeWidth = 2f * pixelScale
+                )
+                drawLine(
+                    color = plusColor,
+                    start = Offset(screenCenterX, screenCenterY - plusSize),
+                    end = Offset(screenCenterX, screenCenterY + plusSize),
+                    strokeWidth = 2f * pixelScale
+                )
+
+                if (frameWidth > 80f * pixelScale) {
+                    val textPaint = android.graphics.Paint().apply {
+                        color = android.graphics.Color.WHITE
+                        alpha = (255 * 0.4f).toInt()
+                        typeface = Typeface.create("sans-serif", Typeface.BOLD)
+                        textSize = (10f * pixelScale).coerceAtLeast(8f)
+                        isAntiAlias = true
+                        textAlign = android.graphics.Paint.Align.CENTER
+                    }
+                    drawContext.canvas.nativeCanvas.drawText(
+                        "TAP TO ADD",
+                        screenCenterX,
+                        screenCenterY + plusRadius + 14f * pixelScale,
+                        textPaint
                     )
                 }
             }

@@ -663,33 +663,6 @@ fun EditorScreen(
                 },
                 actions = {
                     val isSaved by editorViewModel.isSaved.collectAsState()
-                    IconButton(
-                        onClick = {
-                            if (deviceLayers.size < 4) {
-                                editorViewModel.addDevice()
-                                Toast.makeText(context, "Added Device (${deviceLayers.size}/4)", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(context, "Maximum 4 devices allowed", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    ) {
-                        BadgedBox(
-                            badge = {
-                                Badge(
-                                    containerColor = if (deviceLayers.size < 4) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
-                                ) {
-                                    Text("+")
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Smartphone,
-                                contentDescription = "Add Device",
-                                tint = MaterialTheme.colorScheme.onBackground
-                            )
-                        }
-                    }
                     IconButton(onClick = { 
                         scope.launch {
                             val images = bitmapsToExport(true)
@@ -863,7 +836,7 @@ fun EditorScreen(
                     }
                 )
 
-                if (screenshots.size > 1) {
+                if (screenshots.size > 1 && deviceLayers.size <= 1) {
                     // Navigation Arrows
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),

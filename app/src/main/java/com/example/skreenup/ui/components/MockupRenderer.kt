@@ -261,25 +261,7 @@ object MockupRenderer {
         val pivotX = frameLeft + frameWidth / 2
         val pivotY = frameTop + (frameHeight + chassisTotalHeight) / 2
 
-        // ── 3. Helper for Drawing Overlays ──
-        val drawOverlayContent = { zIndexFilter: Int ->
-            textLayers.filter { 
-                val zMatch = if (zIndexFilter < 0) it.zIndex < 0 else it.zIndex >= 0
-                zMatch && it.id != editingTextLayerId && it.isVisible
-            }.reversed().forEach { layer ->
-                if (layer.type == OverlayType.TEXT) {
-                    drawTextOverlay(this, layer, compLeft, compTop, compWidth, compHeight, resolutionScale)
-                } else {
-                    drawDecorationOverlay(this, layer, compLeft, compTop, compWidth, compHeight, resolutionScale, context)
-                }
-            }
-        }
-
-        // ── 4. Draw Content based on Z-Index ──
-        clipPath(Path().apply { addRect(compRect) }) {
-            drawOverlayContent(-1) // Draw back layers
-        }
-
+        // ── 3. Prepare All Layers for Drawing Sorted by Z-Index ──
         val effectiveDeviceLayers = if (deviceLayers.isNotEmpty()) {
             deviceLayers.filter { it.isVisible }
         } else {
@@ -299,66 +281,85 @@ object MockupRenderer {
             )
         }
 
-        clipPath(Path().apply { addRect(compRect) }) {
-            effectiveDeviceLayers.forEach { devLayer ->
-                val devModel = DeviceModels.find { it.name == devLayer.deviceName } ?: deviceModel
-                val devScreenshot = deviceBitmaps[devLayer.id] ?: if (effectiveDeviceLayers.size == 1) screenshot else null
-                
-                val devFrameAspectRatio = devModel.aspectRatio
-                var devFrameWidth: Float
-                var devFrameHeight: Float
-
-                if (compWidth / compHeight > devFrameAspectRatio) {
-                    devFrameHeight = compHeight * devLayer.scale
-                    devFrameWidth = devFrameHeight * devFrameAspectRatio
-                } else {
-                    devFrameWidth = compWidth * devLayer.scale
-                    devFrameHeight = devFrameWidth / devFrameAspectRatio
-                }
-
-                val devFrameOffsetX = devLayer.offsetX * resolutionScale
-                val devFrameOffsetY = devLayer.offsetY * resolutionScale
-                val devScreenshotOffsetX = devLayer.screenshotOffsetX * resolutionScale
-                val devScreenshotOffsetY = devLayer.screenshotOffsetY * resolutionScale
-
-                val devFrameLeft = compLeft + (compWidth - devFrameWidth) / 2 + devFrameOffsetX
-                val devFrameTop = compTop + (compHeight - devFrameHeight) / 2 + devFrameOffsetY
-
-                val devPixelScale = devFrameWidth / devModel.widthMm
-                val devCornerRadiusPx = (devModel.cornerRadiusDp * 0.3527f) * devPixelScale
-
-                val devIsLaptop = devModel.type == FrameType.LAPTOP && devModel.hasChassis
-                val devChassisTotalHeight = if (devIsLaptop) 14f * devPixelScale else 0f
-                val devPivotX = devFrameLeft + devFrameWidth / 2
-                val devPivotY = devFrameTop + (devFrameHeight + devChassisTotalHeight) / 2
-
-                withTransform({
-                    rotate(degrees = devLayer.rotation, pivot = Offset(devPivotX, devPivotY))
-                }) {
-                    drawDeviceAndContent(
-                        deviceModel = devModel,
-                        screenshot = devScreenshot,
-                        imageScale = devLayer.imageScale,
-                        frameLeft = devFrameLeft,
-                        frameTop = devFrameTop,
-                        frameWidth = devFrameWidth,
-                        frameHeight = devFrameHeight,
-                        pixelScale = devPixelScale,
-                        cornerRadiusPx = devCornerRadiusPx,
-                        currentScreenshotOffsetX = devScreenshotOffsetX,
-                        currentScreenshotOffsetY = devScreenshotOffsetY,
-                        screenshotRotation = devLayer.screenshotRotation,
-                        screenBackgroundColor = screenBackgroundColor,
-                        showReflection = showReflection,
-                        shadowIntensity = shadowIntensity,
-                        shadowSoftness = shadowSoftness
-                    )
+        val allCanvasLayers: List<Any> = (effectiveDeviceLayers + textLayers.filter { it.isVisible && it.id != editingTextLayerId })
+            .sortedBy { layer ->
+                when (layer) {
+                    is DeviceLayer -> layer.zIndex
+                    is OverlayLayer -> layer.zIndex
+                    else -> 0
                 }
             }
-        }
 
+        // ── 4. Draw Content based on Z-Index ──
         clipPath(Path().apply { addRect(compRect) }) {
-            drawOverlayContent(1) // Draw front layers
+            allCanvasLayers.forEach { canvasLayer ->
+                when (canvasLayer) {
+                    is DeviceLayer -> {
+                        val devLayer = canvasLayer
+                        val devModel = DeviceModels.find { it.name == devLayer.deviceName } ?: deviceModel
+                        val devScreenshot = deviceBitmaps[devLayer.id] ?: if (effectiveDeviceLayers.size == 1) screenshot else null
+                        
+                        val devFrameAspectRatio = devModel.aspectRatio
+                        var devFrameWidth: Float
+                        var devFrameHeight: Float
+
+                        if (compWidth / compHeight > devFrameAspectRatio) {
+                            devFrameHeight = compHeight * devLayer.scale
+                            devFrameWidth = devFrameHeight * devFrameAspectRatio
+                        } else {
+                            devFrameWidth = compWidth * devLayer.scale
+                            devFrameHeight = devFrameWidth / devFrameAspectRatio
+                        }
+
+                        val devFrameOffsetX = devLayer.offsetX * resolutionScale
+                        val devFrameOffsetY = devLayer.offsetY * resolutionScale
+                        val devScreenshotOffsetX = devLayer.screenshotOffsetX * resolutionScale
+                        val devScreenshotOffsetY = devLayer.screenshotOffsetY * resolutionScale
+
+                        val devFrameLeft = compLeft + (compWidth - devFrameWidth) / 2 + devFrameOffsetX
+                        val devFrameTop = compTop + (compHeight - devFrameHeight) / 2 + devFrameOffsetY
+
+                        val devPixelScale = devFrameWidth / devModel.widthMm
+                        val devCornerRadiusPx = (devModel.cornerRadiusDp * 0.3527f) * devPixelScale
+
+                        val devIsLaptop = devModel.type == FrameType.LAPTOP && devModel.hasChassis
+                        val devChassisTotalHeight = if (devIsLaptop) 14f * devPixelScale else 0f
+                        val devPivotX = devFrameLeft + devFrameWidth / 2
+                        val devPivotY = devFrameTop + (devFrameHeight + devChassisTotalHeight) / 2
+
+                        withTransform({
+                            rotate(degrees = devLayer.rotation, pivot = Offset(devPivotX, devPivotY))
+                        }) {
+                            drawDeviceAndContent(
+                                deviceModel = devModel,
+                                screenshot = devScreenshot,
+                                imageScale = devLayer.imageScale,
+                                frameLeft = devFrameLeft,
+                                frameTop = devFrameTop,
+                                frameWidth = devFrameWidth,
+                                frameHeight = devFrameHeight,
+                                pixelScale = devPixelScale,
+                                cornerRadiusPx = devCornerRadiusPx,
+                                currentScreenshotOffsetX = devScreenshotOffsetX,
+                                currentScreenshotOffsetY = devScreenshotOffsetY,
+                                screenshotRotation = devLayer.screenshotRotation,
+                                screenBackgroundColor = screenBackgroundColor,
+                                showReflection = showReflection,
+                                shadowIntensity = shadowIntensity,
+                                shadowSoftness = shadowSoftness
+                            )
+                        }
+                    }
+                    is OverlayLayer -> {
+                        val layer = canvasLayer
+                        if (layer.type == OverlayType.TEXT) {
+                            drawTextOverlay(this, layer, compLeft, compTop, compWidth, compHeight, resolutionScale)
+                        } else {
+                            drawDecorationOverlay(this, layer, compLeft, compTop, compWidth, compHeight, resolutionScale, context)
+                        }
+                    }
+                }
+            }
         }
 
         // 5. Draw Watermark

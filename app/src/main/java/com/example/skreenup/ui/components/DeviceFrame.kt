@@ -890,139 +890,141 @@ private fun hitTest(
     val compTop = (canvasHeight - compHeight) / 2
     val exportScaleFactor = compWidth / 1000f
 
-    // 2. Check Overlay Hit
-    textLayers.asReversed().forEach { layer ->
-        if (!layer.isVisible) return@forEach
-
-        val hitPadding = 20f * exportScaleFactor
-        var rectLeft: Float
-        var rectTop: Float
-        var rectWidth: Float
-        var rectHeight: Float
-
-        if (layer.type == OverlayType.TEXT) {
-            val textCenterX = compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor)
-            val textCenterY = compTop + compHeight / 2 + (layer.offsetY * exportScaleFactor)
-            
-            val hPaint = NativePaint().apply {
-                textSize = layer.headingSize * exportScaleFactor
-                typeface = getNativeTypeface(layer.headingFont, layer.headingBold)
-            }
-            val sPaint = NativePaint().apply {
-                textSize = layer.subheadingSize * exportScaleFactor
-                typeface = getNativeTypeface(layer.subheadingFont, layer.subheadingBold)
-            }
-
-            val hLines = layer.heading.split("\n")
-            val sLines = layer.subheading.split("\n")
-            
-            var maxW = 0f
-            hLines.forEach { maxW = maxOf(maxW, hPaint.measureText(it)) }
-            sLines.forEach { maxW = maxOf(maxW, sPaint.measureText(it)) }
-
-            val hSpacing = hPaint.fontSpacing
-            val sSpacing = sPaint.fontSpacing
-            val hMetrics = hPaint.fontMetrics
-            val sMetrics = sPaint.fontMetrics
-            
-            val hBlockH = if (layer.heading.isNotEmpty()) (hLines.size - 1) * hSpacing + (hMetrics.descent - hMetrics.ascent) else 0f
-            val sBlockH = if (layer.subheading.isNotEmpty()) (sLines.size - 1) * sSpacing + (sMetrics.descent - sMetrics.ascent) else 0f
-            val gap = layer.textGap * exportScaleFactor
-            val totalHeight = hBlockH + (if (layer.heading.isNotEmpty() && layer.subheading.isNotEmpty()) gap else 0f) + sBlockH
-            
-            val blockTop = textCenterY - (totalHeight / 2)
-            
-            val horizontalMargin = 60f * exportScaleFactor
-            val centerX = when (layer.textAlign) {
-                "LEFT" -> compLeft + horizontalMargin + (layer.offsetX * exportScaleFactor)
-                "RIGHT" -> compLeft + compWidth - horizontalMargin + (layer.offsetX * exportScaleFactor)
-                else -> compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor)
-            }
-
-            rectLeft = when (layer.textAlign) {
-                "LEFT" -> centerX - hitPadding
-                "RIGHT" -> centerX - maxW - hitPadding
-                else -> centerX - (maxW / 2) - hitPadding
-            }
-            rectTop = blockTop - hitPadding
-            rectWidth = maxW + (hitPadding * 2)
-            rectHeight = totalHeight + (hitPadding * 2)
-        } else {
-            val size = 150f * exportScaleFactor * layer.scale
-            rectWidth = size + hitPadding * 2
-            rectHeight = size + hitPadding * 2
-            rectLeft = compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor) - (rectWidth / 2)
-            rectTop = compTop + compHeight / 2 + (layer.offsetY * exportScaleFactor) - (rectHeight / 2)
-        }
-
-        val hitRect = Rect(
-            left = rectLeft,
-            right = rectLeft + rectWidth,
-            top = rectTop,
-            bottom = rectTop + rectHeight
+    // 2. Prepare All Visible Layers Sorted by Z-Index Descending (Top to Bottom for hit testing)
+    val effectiveDeviceLayers = if (deviceLayers.isNotEmpty()) {
+        deviceLayers.filter { it.isVisible }
+    } else {
+        listOf(
+            com.example.skreenup.ui.models.DeviceLayer(
+                id = "default",
+                deviceName = deviceModel.name,
+                offsetX = frameOffsetX,
+                offsetY = frameOffsetY,
+                scale = scale,
+                zIndex = 0
+            )
         )
-
-        if (hitRect.contains(point)) {
-            if (layer.id == selectedId) {
-                val xSize = 40f * exportScaleFactor
-                val xHitRect = Rect(Offset(rectLeft - xSize/2, rectTop - xSize/2), androidx.compose.ui.geometry.Size(xSize, xSize))
-                if (xHitRect.contains(point)) return HitResult.DeleteOverlay(layer.id)
-            }
-            return HitResult.Overlay(layer.id)
-        }
     }
 
-    // 3. Check Device Layer Hit
-    if (deviceLayers.isNotEmpty()) {
-        deviceLayers.asReversed().forEach { devLayer ->
-            if (!devLayer.isVisible) return@forEach
-            val devModel = DeviceModels.find { it.name == devLayer.deviceName } ?: deviceModel
-            val devFrameAspectRatio = devModel.aspectRatio
-            val devFrameWidth: Float
-            val devFrameHeight: Float
-            if (compWidth / compHeight > devFrameAspectRatio) {
-                devFrameHeight = compHeight * devLayer.scale
-                devFrameWidth = devFrameHeight * devFrameAspectRatio
-            } else {
-                devFrameWidth = compWidth * devLayer.scale
-                devFrameHeight = devFrameWidth / devFrameAspectRatio
+    val allHitLayers: List<Any> = (effectiveDeviceLayers + textLayers.filter { it.isVisible })
+        .sortedByDescending { layer ->
+            when (layer) {
+                is com.example.skreenup.ui.models.DeviceLayer -> layer.zIndex
+                is OverlayLayer -> layer.zIndex
+                else -> 0
             }
+        }
 
-            val devFrameOffsetX = devLayer.offsetX * exportScaleFactor
-            val devFrameOffsetY = devLayer.offsetY * exportScaleFactor
-            val devFrameLeft = compLeft + (compWidth - devFrameWidth) / 2 + devFrameOffsetX
-            val devFrameTop = compTop + (compHeight - devFrameHeight) / 2 + devFrameOffsetY
+    allHitLayers.forEach { layer ->
+        when (layer) {
+            is OverlayLayer -> {
+                val hitPadding = 20f * exportScaleFactor
+                var rectLeft: Float
+                var rectTop: Float
+                var rectWidth: Float
+                var rectHeight: Float
 
-            val frameRect = Rect(Offset(devFrameLeft, devFrameTop), androidx.compose.ui.geometry.Size(devFrameWidth, devFrameHeight))
-            if (frameRect.contains(point)) {
-                if (devLayer.id == selectedDeviceId && deviceLayers.size > 1) {
-                    val xSize = 40f * exportScaleFactor
-                    val xHitRect = Rect(Offset(devFrameLeft - xSize / 2, devFrameTop - xSize / 2), androidx.compose.ui.geometry.Size(xSize, xSize))
-                    if (xHitRect.contains(point)) return HitResult.DeleteDevice(devLayer.id)
+                if (layer.type == OverlayType.TEXT) {
+                    val textCenterX = compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor)
+                    val textCenterY = compTop + compHeight / 2 + (layer.offsetY * exportScaleFactor)
+                    
+                    val hPaint = NativePaint().apply {
+                        textSize = layer.headingSize * exportScaleFactor
+                        typeface = getNativeTypeface(layer.headingFont, layer.headingBold)
+                    }
+                    val sPaint = NativePaint().apply {
+                        textSize = layer.subheadingSize * exportScaleFactor
+                        typeface = getNativeTypeface(layer.subheadingFont, layer.subheadingBold)
+                    }
+
+                    val hLines = layer.heading.split("\n")
+                    val sLines = layer.subheading.split("\n")
+                    
+                    var maxW = 0f
+                    hLines.forEach { maxW = maxOf(maxW, hPaint.measureText(it)) }
+                    sLines.forEach { maxW = maxOf(maxW, sPaint.measureText(it)) }
+
+                    val hSpacing = hPaint.fontSpacing
+                    val sSpacing = sPaint.fontSpacing
+                    val hMetrics = hPaint.fontMetrics
+                    val sMetrics = sPaint.fontMetrics
+                    
+                    val hBlockH = if (layer.heading.isNotEmpty()) (hLines.size - 1) * hSpacing + (hMetrics.descent - hMetrics.ascent) else 0f
+                    val sBlockH = if (layer.subheading.isNotEmpty()) (sLines.size - 1) * sSpacing + (sMetrics.descent - sMetrics.ascent) else 0f
+                    val gap = layer.textGap * exportScaleFactor
+                    val totalHeight = hBlockH + (if (layer.heading.isNotEmpty() && layer.subheading.isNotEmpty()) gap else 0f) + sBlockH
+                    
+                    val blockTop = textCenterY - (totalHeight / 2)
+                    
+                    val horizontalMargin = 60f * exportScaleFactor
+                    val centerX = when (layer.textAlign) {
+                        "LEFT" -> compLeft + horizontalMargin + (layer.offsetX * exportScaleFactor)
+                        "RIGHT" -> compLeft + compWidth - horizontalMargin + (layer.offsetX * exportScaleFactor)
+                        else -> compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor)
+                    }
+
+                    rectLeft = when (layer.textAlign) {
+                        "LEFT" -> centerX - hitPadding
+                        "RIGHT" -> centerX - maxW - hitPadding
+                        else -> centerX - (maxW / 2) - hitPadding
+                    }
+                    rectTop = blockTop - hitPadding
+                    rectWidth = maxW + (hitPadding * 2)
+                    rectHeight = totalHeight + (hitPadding * 2)
+                } else {
+                    val size = 150f * exportScaleFactor * layer.scale
+                    rectWidth = size + hitPadding * 2
+                    rectHeight = size + hitPadding * 2
+                    rectLeft = compLeft + compWidth / 2 + (layer.offsetX * exportScaleFactor) - (rectWidth / 2)
+                    rectTop = compTop + compHeight / 2 + (layer.offsetY * exportScaleFactor) - (rectHeight / 2)
                 }
-                return HitResult.Device(devLayer.id)
+
+                val hitRect = Rect(
+                    left = rectLeft,
+                    right = rectLeft + rectWidth,
+                    top = rectTop,
+                    bottom = rectTop + rectHeight
+                )
+
+                if (hitRect.contains(point)) {
+                    if (layer.id == selectedId) {
+                        val xSize = 40f * exportScaleFactor
+                        val xHitRect = Rect(Offset(rectLeft - xSize/2, rectTop - xSize/2), androidx.compose.ui.geometry.Size(xSize, xSize))
+                        if (xHitRect.contains(point)) return HitResult.DeleteOverlay(layer.id)
+                    }
+                    return HitResult.Overlay(layer.id)
+                }
+            }
+            is com.example.skreenup.ui.models.DeviceLayer -> {
+                val devLayer = layer
+                val devModel = DeviceModels.find { it.name == devLayer.deviceName } ?: deviceModel
+                val devFrameAspectRatio = devModel.aspectRatio
+                val devFrameWidth: Float
+                val devFrameHeight: Float
+                if (compWidth / compHeight > devFrameAspectRatio) {
+                    devFrameHeight = compHeight * devLayer.scale
+                    devFrameWidth = devFrameHeight * devFrameAspectRatio
+                } else {
+                    devFrameWidth = compWidth * devLayer.scale
+                    devFrameHeight = devFrameWidth / devFrameAspectRatio
+                }
+
+                val devFrameOffsetX = devLayer.offsetX * exportScaleFactor
+                val devFrameOffsetY = devLayer.offsetY * exportScaleFactor
+                val devFrameLeft = compLeft + (compWidth - devFrameWidth) / 2 + devFrameOffsetX
+                val devFrameTop = compTop + (compHeight - devFrameHeight) / 2 + devFrameOffsetY
+
+                val frameRect = Rect(Offset(devFrameLeft, devFrameTop), androidx.compose.ui.geometry.Size(devFrameWidth, devFrameHeight))
+                if (frameRect.contains(point)) {
+                    if (devLayer.id == selectedDeviceId && deviceLayers.size > 1) {
+                        val xSize = 40f * exportScaleFactor
+                        val xHitRect = Rect(Offset(devFrameLeft - xSize / 2, devFrameTop - xSize / 2), androidx.compose.ui.geometry.Size(xSize, xSize))
+                        if (xHitRect.contains(point)) return HitResult.DeleteDevice(devLayer.id)
+                    }
+                    return if (devLayer.id == "default" && deviceLayers.isEmpty()) HitResult.Frame else HitResult.Device(devLayer.id)
+                }
             }
         }
-    } else {
-        // Fallback single frame
-        val frameAspectRatio = deviceModel.aspectRatio
-        val frameWidth: Float
-        val frameHeight: Float
-        if (compWidth / compHeight > frameAspectRatio) {
-            frameHeight = compHeight * scale
-            frameWidth = frameHeight * frameAspectRatio
-        } else {
-            frameWidth = compWidth * scale
-            frameHeight = frameWidth / frameAspectRatio
-        }
-
-        val currentFrameOffsetX = frameOffsetX * exportScaleFactor
-        val currentFrameOffsetY = frameOffsetY * exportScaleFactor
-        val frameLeft = compLeft + (compWidth - frameWidth) / 2 + currentFrameOffsetX
-        val frameTop = compTop + (compHeight - frameHeight) / 2 + currentFrameOffsetY
-        
-        val frameRect = Rect(Offset(frameLeft, frameTop), androidx.compose.ui.geometry.Size(frameWidth, frameHeight))
-        if (frameRect.contains(point)) return HitResult.Frame
     }
 
     return HitResult.NONE

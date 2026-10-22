@@ -302,13 +302,14 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun addDevice() {
         if (_deviceLayers.value.size >= 4) return
         val currentDeviceName = _selectedDevice.value.name
+        val maxZ = (_deviceLayers.value.map { it.zIndex } + _overlayLayers.value.map { it.zIndex }).maxOrNull() ?: 0
         val newLayer = DeviceLayer(
             deviceName = currentDeviceName,
             offsetX = 0f,
             offsetY = 0f,
             scale = 0.7f,
             rotation = 0f,
-            zIndex = _deviceLayers.value.size
+            zIndex = maxZ + 1
         )
         _deviceLayers.value = _deviceLayers.value + newLayer
         _selectedDeviceId.value = newLayer.id
@@ -757,9 +758,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     // Overlay Management
     fun addOverlay(layer: OverlayLayer = OverlayLayer()) {
-        _overlayLayers.value = _overlayLayers.value + layer
-        _selectedOverlayId.value = layer.id
-        updateZIndices()
+        val maxZ = (_deviceLayers.value.map { it.zIndex } + _overlayLayers.value.map { it.zIndex }).maxOrNull() ?: 0
+        val newLayer = layer.copy(zIndex = maxZ + 1)
+        _overlayLayers.value = _overlayLayers.value + newLayer
+        _selectedOverlayId.value = newLayer.id
         _isSaved.value = false
     }
 
@@ -771,7 +773,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 // Clear state if no overlay selected
             }
         }
-        updateZIndices()
         _isSaved.value = false
     }
 
@@ -850,16 +851,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setDeviceFramePosition(position: Int) {
         _deviceFramePosition.value = position
-        updateZIndices()
         _isSaved.value = false
     }
 
     private fun updateZIndices() {
-        val pos = if (_deviceFramePosition.value == -1) _overlayLayers.value.size else _deviceFramePosition.value
-        _overlayLayers.value = _overlayLayers.value.mapIndexed { index, layer ->
-            val newZ = if (index < pos) 1 else -1
-            layer.copy(zIndex = newZ)
-        }
+        // No-op: z-indices are managed directly by moveLayer and layer addition
     }
 
     fun setDeviceVisibility(id: String, visible: Boolean) {

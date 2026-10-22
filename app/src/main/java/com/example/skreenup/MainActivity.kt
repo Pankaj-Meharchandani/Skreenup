@@ -673,13 +673,13 @@ fun EditorScreen(
     ) { uris ->
         if (uris.isNotEmpty()) {
             val devTarget = pickingForDeviceId
-            if (devTarget != null) {
-                editorViewModel.setDeviceScreenshot(devTarget, uris.first())
-                pickingForDeviceId = null
-            } else {
+            pickingForDeviceId = null
+            if (deviceLayers.size <= 1 || devTarget == null) {
                 editorViewModel.setScreenshots(uris)
+            } else {
+                editorViewModel.setDeviceScreenshot(devTarget, uris.first())
             }
-            if (uris.size == 1 && devTarget == null) {
+            if (uris.size == 1 && deviceLayers.size <= 1) {
                 scope.launch {
                     snackbarHostState.showSnackbar(
                         message = "Tip: Select multiple images for batch editing!",

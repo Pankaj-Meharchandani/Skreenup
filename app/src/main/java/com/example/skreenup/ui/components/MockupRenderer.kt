@@ -297,7 +297,7 @@ object MockupRenderer {
                     is DeviceLayer -> {
                         val devLayer = canvasLayer
                         val devModel = DeviceModels.find { it.name == devLayer.deviceName } ?: deviceModel
-                        val devScreenshot = deviceBitmaps[devLayer.id] ?: if (effectiveDeviceLayers.size == 1) screenshot else null
+                        val devScreenshot = if (effectiveDeviceLayers.size == 1) (screenshot ?: deviceBitmaps[devLayer.id]) else (deviceBitmaps[devLayer.id] ?: screenshot)
                         
                         val devFrameAspectRatio = devModel.aspectRatio
                         var devFrameWidth: Float

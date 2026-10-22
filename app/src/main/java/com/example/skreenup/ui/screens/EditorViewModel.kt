@@ -408,14 +408,30 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             }
             _screenshots.value = loadedBitmaps
             
-            val firstLayerId = _deviceLayers.value.firstOrNull()?.id
-            if (firstLayerId != null && uris.isNotEmpty()) {
-                val firstUriStr = uris.first().toString()
-                _deviceLayers.value = _deviceLayers.value.mapIndexed { index, layer ->
-                    if (index == 0) layer.copy(screenshotUri = firstUriStr) else layer
+            if (_deviceLayers.value.size > 1) {
+                val updatedLayers = _deviceLayers.value.mapIndexed { index, layer ->
+                    if (index < uris.size) {
+                        layer.copy(screenshotUri = uris[index].toString())
+                    } else layer
                 }
-                loadedBitmaps.firstOrNull()?.let { bp ->
-                    _deviceBitmaps.value = _deviceBitmaps.value + (firstLayerId to bp)
+                _deviceLayers.value = updatedLayers
+                val bitmapMap = _deviceBitmaps.value.toMutableMap()
+                loadedBitmaps.forEachIndexed { index, bp ->
+                    if (index < updatedLayers.size) {
+                        bitmapMap[updatedLayers[index].id] = bp
+                    }
+                }
+                _deviceBitmaps.value = bitmapMap
+            } else {
+                val firstLayerId = _deviceLayers.value.firstOrNull()?.id
+                if (firstLayerId != null && uris.isNotEmpty()) {
+                    val firstUriStr = uris.first().toString()
+                    _deviceLayers.value = _deviceLayers.value.mapIndexed { index, layer ->
+                        if (index == 0) layer.copy(screenshotUri = firstUriStr) else layer
+                    }
+                    loadedBitmaps.firstOrNull()?.let { bp ->
+                        _deviceBitmaps.value = _deviceBitmaps.value + (firstLayerId to bp)
+                    }
                 }
             }
             

@@ -394,47 +394,32 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun setScreenshots(uris: List<Uri>) {
         if (uris.isEmpty()) return
         
-        val currentLayers = _deviceLayers.value.toMutableList()
-        val targetCount = uris.size.coerceAtMost(4)
-        
-        while (currentLayers.size < targetCount) {
-            currentLayers.add(
-                DeviceLayer(
-                    deviceName = _selectedDevice.value.name,
-                    offsetX = 0f,
-                    offsetY = 0f,
-                    scale = 0.7f,
-                    rotation = 0f,
-                    zIndex = currentLayers.size
-                )
-            )
-        }
-        
-        val updatedLayers = currentLayers.mapIndexed { index, layer ->
-            if (index < uris.size) {
-                layer.copy(screenshotUri = uris[index].toString())
-            } else layer
-        }
-        _deviceLayers.value = updatedLayers
-        _screenshotUris.value = updatedLayers.mapNotNull { it.screenshotUri }
+        _screenshotUris.value = uris.map { it.toString() }
         _currentIndex.value = 0
         _isSaved.value = false
         
         viewModelScope.launch {
-            val bitmapMap = _deviceBitmaps.value.toMutableMap()
-            uris.forEachIndexed { index, uri ->
-                if (index < updatedLayers.size) {
-                    val layerId = updatedLayers[index].id
-                    val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), uri)?.asImageBitmap()
-                    if (bitmap != null) {
-                        bitmapMap[layerId] = bitmap
-                    }
+            val loadedBitmaps = mutableListOf<ImageBitmap>()
+            uris.forEach { uri ->
+                val bitmap = ImageLoaderHelper.loadBitmapFromUri(getApplication(), uri)?.asImageBitmap()
+                if (bitmap != null) {
+                    loadedBitmaps.add(bitmap)
                 }
             }
-            _deviceBitmaps.value = bitmapMap
-            _screenshots.value = bitmapMap.values.toList()
+            _screenshots.value = loadedBitmaps
             
-            bitmapMap.values.firstOrNull()?.let { bp ->
+            val firstLayerId = _deviceLayers.value.firstOrNull()?.id
+            if (firstLayerId != null && uris.isNotEmpty()) {
+                val firstUriStr = uris.first().toString()
+                _deviceLayers.value = _deviceLayers.value.mapIndexed { index, layer ->
+                    if (index == 0) layer.copy(screenshotUri = firstUriStr) else layer
+                }
+                loadedBitmaps.firstOrNull()?.let { bp ->
+                    _deviceBitmaps.value = _deviceBitmaps.value + (firstLayerId to bp)
+                }
+            }
+            
+            loadedBitmaps.firstOrNull()?.let { bp ->
                 val extractedColor = extractProminentColor(bp.asAndroidBitmap())
                 setScreenBackgroundColor(Color(extractedColor))
                 extractSmartPalette(bp.asAndroidBitmap())

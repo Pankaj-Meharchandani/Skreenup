@@ -261,10 +261,7 @@ fun DeviceFrame(
                             }
                             is HitResult.Device -> {
                                 onSelectDeviceLayer(hit.id)
-                                val devLayer = currentDeviceLayers.find { it.id == hit.id }
-                                if (devLayer?.screenshotUri == null) {
-                                    onAddScreenshotForDevice(hit.id)
-                                }
+                                onAddScreenshotForDevice(hit.id)
                                 isEditingTextId = null
                             }
                             is HitResult.DeleteDevice -> {

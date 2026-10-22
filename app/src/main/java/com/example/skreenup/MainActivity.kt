@@ -497,13 +497,13 @@ fun EditorScreen(
     }
 
     val bitmapsToExport: suspend (Boolean) -> List<Bitmap> = { ignoreScreenshot: Boolean ->
-        val currentScreenshots = screenshots
-        if (currentScreenshots.isEmpty() || ignoreScreenshot) {
+        if (deviceLayers.size > 1) {
+            // Multiple devices on canvas -> Export exactly 1 image representing the full canvas
             listOf(
                 captureToBitmap(
                     context = context,
                     density = Density(context),
-                    screenshot = null,
+                    screenshot = screenshots.getOrNull(currentIndex),
                     deviceModel = selectedDevice,
                     backgroundType = backgroundType,
                     backgroundColor = backgroundColor,
@@ -541,46 +541,91 @@ fun EditorScreen(
                 )
             )
         } else {
-            currentScreenshots.map { ss ->
-                captureToBitmap(
-                    context = context,
-                    density = Density(context),
-                    screenshot = ss,
-                    deviceModel = selectedDevice,
-                    backgroundType = backgroundType,
-                    backgroundColor = backgroundColor,
-                    gradientColors = gradientColors,
-                    backgroundImage = backgroundImage,
-                    backgroundImageOffsetX = backgroundImageOffsetX,
-                    backgroundImageOffsetY = backgroundImageOffsetY,
-                    backgroundImageScale = backgroundImageScale,
-                    backgroundImageBlur = backgroundImageBlur,
-                    backgroundPattern = backgroundPattern,
-                    patternColor = patternColor,
-                    patternAlpha = patternAlpha,
-                    patternScale = patternScale,
-                    scale = scale,
-                    imageScale = imageScale,
-                    frameOffsetX = frameOffsetX,
-                    frameOffsetY = frameOffsetY,
-                    screenshotOffsetX = screenshotOffsetX,
-                    screenshotOffsetY = screenshotOffsetY,
-                    aspectRatio = aspectRatio,
-                    customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
-                    customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
-                    rotationDegrees = rotation,
-                    screenshotRotation = screenshotRotation,
-                    screenBackgroundColor = screenBackgroundColor,
-                    textLayers = overlayLayers,
-                    showReflection = showReflection,
-                    shadowIntensity = editorViewModel.shadowIntensity.value,
-                    shadowSoftness = editorViewModel.shadowSoftness.value,
-                    showWatermark = showWatermark,
-                    watermarkText = watermarkText,
-                    ignoreScreenshot = false,
-                    deviceLayers = deviceLayers,
-                    deviceBitmaps = deviceBitmaps
+            val currentScreenshots = screenshots
+            if (currentScreenshots.isEmpty() || ignoreScreenshot) {
+                listOf(
+                    captureToBitmap(
+                        context = context,
+                        density = Density(context),
+                        screenshot = null,
+                        deviceModel = selectedDevice,
+                        backgroundType = backgroundType,
+                        backgroundColor = backgroundColor,
+                        gradientColors = gradientColors,
+                        backgroundImage = backgroundImage,
+                        backgroundImageOffsetX = backgroundImageOffsetX,
+                        backgroundImageOffsetY = backgroundImageOffsetY,
+                        backgroundImageScale = backgroundImageScale,
+                        backgroundImageBlur = backgroundImageBlur,
+                        backgroundPattern = backgroundPattern,
+                        patternColor = patternColor,
+                        patternAlpha = patternAlpha,
+                        patternScale = patternScale,
+                        scale = scale,
+                        imageScale = imageScale,
+                        frameOffsetX = frameOffsetX,
+                        frameOffsetY = frameOffsetY,
+                        screenshotOffsetX = screenshotOffsetX,
+                        screenshotOffsetY = screenshotOffsetY,
+                        aspectRatio = aspectRatio,
+                        customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
+                        customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
+                        rotationDegrees = rotation,
+                        screenshotRotation = screenshotRotation,
+                        screenBackgroundColor = screenBackgroundColor,
+                        textLayers = overlayLayers,
+                        showReflection = showReflection,
+                        shadowIntensity = editorViewModel.shadowIntensity.value,
+                        shadowSoftness = editorViewModel.shadowSoftness.value,
+                        showWatermark = showWatermark,
+                        watermarkText = watermarkText,
+                        ignoreScreenshot = ignoreScreenshot,
+                        deviceLayers = deviceLayers,
+                        deviceBitmaps = deviceBitmaps
+                    )
                 )
+            } else {
+                currentScreenshots.map { ss ->
+                    captureToBitmap(
+                        context = context,
+                        density = Density(context),
+                        screenshot = ss,
+                        deviceModel = selectedDevice,
+                        backgroundType = backgroundType,
+                        backgroundColor = backgroundColor,
+                        gradientColors = gradientColors,
+                        backgroundImage = backgroundImage,
+                        backgroundImageOffsetX = backgroundImageOffsetX,
+                        backgroundImageOffsetY = backgroundImageOffsetY,
+                        backgroundImageScale = backgroundImageScale,
+                        backgroundImageBlur = backgroundImageBlur,
+                        backgroundPattern = backgroundPattern,
+                        patternColor = patternColor,
+                        patternAlpha = patternAlpha,
+                        patternScale = patternScale,
+                        scale = scale,
+                        imageScale = imageScale,
+                        frameOffsetX = frameOffsetX,
+                        frameOffsetY = frameOffsetY,
+                        screenshotOffsetX = screenshotOffsetX,
+                        screenshotOffsetY = screenshotOffsetY,
+                        aspectRatio = aspectRatio,
+                        customAspectRatioWidth = editorViewModel.customAspectRatioWidth.value,
+                        customAspectRatioHeight = editorViewModel.customAspectRatioHeight.value,
+                        rotationDegrees = rotation,
+                        screenshotRotation = screenshotRotation,
+                        screenBackgroundColor = screenBackgroundColor,
+                        textLayers = overlayLayers,
+                        showReflection = showReflection,
+                        shadowIntensity = editorViewModel.shadowIntensity.value,
+                        shadowSoftness = editorViewModel.shadowSoftness.value,
+                        showWatermark = showWatermark,
+                        watermarkText = watermarkText,
+                        ignoreScreenshot = false,
+                        deviceLayers = deviceLayers,
+                        deviceBitmaps = deviceBitmaps
+                    )
+                }
             }
         }
     }
@@ -692,7 +737,7 @@ fun EditorScreen(
                     }) {
                         BadgedBox(
                             badge = {
-                                if (screenshots.size > 1) {
+                                if (screenshots.size > 1 && deviceLayers.size <= 1) {
                                     Badge(
                                         containerColor = MaterialTheme.colorScheme.tertiary,
                                         contentColor = MaterialTheme.colorScheme.onTertiary

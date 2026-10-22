@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Collections
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -107,6 +108,17 @@ fun FrameTabScreen(viewModel: EditorViewModel) {
                         selected = selectedDeviceId == dev.id,
                         onClick = { viewModel.selectDeviceLayer(dev.id) },
                         label = { Text("Device ${idx + 1}") },
+                        trailingIcon = if (deviceLayers.size > 1) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Rounded.Close,
+                                    contentDescription = "Remove Device",
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .clickable { viewModel.removeDevice(dev.id) }
+                                )
+                            }
+                        } else null,
                         shape = MaterialTheme.shapes.large
                     )
                 }

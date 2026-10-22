@@ -1238,6 +1238,7 @@ fun EditorScreen(
                                         isFront = true,
                                         onToggleVisibility = { editorViewModel.setOverlayVisibility(item.id, !item.isVisible) },
                                         onSelect = { editorViewModel.selectOverlay(item.id) },
+                                        onDelete = { editorViewModel.removeOverlay(item.id) },
                                         isSelected = selectedOverlayId == item.id,
                                         tintColor = Color(item.color),
                                         modifier = Modifier.longPressDraggableHandle()
@@ -1250,6 +1251,7 @@ fun EditorScreen(
                                         isFront = true,
                                         onToggleVisibility = { editorViewModel.setDeviceVisibility(item.id, !item.isVisible) },
                                         onSelect = { editorViewModel.selectDeviceLayer(item.id) },
+                                        onDelete = if (deviceLayers.size > 1) { { editorViewModel.removeDevice(item.id) } } else null,
                                         isSelected = selectedDeviceId == item.id,
                                         tintColor = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.longPressDraggableHandle()
@@ -1271,6 +1273,7 @@ fun LayerItem(
     isFront: Boolean,
     onToggleVisibility: () -> Unit,
     onSelect: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
     tintColor: Color = Color.Transparent
@@ -1295,7 +1298,18 @@ fun LayerItem(
             }
         },
         trailingContent = {
-            Icon(Icons.Rounded.DragHandle, contentDescription = "Drag to reorder")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onDelete != null) {
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            Icons.Rounded.DeleteOutline,
+                            contentDescription = "Delete Layer",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+                Icon(Icons.Rounded.DragHandle, contentDescription = "Drag to reorder")
+            }
         },
         colors = ListItemDefaults.colors(
             containerColor = if (isSelected) {

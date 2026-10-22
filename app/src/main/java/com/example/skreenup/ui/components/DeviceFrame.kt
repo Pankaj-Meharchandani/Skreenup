@@ -56,6 +56,7 @@ import com.example.skreenup.ui.models.OverlayLayer
 import com.example.skreenup.ui.models.OverlayType
 import com.example.skreenup.ui.models.DeviceModel
 import com.example.skreenup.ui.models.DeviceModels
+import com.example.skreenup.ui.models.FrameType
 import com.example.skreenup.ui.components.MockupRenderer.drawMockup
 
 @Composable
@@ -771,6 +772,69 @@ fun DeviceFrame(
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
+                    }
+                }
+            }
+        }
+
+        // ── Device Selection Box & Delete Handle ──
+        if (selectedDeviceId != null && deviceLayers.size > 1 && canvasSize.width > 0) {
+            val devLayer = deviceLayers.find { it.id == selectedDeviceId }
+            if (devLayer != null && devLayer.isVisible) {
+                val devModel = DeviceModels.find { it.name == devLayer.deviceName } ?: deviceModel
+                val canvasWidth = canvasSize.width.toFloat()
+                val canvasHeight = canvasSize.height.toFloat()
+                val compWidth = if (canvasWidth / canvasHeight > effectiveRatio) canvasSize.height * effectiveRatio else canvasWidth
+                val compHeight = compWidth / effectiveRatio
+                val compLeft = (canvasWidth - compWidth) / 2
+                val compTop = (canvasHeight - compHeight) / 2
+                val resScale = compWidth / 1000f
+
+                val devFrameAspectRatio = devModel.aspectRatio
+                var devFrameWidth: Float
+                var devFrameHeight: Float
+                if (compWidth / compHeight > devFrameAspectRatio) {
+                    devFrameHeight = compHeight * devLayer.scale
+                    devFrameWidth = devFrameHeight * devFrameAspectRatio
+                } else {
+                    devFrameWidth = compWidth * devLayer.scale
+                    devFrameHeight = devFrameWidth / devFrameAspectRatio
+                }
+
+                val devFrameLeft = compLeft + (compWidth - devFrameWidth) / 2 + (devLayer.offsetX * resScale)
+                val devFrameTop = compTop + (compHeight - devFrameHeight) / 2 + (devLayer.offsetY * resScale)
+
+                val devIsLaptop = devModel.type == FrameType.LAPTOP && devModel.hasChassis
+                val devPixelScale = devFrameWidth / devModel.widthMm
+                val devChassisTotalHeight = if (devIsLaptop) 14f * devPixelScale else 0f
+
+                Box(
+                    modifier = Modifier
+                        .size(
+                            width = with(LocalDensity.current) { devFrameWidth.toDp() },
+                            height = with(LocalDensity.current) { (devFrameHeight + devChassisTotalHeight).toDp() }
+                        )
+                        .graphicsLayer {
+                            translationX = devFrameLeft
+                            translationY = devFrameTop
+                            rotationZ = devLayer.rotation
+                        }
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFFFA1E4E).copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                ) {
+                    // Delete Button (X) - Top Left
+                    Box(
+                        modifier = Modifier
+                            .offset(x = (-16).dp, y = (-16).dp)
+                            .size(36.dp)
+                            .background(Color(0xFFFA1E4E), CircleShape)
+                            .clickable { onRemoveDeviceLayer(devLayer.id) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Rounded.Close, contentDescription = "Delete Device", tint = Color.White, modifier = Modifier.size(20.dp))
                     }
                 }
             }

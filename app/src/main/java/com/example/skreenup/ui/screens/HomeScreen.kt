@@ -10,8 +10,12 @@ import com.example.skreenup.data.PRESET_TEMPLATES
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Smartphone
@@ -169,21 +173,21 @@ fun HomeScreen(
 
             // 4. History
             item {
-                Text(
-                    text = "History",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(top = 8.dp)
+                SectionHeader(
+                    title = "History",
+                    icon = Icons.Rounded.History,
+                    count = projects.size.takeIf { it > 0 }
                 )
             }
 
             if (projects.isEmpty()) {
                 item {
-                    Text(
-                        "Your recent projects will appear here",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    EmptyStateCard(
+                        icon = Icons.Rounded.Edit,
+                        title = "No recent projects",
+                        message = "Your exported mockups will appear here so you can continue editing them.",
+                        actionLabel = "Create a mockup",
+                        onAction = { onNavigateToEditor(null, null, null) }
                     )
                 }
             } else {
@@ -201,13 +205,15 @@ fun HomeScreen(
                     ) {
                         ListItem(
                             headlineContent = { Text(project.name, color = MaterialTheme.colorScheme.onBackground) },
-                            supportingContent = { Text("Modified: ${project.createdAt}", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            supportingContent = { Text("Modified ${formatProjectDate(project.createdAt)}", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                             leadingContent = {
                                 if (project.previewUri != null) {
                                     AsyncImage(
                                         model = project.previewUri,
                                         contentDescription = null,
-                                        modifier = Modifier.size(40.dp)
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(RoundedCornerShape(10.dp))
                                     )
                                 } else {
                                     Icon(
@@ -234,13 +240,98 @@ fun HomeScreen(
 }
 
 @Composable
-fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onBackground
+fun SectionHeader(
+    title: String,
+    icon: ImageVector? = null,
+    count: Int? = null
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        if (count != null) {
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Text(
+                    text = count.toString(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyStateCard(
+    icon: ImageVector,
+    title: String,
+    message: String,
+    actionLabel: String,
+    onAction: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp)
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            OutlinedButton(onClick = onAction) {
+                Text(actionLabel)
+            }
+        }
+    }
+}
+
+private fun formatProjectDate(timestamp: Long): String {
+    val formatter = java.text.DateFormat.getDateTimeInstance(
+        java.text.DateFormat.MEDIUM,
+        java.text.DateFormat.SHORT
     )
+    return formatter.format(java.util.Date(timestamp))
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -271,6 +362,23 @@ fun PresetPreviewCard(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop
                 )
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth(),
+                    // Use the theme's surface/onSurface pair together so the
+                    // label remains readable in both light and dark themes.
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                    )
+                }
             } else {
                 Column(
                     modifier = Modifier

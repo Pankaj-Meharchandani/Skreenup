@@ -51,6 +51,7 @@ fun SettingsScreen(
 
     var showThemeDialog by remember { mutableStateOf(false) }
     var showExportActionDialog by remember { mutableStateOf(false) }
+    var showClearHistoryDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(updateState) {
         when (updateState) {
@@ -231,7 +232,7 @@ fun SettingsScreen(
                 supportingContent = { Text("Delete all recent projects") },
                 leadingContent = { Icon(Icons.Rounded.DeleteSweep, contentDescription = null) },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                modifier = Modifier.clickable { settingsViewModel.clearHistory() }
+                modifier = Modifier.clickable { showClearHistoryDialog = true }
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -309,6 +310,32 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showExportActionDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showClearHistoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearHistoryDialog = false },
+            title = { Text("Clear history?") },
+            text = { Text("This will remove all recent projects. Saved templates will not be affected.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        settingsViewModel.clearHistory()
+                        showClearHistoryDialog = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Clear history")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearHistoryDialog = false }) {
                     Text("Cancel")
                 }
             }
